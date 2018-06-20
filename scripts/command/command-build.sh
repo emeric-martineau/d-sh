@@ -47,7 +47,7 @@ command_build() {
   else
     curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "$URL"
   fi
-pwd
+
   docker build \
     --build-arg "PROGRAM_TO_INSTALL=${DOWNLOADED_FILE_NAME}" \
     --build-arg "DOWNLOADED_FILE_NAME_DEST=${DOWNLOADED_FILE_NAME_DEST}" \
@@ -69,10 +69,10 @@ command_build_base() {
   DEPENDENCIES_ALL=""
 
   for prog in $(ls program); do
-    PROGRAM_NAME="${prog%.*}"
-    COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
+    programmName="${prog%.*}"
+    commonFile="${BASEDIR}/program/${programmName}.sh"
 
-    . "${COMMON_FILE}"
+    . "${commonFile}"
 
     DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${DEPENDENCIES}"
   done
