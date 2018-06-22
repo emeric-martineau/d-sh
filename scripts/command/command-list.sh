@@ -1,3 +1,3 @@
-for prog in $(ls "${BASEDIR}/program"); do
+for prog in $(ls "${BASEDIR}/program" | sort); do
   echo "${prog%.*}"
 done
