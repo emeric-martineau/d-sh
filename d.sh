@@ -4,6 +4,8 @@ CURRENT_SCRIPT_NAME="d.sh"
 CURRENT_SCRIPT_VERSION="1.0.0"
 REALPATH="$(realpath $0)"
 BASEDIR="$(dirname ${REALPATH})"
+# Return code of script
+RETURN_CODE=0
 
 help() {
   cat <<EOF
@@ -41,6 +43,29 @@ version() {
   echo "Copyleft Emeric MARTINEAU (c) 2018"
 }
 
+check_docker() {
+  IS_DOCKER_INSTALLED=$(docker --version 2>/dev/null)
+
+  if [ -z "${IS_DOCKER_INSTALLED}" ]; then
+    echo "Docker is not installed or your are not allowed to run it." >&2
+    exit 255
+  fi
+}
+
+exec_command() {
+  check_docker
+
+  case "${COMMAND}" in
+    build          ) . ${BASEDIR}/scripts/command/command-build.sh;;
+    delete         ) . ${BASEDIR}/scripts/command/command-delete.sh;;
+    run            ) . ${BASEDIR}/scripts/command/command-run.sh $@;;
+    -c | --check   ) . ${BASEDIR}/scripts/command/command-check.sh;;
+    -l | --list    ) . ${BASEDIR}/scripts/command/command-list.sh;;
+    *              ) error_command "${COMMAND}";
+                     RETURN_CODE=2;;
+  esac
+}
+
 if [ $# -gt 0 ]; then
   COMMAND="$1"
   PROGRAM_NAME="$2"
@@ -50,6 +75,7 @@ if [ $# -gt 0 ]; then
 
   if [ ! "${FIRST_COMMAND_CHAR}" = "-" ] && [ $# -lt 2 ]; then
     error_command_missing_param ${COMMAND}
+    RETURN_CODE=1
   else
     shift;
 
@@ -60,16 +86,13 @@ if [ $# -gt 0 ]; then
     COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
     case "${COMMAND}" in
-      build          ) . ${BASEDIR}/scripts/command/command-build.sh;;
-      delete         ) . ${BASEDIR}/scripts/command/command-delete.sh;;
-      run            ) . ${BASEDIR}/scripts/command/command-run.sh $@;;
-      -c | --check   ) . ${BASEDIR}/scripts/command/command-check.sh;;
       -h | --help    ) help;;
-      -l | --list    ) . ${BASEDIR}/scripts/command/command-list.sh;;
-      -v | --version ) version ;;
-      *              ) error_command "${COMMAND}";;
+      -v | --version ) version;;
+      *              ) exec_command "$@";;
     esac
   fi
 else
   help
 fi
+
+exit ${RETURN_CODE}

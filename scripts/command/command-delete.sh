@@ -40,5 +40,6 @@ case ${PROGRAM_NAME} in
       command_delete
     else
       echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+      RETURN_CODE=3
     fi;;
 esac

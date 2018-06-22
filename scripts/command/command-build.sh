@@ -52,6 +52,8 @@ command_build() {
     --build-arg "PROGRAM_TO_INSTALL=${DOWNLOADED_FILE_NAME}" \
     --build-arg "DOWNLOADED_FILE_NAME_DEST=${DOWNLOADED_FILE_NAME_DEST}" \
     . -f "${DOCKERFILE}" -t ${IMAGE_DOCKER}
+
+  RETURN_CODE=$?
 }
 
 command_build_all() {
@@ -82,6 +84,8 @@ command_build_base() {
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \
     . -f "${DOCKERFILE_BASE}" -t ${IMAGE_DOCKER}
+
+  RETURN_CODE=$?
 }
 
 case ${PROGRAM_NAME} in
@@ -93,5 +97,6 @@ case ${PROGRAM_NAME} in
       command_build
     else
       echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+      RETURN_CODE=3
     fi;;
 esac

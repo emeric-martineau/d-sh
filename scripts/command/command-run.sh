@@ -21,6 +21,7 @@ command_run() {
     echo "" >&2
     echo "Build it before with:" >&2
     echo "  ${CURRENT_SCRIPT_NAME} build ${PROGRAM_NAME}" >&2
+    RETURN_CODE=3
   else
     echo "Create container ${CONTAINER_NAME}"
 
@@ -36,6 +37,8 @@ command_run() {
                 -e USERNAME_TO_RUN_UID=${UID} \
                 --rm \
                 ${IMAGE_DOCKER} ${COMMAND_LINE} $@
+
+    RETURN_CODE=$?
   fi
 }
 
