@@ -1,7 +1,8 @@
 for prog in $(ls program); do
   . "${BASEDIR}/program/${prog}"
 
-  NUMBER_IMAGE_EXISTS=$(docker image list ${IMAGE_DOCKER} | wc -l)
+  NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
+  STATUS
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     STATUS="Build need"
@@ -9,5 +10,5 @@ for prog in $(ls program); do
     STATUS="Build done"
   fi
 
-  printf "%-34s%-34s%-13s\n" "${prog%.*}" "${IMAGE_DOCKER}" "${STATUS}"
+  printf "%-34s%-34s%-13s\n" "${prog%.*}" "${APPLICATION_IMAGE_DOCKER}" "${STATUS}"
 done

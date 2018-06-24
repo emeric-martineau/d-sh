@@ -14,7 +14,7 @@ command_run() {
   . "${COMMON_FILE}"
 
   # Check if image exists
-  NUMBER_IMAGE_EXISTS=$(docker image list ${IMAGE_DOCKER} | wc -l)
+  NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     echo "Image for program ${PROGRAM_NAME} not found." >&2
@@ -28,6 +28,12 @@ command_run() {
     UID=$(id -u ${USER})
     GID=$(id -g ${USER})
 
+    EXTRA_RUN_ARG=""
+
+    if [ "${APPLICATION_IPC_HOST}" = "true" ]; then
+      EXTRA_RUN_ARG="${EXTRA_RUN_ARG} --ipc=host"
+    fi
+
     docker run -d -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
                 -v /dev/shm:/dev/shm \
                 -v ${HOME}:/home/${USER} \
@@ -35,8 +41,9 @@ command_run() {
                 -e USERNAME_TO_RUN=${USER} \
                 -e USERNAME_TO_RUN_GID=${GID} \
                 -e USERNAME_TO_RUN_UID=${UID} \
+                ${EXTRA_RUN_ARG} \
                 --rm \
-                ${IMAGE_DOCKER} ${COMMAND_LINE} $@
+                ${APPLICATION_IMAGE_DOCKER} ${APPLICATION_COMMAND_LINE} $@
 
     RETURN_CODE=$?
   fi

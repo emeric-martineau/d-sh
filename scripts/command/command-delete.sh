@@ -16,10 +16,10 @@ command_delete() {
 
   . "${COMMON_FILE}"
 
-  NUMBER_IMAGE_EXISTS=$(docker image list ${IMAGE_DOCKER} | wc -l)
+  NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -gt 1 ]; then
-    docker image rm ${IMAGE_DOCKER}
+    docker image rm ${APPLICATION_IMAGE_DOCKER}
   fi
 }
 

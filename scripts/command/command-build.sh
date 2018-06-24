@@ -22,10 +22,10 @@ EOF
 command_build() {
   echo "Building ${PROGRAM_NAME}..."
 
-  IMAGE_DOCKER=$(command_build_get_base_image_version)
+  BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
 
   # Check if image exists
-  NUMBER_IMAGE_EXISTS=$(docker image list ${IMAGE_DOCKER} | wc -l)
+  NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     command_build_base
@@ -34,24 +34,24 @@ command_build() {
   . "${COMMON_FILE}"
 
   #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
-  DOWNLOADED_FILE_NAME_DEST="./download/${DOWNLOADED_FILE_NAME}"
+  DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
   mkdir -p download
 
   # Get date when file downloaded
-  LAST_DOWNLOAD_CONTENT_FILE=$(date -r "${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)
+  LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
 
   if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
     # Download file only if no updated
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${URL}"
+    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
   else
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "$URL"
+    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
   fi
 
   docker build \
-    --build-arg "PROGRAM_TO_INSTALL=${DOWNLOADED_FILE_NAME}" \
+    --build-arg "APPLICATION_DOWNLOADED_FILE_NAME=${APPLICATION_DOWNLOADED_FILE_NAME}" \
     --build-arg "DOWNLOADED_FILE_NAME_DEST=${DOWNLOADED_FILE_NAME_DEST}" \
-    . -f "${DOCKERFILE}" -t ${IMAGE_DOCKER}
+    . -f "${DOCKERFILE}" -t ${APPLICATION_IMAGE_DOCKER}
 
   RETURN_CODE=$?
 }
@@ -76,14 +76,14 @@ command_build_base() {
 
     . "${commonFile}"
 
-    DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${DEPENDENCIES}"
+    DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${APPLICATION_DEPENDENCIES}"
   done
 
-  IMAGE_DOCKER=$(command_build_get_base_image_version)
+  BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
 
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \
-    . -f "${DOCKERFILE_BASE}" -t ${IMAGE_DOCKER}
+    . -f "${DOCKERFILE_BASE}" -t ${BASE_IMAGE_DOCKER}
 
   RETURN_CODE=$?
 }
