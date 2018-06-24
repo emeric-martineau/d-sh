@@ -14,7 +14,7 @@ command_run() {
   . "${COMMON_FILE}"
 
   # Check if image exists
-  NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
+  local NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     echo "Image for program ${PROGRAM_NAME} not found." >&2
@@ -25,10 +25,10 @@ command_run() {
   else
     echo "Create container ${CONTAINER_NAME}"
 
-    UID=$(id -u ${USER})
-    GID=$(id -g ${USER})
+    local UID=$(id -u ${USER})
+    local GID=$(id -g ${USER})
 
-    EXTRA_RUN_ARG=""
+    local EXTRA_RUN_ARG=""
 
     if [ "${APPLICATION_IPC_HOST}" = "true" ]; then
       EXTRA_RUN_ARG="${EXTRA_RUN_ARG} --ipc=host"

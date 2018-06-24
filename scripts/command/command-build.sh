@@ -1,5 +1,5 @@
-DOCKERFILE="${BASEDIR}/scripts/Dockerfile"
-DOCKERFILE_BASE="${BASEDIR}/scripts/Dockerfile.base"
+local DOCKERFILE="${BASEDIR}/scripts/Dockerfile"
+local DOCKERFILE_BASE="${BASEDIR}/scripts/Dockerfile.base"
 
 command_build_get_base_image_version() {
   # Get name and version from application Dockerfile
@@ -22,10 +22,10 @@ EOF
 command_build() {
   echo "Building ${PROGRAM_NAME}..."
 
-  BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
+  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
 
   # Check if image exists
-  NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
+  local NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     command_build_base
@@ -34,12 +34,12 @@ command_build() {
   . "${COMMON_FILE}"
 
   #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
-  DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
+  local DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
   mkdir -p download
 
   # Get date when file downloaded
-  LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
+  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
 
   if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
     # Download file only if no updated
@@ -58,8 +58,8 @@ command_build() {
 
 command_build_all() {
   for prog in $(ls program); do
-    PROGRAM_NAME="${prog%.*}"
-    COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
+    local PROGRAM_NAME="${prog%.*}"
+    local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
     command_build
   done
@@ -68,7 +68,7 @@ command_build_all() {
 command_build_base() {
   echo "Building base image..."
 
-  DEPENDENCIES_ALL=""
+  local DEPENDENCIES_ALL=""
 
   for prog in $(ls program); do
     programmName="${prog%.*}"
@@ -76,10 +76,10 @@ command_build_base() {
 
     . "${commonFile}"
 
-    DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${APPLICATION_DEPENDENCIES}"
+    local DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${APPLICATION_DEPENDENCIES}"
   done
 
-  BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
+  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
 
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ATOM_VERSION=v1.27.2
+local ATOM_VERSION=v1.27.2
 
 APPLICATION_DOWNLOADED_FILE_NAME='atom.deb'
 APPLICATION_URL="https://github.com/atom/atom/releases/download/${ATOM_VERSION}/atom-amd64.deb"

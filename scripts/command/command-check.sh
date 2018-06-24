@@ -1,8 +1,8 @@
 for prog in $(ls program); do
   . "${BASEDIR}/program/${prog}"
 
-  NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
-  STATUS
+  local NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
+  local STATUS
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
     STATUS="Build need"
