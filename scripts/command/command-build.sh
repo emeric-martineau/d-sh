@@ -19,7 +19,7 @@ Options:
 EOF
 }
 
-command_build() {
+command_build_one() {
   echo "Building ${PROGRAM_NAME}..."
 
   local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
@@ -61,7 +61,7 @@ command_build_all() {
     local PROGRAM_NAME="${prog%.*}"
     local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
-    command_build
+    command_build_one
   done
 }
 
@@ -88,15 +88,22 @@ command_build_base() {
   RETURN_CODE=$?
 }
 
-case ${PROGRAM_NAME} in
-  -h | --help    ) command_build_help;;
-  -a | --all     ) command_build_all;;
-  -b | --base    ) command_build_base;;
-  *              )
-    if [ -f "${COMMON_FILE}" ]; then
-      command_build
-    else
-      echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
-      RETURN_CODE=3
-    fi;;
-esac
+# Main function
+command_build() {
+  case ${PROGRAM_NAME} in
+    -h | --help    ) command_build_help;;
+    -a | --all     ) command_build_all;;
+    -b | --base    ) command_build_base;;
+    *              )
+      if [ -f "${COMMON_FILE}" ]; then
+        command_build_one
+      else
+        echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+        RETURN_CODE=3
+      fi;;
+  esac
+}
+
+COMMAND_DESCRIPTION="Build container image"
+COMMAND_MIN_ARGS=1
+COMMAND_MAX_ARGS=1

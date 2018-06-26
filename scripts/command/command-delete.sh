@@ -11,7 +11,7 @@ Options:
 EOF
 }
 
-command_delete() {
+command_delete_one() {
   echo "Deleting ${PROGRAM_NAME}..."
 
   . "${COMMON_FILE}"
@@ -28,18 +28,24 @@ command_delete_all() {
     PROGRAM_NAME="${prog%.*}"
     COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
-    command_delete
+    command_delete_one
   done
 }
 
-case ${PROGRAM_NAME} in
-  -h | --help    ) command_delete_help;;
-  -a | --all     ) command_delete_all;;
-  *              )
-    if [ -f "${COMMON_FILE}" ]; then
-      command_delete
-    else
-      echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
-      RETURN_CODE=3
-    fi;;
-esac
+command_delete() {
+  case ${PROGRAM_NAME} in
+    -h | --help    ) command_delete_help;;
+    -a | --all     ) command_delete_all;;
+    *              )
+      if [ -f "${COMMON_FILE}" ]; then
+        command_delete_one
+      else
+        echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+        RETURN_CODE=3
+      fi;;
+  esac
+}
+
+COMMAND_DESCRIPTION="Delete image"
+COMMAND_MIN_ARGS=1
+COMMAND_MAX_ARGS=1

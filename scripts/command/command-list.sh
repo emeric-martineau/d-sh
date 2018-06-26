@@ -1,3 +1,9 @@
-for prog in $(ls "${BASEDIR}/program" | sort); do
-  echo "${prog%.*}"
-done
+command_list(){
+  for prog in $(ls "${BASEDIR}/program" | sort); do
+    echo "${prog%.*}"
+  done
+}
+
+COMMAND_DESCRIPTION="List all program avaible"
+COMMAND_MIN_ARGS=0
+COMMAND_MAX_ARGS=0

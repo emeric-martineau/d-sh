@@ -8,7 +8,7 @@ Run an program
 EOF
 }
 
-command_run() {
+command_run_one() {
   echo "Running ${PROGRAM_NAME}..."
 
   . "${COMMON_FILE}"
@@ -49,7 +49,13 @@ command_run() {
   fi
 }
 
-case ${PROGRAM_NAME} in
-  -h | --help    ) command_run_help;;
-  *              ) command_run $@;;
-esac
+command_run() {
+  case ${PROGRAM_NAME} in
+    -h | --help    ) command_run_help;;
+    *              ) command_run_one $@;;
+  esac
+}
+
+COMMAND_DESCRIPTION="Run container"
+COMMAND_MIN_ARGS=1
+COMMAND_MAX_ARGS=-1

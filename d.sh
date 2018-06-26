@@ -15,17 +15,18 @@ Usage: ${CURRENT_SCRIPT_NAME} COMMAND
 A tool to container for all your life
 
 Options:
-  -c, --check              List missing container image
   -h, --help               Print this current help
-  -l, --list               List all program avaible
   -v, --version            Print version information and quit
 
 Commands:
-  build    Build container image
-  delete   Delete image
-  run      Run container
-
 EOF
+  for commandFile in $(ls "${BASEDIR}/scripts/command/" | sort); do
+    local cmdName=$(echo $commandFile | cut -f 1 -d . | cut -f 2 -d -)
+
+    . "${BASEDIR}/scripts/command/command-${cmdName}.sh"
+
+    printf "  %-9s%s\n" "${cmdName}" "${COMMAND_DESCRIPTION}"
+  done
 }
 
 error_command() {
@@ -34,7 +35,7 @@ error_command() {
 }
 
 error_command_missing_param() {
-  echo "\"${CURRENT_SCRIPT_NAME} $1\" requires argument." >&2
+  echo "\"${CURRENT_SCRIPT_NAME} $1\" bad arguments number." >&2
   echo "See '${CURRENT_SCRIPT_NAME} $1 --help'." >&2
 }
 
@@ -55,42 +56,48 @@ check_docker() {
 exec_command() {
   check_docker
 
+  local NB_ARGS=$#
+
   case "${COMMAND}" in
-    build          ) . ${BASEDIR}/scripts/command/command-build.sh;;
-    delete         ) . ${BASEDIR}/scripts/command/command-delete.sh;;
-    run            ) . ${BASEDIR}/scripts/command/command-run.sh $@;;
     -c | --check   ) . ${BASEDIR}/scripts/command/command-check.sh;;
     -l | --list    ) . ${BASEDIR}/scripts/command/command-list.sh;;
-    *              ) error_command "${COMMAND}";
-                     RETURN_CODE=2;;
+    *              )
+                      if [ -f "${BASEDIR}/scripts/command/command-${COMMAND}.sh" ]; then
+                        . "${BASEDIR}/scripts/command/command-${COMMAND}.sh"
+
+                        if ([ "${NB_ARGS}" -eq "${COMMAND_MIN_ARGS}" ] || [ "${NB_ARGS}" -gt "${COMMAND_MIN_ARGS}" ]) &&
+                           ([ "${NB_ARGS}" -eq "${COMMAND_MAX_ARGS}" ] || [ "${NB_ARGS}" -lt "${COMMAND_MAX_ARGS}" ] || [ -1 -eq "${COMMAND_MAX_ARGS}" ]); then
+                          # If no arg need
+                          if [ "${NB_ARGS}" -gt 0 ]; then
+                            local PROGRAM_NAME="$1"
+                            local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
+
+                            shift
+                          fi
+
+                          "command_${COMMAND}" $@
+                        else
+                          error_command_missing_param "${COMMAND}"
+                          RETURN_CODE=1
+                        fi
+                      else
+                        error_command "${COMMAND}"
+                        RETURN_CODE=2
+                      fi;;
   esac
 }
 
 if [ $# -gt 0 ]; then
   COMMAND="$1"
-  PROGRAM_NAME="$2"
 
-  # if "$1" not start by "-", we need check parameter if set
-  FIRST_COMMAND_CHAR=$(echo "${COMMAND}" | cut -c 1)
+  shift;
 
-  if [ ! "${FIRST_COMMAND_CHAR}" = "-" ] && [ $# -lt 2 ]; then
-    error_command_missing_param ${COMMAND}
-    RETURN_CODE=1
-  else
-    shift;
+  case "${COMMAND}" in
+    -h | --help    ) help;;
+    -v | --version ) version;;
+    *              ) exec_command "$@";;
+  esac
 
-    if [ $# -gt 0 ]; then
-      shift
-    fi
-
-    COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
-
-    case "${COMMAND}" in
-      -h | --help    ) help;;
-      -v | --version ) version;;
-      *              ) exec_command "$@";;
-    esac
-  fi
 else
   help
 fi
