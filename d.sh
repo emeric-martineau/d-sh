@@ -53,38 +53,56 @@ check_docker() {
   fi
 }
 
+check_valid_command_name() {
+  local IS_VALID_COMMAND=$(echo "$1" | grep -E '^[a-z]+$')
+
+  if [ -z "${IS_VALID_COMMAND}" ]; then
+    echo "'$1' is not valid command name." >&2
+    exit 128
+  fi
+}
+
+check_valid_program_name() {
+  local IS_VALID_PROGRAM=$(echo "$1" | grep -E '^[a-z]+$')
+
+  if [ -z "${IS_VALID_PROGRAM}" ]; then
+    echo "'$1' is not valid application name." >&2
+    exit 128
+  fi
+}
+
 exec_command() {
   check_docker
 
+  check_valid_command_name "${COMMAND}"
+
   local NB_ARGS=$#
 
-  case "${COMMAND}" in
-    -c | --check   ) . ${BASEDIR}/scripts/command/command-check.sh;;
-    -l | --list    ) . ${BASEDIR}/scripts/command/command-list.sh;;
-    *              )
-                      if [ -f "${BASEDIR}/scripts/command/command-${COMMAND}.sh" ]; then
-                        . "${BASEDIR}/scripts/command/command-${COMMAND}.sh"
+  if [ -f "${BASEDIR}/scripts/command/command-${COMMAND}.sh" ]; then
+    . "${BASEDIR}/scripts/command/command-${COMMAND}.sh"
 
-                        if ([ "${NB_ARGS}" -eq "${COMMAND_MIN_ARGS}" ] || [ "${NB_ARGS}" -gt "${COMMAND_MIN_ARGS}" ]) &&
-                           ([ "${NB_ARGS}" -eq "${COMMAND_MAX_ARGS}" ] || [ "${NB_ARGS}" -lt "${COMMAND_MAX_ARGS}" ] || [ -1 -eq "${COMMAND_MAX_ARGS}" ]); then
-                          # If no arg need
-                          if [ "${NB_ARGS}" -gt 0 ]; then
-                            local PROGRAM_NAME="$1"
-                            local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
+    if ([ "${NB_ARGS}" -eq "${COMMAND_MIN_ARGS}" ] || [ "${NB_ARGS}" -gt "${COMMAND_MIN_ARGS}" ]) &&
+       ([ "${NB_ARGS}" -eq "${COMMAND_MAX_ARGS}" ] || [ "${NB_ARGS}" -lt "${COMMAND_MAX_ARGS}" ] || [ -1 -eq "${COMMAND_MAX_ARGS}" ]); then
+      # If no arg need
+      if [ "${NB_ARGS}" -gt 0 ]; then
+        local PROGRAM_NAME="$1"
 
-                            shift
-                          fi
+        check_valid_program_name "${PROGRAM_NAME}"
 
-                          "command_${COMMAND}" $@
-                        else
-                          error_command_missing_param "${COMMAND}"
-                          RETURN_CODE=1
-                        fi
-                      else
-                        error_command "${COMMAND}"
-                        RETURN_CODE=2
-                      fi;;
-  esac
+        local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
+
+        shift
+      fi
+
+      "command_${COMMAND}" $@
+    else
+      error_command_missing_param "${COMMAND}"
+      RETURN_CODE=1
+    fi
+  else
+    error_command "${COMMAND}"
+    RETURN_CODE=2
+  fi
 }
 
 if [ $# -gt 0 ]; then
