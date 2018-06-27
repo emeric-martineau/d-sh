@@ -40,6 +40,31 @@ RUN echo 'Acquire::http::Proxy "http://xx.xx.xx.xx:3128";' >> /etc/apt/apt.conf 
 
 Rebuild base image and all applications images
 
+## Add a new command
+
+To add new command, just create a file in `scripts/command` folder
+named `command-XXXX.sh` where `XXXX` is the name of command.
+
+Command name must be in **lowercase**.
+
+The `command-XXXX.sh` must be contain their environment variables:
+```
+COMMAND_DESCRIPTION : description of command display in help
+COMMAND_MIN_ARGS    : minimum args that command need
+COMMAND_MAX_ARGS    : maximum args (-1 for no maximum)
+```
+
+and need have a function called `command_XXXX`.
+
+In the `command_XXXX.sh` file, you receive two environment variable:
+```
+PROGRAM_NAME : this is the first parameter of command line. Example './d.sh build atom' this is atom
+COMMON_FILE  : this is name of application file
+```
+
+and can use `RETURN_CODE` to set a exit code value of `d.sh` script.
+
+
 ## In nutshell
 
 ### Docker image entrypoint
