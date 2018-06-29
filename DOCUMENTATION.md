@@ -77,3 +77,11 @@ group ID.
 ### Home mapping
 
 Full home user that launch application are mount in container home user's folder.
+
+### Dockerfiles
+
+```
+Dockerfile.base           : Base image for all application
+Dockerfile.from-deb-file  : Use to build image of application if file is a *.deb
+Dockerfile.from-package   : Use to build image of application if file is a package in linux distribution
+```

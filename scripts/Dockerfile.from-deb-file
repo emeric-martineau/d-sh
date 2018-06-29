@@ -1,10 +1,12 @@
+#
+# This Dockerfile is used when install a .deb file
+#
 FROM d-base-image:v1.0.0
-
 
 ARG APPLICATION_DOWNLOADED_FILE_NAME
 ARG DOWNLOADED_FILE_NAME_DEST
 
-COPY $DOWNLOADED_FILE_NAME_DEST /tmp/$PROGRAM_TO_INSTALL
+COPY $DOWNLOADED_FILE_NAME_DEST /tmp/
 
 RUN apt-get update && \
     apt-get install -y \

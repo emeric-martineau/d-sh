@@ -1,9 +1,40 @@
-local DOCKERFILE="${BASEDIR}/scripts/Dockerfile"
+local DOCKERFILE_DEB="${BASEDIR}/scripts/Dockerfile.from-deb-file"
+local DOCKERFILE_PACKAGE="${BASEDIR}/scripts/Dockerfile.from-package"
 local DOCKERFILE_BASE="${BASEDIR}/scripts/Dockerfile.base"
 
 command_build_get_base_image_version() {
   # Get name and version from application Dockerfile
-  cat "${DOCKERFILE}" | grep 'FROM' | sed -r 's/^FROM\s(.+)/\1/'
+  cat "$1" | grep 'FROM' | sed -r 's/^FROM\s(.+)/\1/'
+}
+
+command_build_get_dockerfile() {
+  case "$1" in
+    # *.tar.bz2) bunzip_then_untar ;;
+    # *.bz2)     bunzip_only ;;
+    # *.tar.gz)  untar_with -z ;;
+    # *.tgz)     untar_with -z ;;
+    # *.gz)      gunzip_only ;;
+    # *.zip)     unzip ;;
+    # *.7z)      do something ;;
+    *.deb)     echo "${DOCKERFILE_DEB}";;
+    *)         echo "${DOCKERFILE_PACKAGE}";;
+esac
+}
+
+command_build_download() {
+  local DOWNLOADED_FILE_NAME_DEST="$1"
+  
+  mkdir -p download
+
+  # Get date when file downloaded
+  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "$1" -R -u 2>/dev/null)"
+
+  if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
+    # Download file only if no updated
+    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+  else
+    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+  fi
 }
 
 command_build_help() {
@@ -22,7 +53,11 @@ EOF
 command_build_one() {
   echo "Building ${PROGRAM_NAME}..."
 
-  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
+  . "${COMMON_FILE}"
+
+  local DOCKERFILE=$(command_build_get_dockerfile ${APPLICATION_DOWNLOADED_FILE_NAME})
+
+  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version "${DOCKERFILE}")
 
   # Check if image exists
   local NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
@@ -31,21 +66,11 @@ command_build_one() {
     command_build_base
   fi
 
-  . "${COMMON_FILE}"
+  if [ -n "${APPLICATION_URL}" ]; then
+    #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
+    local DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
-  #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
-  local DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
-
-  mkdir -p download
-
-  # Get date when file downloaded
-  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
-
-  if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
-    # Download file only if no updated
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
-  else
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+    command_build_download "${DOWNLOADED_FILE_NAME_DEST}"
   fi
 
   docker build \
