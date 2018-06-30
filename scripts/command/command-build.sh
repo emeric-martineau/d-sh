@@ -1,6 +1,8 @@
+local DOCKERFILE_TAR_GZ="${BASEDIR}/scripts/Dockerfile.from-tgz-file"
 local DOCKERFILE_DEB="${BASEDIR}/scripts/Dockerfile.from-deb-file"
 local DOCKERFILE_PACKAGE="${BASEDIR}/scripts/Dockerfile.from-package"
 local DOCKERFILE_BASE="${BASEDIR}/scripts/Dockerfile.base"
+local COMMAND_OPTIONS=""
 
 command_build_get_base_image_version() {
   # Get name and version from application Dockerfile
@@ -9,21 +11,33 @@ command_build_get_base_image_version() {
 
 command_build_get_dockerfile() {
   case "$1" in
-    # *.tar.bz2) bunzip_then_untar ;;
+    *.tar.bz2) echo "${DOCKERFILE_TAR_GZ}";;
     # *.bz2)     bunzip_only ;;
-    # *.tar.gz)  untar_with -z ;;
-    # *.tgz)     untar_with -z ;;
+    *.tar.gz)  echo "${DOCKERFILE_TAR_GZ}";;
+    *.tgz)     echo "${DOCKERFILE_TAR_GZ}";;
     # *.gz)      gunzip_only ;;
     # *.zip)     unzip ;;
     # *.7z)      do something ;;
     *.deb)     echo "${DOCKERFILE_DEB}";;
     *)         echo "${DOCKERFILE_PACKAGE}";;
-esac
+  esac
+}
+
+command_build_get_command_options() {
+  case "$1" in
+    *.tar.bz2) echo "-xjf";;
+    # *.bz2)     bunzip_only ;;
+    *.tar.gz)  echo "-xzf";;
+    *.tgz)     echo "-xzf";;
+    # *.gz)      gunzip_only ;;
+    # *.zip)     unzip ;;
+    # *.7z)      do something ;;
+  esac
 }
 
 command_build_download() {
   local DOWNLOADED_FILE_NAME_DEST="$1"
-  
+
   mkdir -p download
 
   # Get date when file downloaded
@@ -56,6 +70,7 @@ command_build_one() {
   . "${COMMON_FILE}"
 
   local DOCKERFILE=$(command_build_get_dockerfile ${APPLICATION_DOWNLOADED_FILE_NAME})
+  local COMMAND_OPTIONS=$(command_build_get_command_options ${APPLICATION_DOWNLOADED_FILE_NAME})
 
   local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version "${DOCKERFILE}")
 
@@ -73,9 +88,19 @@ command_build_one() {
     command_build_download "${DOWNLOADED_FILE_NAME_DEST}"
   fi
 
+  local BUILD_OPTS=""
+
+  if [ -n "${COMMAND_OPTIONS}" ]; then
+    BUILD_OPTS=" --build-arg COMMAND_OPTIONS=${COMMAND_OPTIONS}"
+  fi
+
+  if [ -n "${DOWNLOADED_FILE_NAME_DEST}" ]; then
+    BUILD_OPTS="${BUILD_OPTS} --build-arg DOWNLOADED_FILE_NAME_DEST=${DOWNLOADED_FILE_NAME_DEST}"
+  fi
+
   docker build \
     --build-arg "APPLICATION_DOWNLOADED_FILE_NAME=${APPLICATION_DOWNLOADED_FILE_NAME}" \
-    --build-arg "DOWNLOADED_FILE_NAME_DEST=${DOWNLOADED_FILE_NAME_DEST}" \
+    ${BUILD_OPTS} \
     . -f "${DOCKERFILE}" -t ${APPLICATION_IMAGE_DOCKER}
 
   RETURN_CODE=$?

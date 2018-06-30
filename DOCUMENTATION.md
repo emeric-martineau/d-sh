@@ -1,3 +1,12 @@
+# Support installation format
+
+D-SH support install file from:
+ * `.deb`
+ * `.tar.gz`
+ * `.tgz`
+ * `.tar.bz2`
+ * native linux distribution repository
+
 # How add application
 
 To add a new application, add file in `program` folder. Filename (without `.sh`

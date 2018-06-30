@@ -1,0 +1,13 @@
+#
+# This Dockerfile is used when install a .tgz or tar.gz or tar.bz2 file
+#
+FROM d-base-image:v1.0.0
+
+ARG APPLICATION_DOWNLOADED_FILE_NAME
+ARG DOWNLOADED_FILE_NAME_DEST
+ARG COMMAND_OPTIONS
+
+COPY $DOWNLOADED_FILE_NAME_DEST /tmp/
+
+RUN tar $COMMAND_OPTIONS /tmp/$APPLICATION_DOWNLOADED_FILE_NAME -C /opt/ && \
+    rm -f /tmp/$APPLICATION_DOWNLOADED_FILE_NAME
