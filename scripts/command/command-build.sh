@@ -129,7 +129,7 @@ command_build_base() {
     local DEPENDENCIES_ALL="${DEPENDENCIES_ALL} ${APPLICATION_DEPENDENCIES}"
   done
 
-  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version)
+  local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version ${DOCKERFILE_DEB})
 
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \
