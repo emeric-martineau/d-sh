@@ -145,11 +145,16 @@ command_build() {
     -a | --all     ) command_build_all;;
     -b | --base    ) command_build_base;;
     *              )
-      if [ -f "${COMMON_FILE}" ]; then
+      local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
+
+      if [ -n "${COMMON_FILE}" ] && [ -f "${COMMON_FILE}" ]; then
         command_build_one
-      else
+      elif [ -n "${COMMON_FILE}" ]; then
         echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+
         RETURN_CODE=3
+      else
+        RETURN_CODE=128
       fi;;
   esac
 }

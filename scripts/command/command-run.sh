@@ -11,6 +11,13 @@ EOF
 command_run_one() {
   echo "Running ${PROGRAM_NAME}..."
 
+  local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
+
+  if [ -z "${COMMON_FILE}" ]; then
+    RETURN_CODE=128
+    return
+  fi
+  
   . "${COMMON_FILE}"
 
   # Check if image exists

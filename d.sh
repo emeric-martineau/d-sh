@@ -7,6 +7,7 @@ BASEDIR="$(dirname ${REALPATH})"
 # Return code of script
 RETURN_CODE=0
 
+# Display help
 help() {
   cat <<EOF
 
@@ -29,21 +30,25 @@ EOF
   done
 }
 
+# Display error
 error_command() {
   echo "${CURRENT_SCRIPT_NAME}: '$1' is not a d.sh command." >&2
   echo "See '${CURRENT_SCRIPT_NAME} --help'" >&2
 }
 
+# Display error
 error_command_missing_param() {
   echo "\"${CURRENT_SCRIPT_NAME} $1\" bad arguments number." >&2
   echo "See '${CURRENT_SCRIPT_NAME} $1 --help'." >&2
 }
 
+# Display version
 version() {
   echo "${CURRENT_SCRIPT_NAME} version ${CURRENT_SCRIPT_VERSION}"
   echo "Copyleft Emeric MARTINEAU (c) 2018"
 }
 
+# Check if docker is installed
 check_docker() {
   IS_DOCKER_INSTALLED=$(docker --version 2>/dev/null)
 
@@ -53,6 +58,9 @@ check_docker() {
   fi
 }
 
+# Check that command name is valid
+#
+# $1 : program name
 check_valid_command_name() {
   local IS_VALID_COMMAND=$(echo "$1" | grep -E '^[a-z]+$')
 
@@ -62,6 +70,9 @@ check_valid_command_name() {
   fi
 }
 
+# Check that program name is valid
+#
+# $1 : program name
 check_valid_program_name() {
   local IS_VALID_PROGRAM=$(echo "$1" | grep -E '^[a-z]+$')
 
@@ -71,6 +82,18 @@ check_valid_program_name() {
   fi
 }
 
+# Print application filename. If empty, program name is invalid
+#
+# $1 : program name
+get_common_file() {
+  local PROGRAM_NAME="$1"
+
+  check_valid_program_name "${PROGRAM_NAME}"
+
+  echo "${BASEDIR}/program/${PROGRAM_NAME}.sh"
+}
+
+# Run command
 exec_command() {
   check_docker
 
@@ -86,10 +109,6 @@ exec_command() {
       # If no arg need
       if [ "${NB_ARGS}" -gt 0 ]; then
         local PROGRAM_NAME="$1"
-
-        check_valid_program_name "${PROGRAM_NAME}"
-
-        local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
         shift
       fi
