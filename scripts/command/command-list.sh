@@ -4,6 +4,6 @@ command_list(){
   done
 }
 
-COMMAND_DESCRIPTION="List all program avaible"
+COMMAND_DESCRIPTION="List all program available"
 COMMAND_MIN_ARGS=0
 COMMAND_MAX_ARGS=0

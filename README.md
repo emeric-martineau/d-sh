@@ -14,14 +14,14 @@ Usage: d.sh COMMAND
 A tool to container for all your life
 
 Options:
-  -c, --check              List missing container image
   -h, --help               Print this current help
-  -l, --list               List all program avaible
   -v, --version            Print version information and quit
 
 Commands:
   build    Build container image
+  check    List missing container image
   delete   Delete image
+  list     List all program available
   run      Run container
 ```
 
