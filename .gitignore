@@ -1,3 +1,5 @@
 icon/*
-download/*
+src/download/*
+test/d-sh
+test/test.log
 TODO

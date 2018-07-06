@@ -38,16 +38,16 @@ command_build_get_command_options() {
 command_build_download() {
   local DOWNLOADED_FILE_NAME_DEST="$1"
 
-  mkdir -p download
+  mkdir -p "${BASEDIR}/download"
 
   # Get date when file downloaded
   local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "$1" -R -u 2>/dev/null)"
 
-  if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
+  if [ -f "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
     # Download file only if no updated
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+    curl -o "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -z "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
   else
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+    curl -o "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
   fi
 }
 
@@ -83,7 +83,7 @@ command_build_one() {
 
   if [ -n "${APPLICATION_URL}" ]; then
     #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
-    local DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
+    local DOWNLOADED_FILE_NAME_DEST="download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
     command_build_download "${DOWNLOADED_FILE_NAME_DEST}"
   fi
@@ -101,7 +101,7 @@ command_build_one() {
   docker build \
     --build-arg "APPLICATION_DOWNLOADED_FILE_NAME=${APPLICATION_DOWNLOADED_FILE_NAME}" \
     ${BUILD_OPTS} \
-    . -f "${DOCKERFILE}" -t ${APPLICATION_IMAGE_DOCKER}
+    ${BASEDIR} -f "${DOCKERFILE}" -t ${APPLICATION_IMAGE_DOCKER}
 
   RETURN_CODE=$?
 }
@@ -133,7 +133,7 @@ command_build_base() {
 
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \
-    . -f "${DOCKERFILE_BASE}" -t ${BASE_IMAGE_DOCKER}
+    ${BASEDIR} -f "${DOCKERFILE_BASE}" -t ${BASE_IMAGE_DOCKER}
 
   RETURN_CODE=$?
 }
