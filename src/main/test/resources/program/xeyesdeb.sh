@@ -1,0 +1,5 @@
+APPLICATION_DOWNLOADED_FILE_NAME='tuxeyes_0.0.3-8_i386.deb'
+APPLICATION_URL="http://localhost:23333/tuxeyes_0.0.3-8_i386.deb"
+APPLICATION_IMAGE_DOCKER="run-tuxeyes:d-sh-test-latest-deb"
+APPLICATION_DEPENDENCIES=""
+APPLICATION_COMMAND_LINE="/usr/bin/xeyes"

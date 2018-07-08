@@ -1,0 +1,5 @@
+APPLICATION_DOWNLOADED_FILE_NAME='xeyes.tgz'
+APPLICATION_URL="http://localhost:23333/xeyes.tgz"
+APPLICATION_IMAGE_DOCKER="run-xeyes:d-sh-test-latest-tgz"
+APPLICATION_DEPENDENCIES=""
+APPLICATION_COMMAND_LINE="/opt/xeyes/xeyes"

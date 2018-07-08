@@ -58,7 +58,7 @@ echo "Running test.."
 TOTAL_TEST=0
 FAIL_TEST=0
 
-for currentTestScript in $(find tests/ -name '*.sh'); do
+for currentTestScript in $(find tests/ -name '*.sh' | sort); do
   . ${currentTestScript}
 
   echo "  - ${DESCRIPTION}" >> ${LOG_FILE}
