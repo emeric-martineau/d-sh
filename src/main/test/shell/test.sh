@@ -8,7 +8,8 @@ HTTP_SERVER_IMAGE_NAME='d-sh-test-static-server:latest'
 FOLDER_TO_TEST='d-sh'
 IMAGE_BASE_NAME='d-base-image:d-sh-test-1.0'
 
-RESOURCES_FOLDER="${PWD}/src/resources"
+RESOURCES_FOLDER="${PWD}/../resources"
+SOURCES_FOLDER="${PWD}/../../shell/"
 
 echo "Running D-SH tests. Full log in ${LOG_FILE}"
 
@@ -20,7 +21,7 @@ NUMBER_IMAGE_EXISTS=$(docker image list ${HTTP_SERVER_IMAGE_NAME} | wc -l)
 if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
   # Build image for static server
   echo "Build HttpStaticServer image..."
-  docker build . -t ${HTTP_SERVER_IMAGE_NAME} -f httpstaticserver/Dockerfile.httpserver >> ${LOG_FILE} 2>&1
+  docker build . -t ${HTTP_SERVER_IMAGE_NAME} -f "${RESOURCES_FOLDER}/httpstaticserver/Dockerfile.httpserver" >> ${LOG_FILE} 2>&1
 
   if [ $? -ne 0 ]; then
     echo "Fail. Cannot build HttpStaticServer" >&2
@@ -30,7 +31,7 @@ fi
 
 # Run static server
 echo "Run HttpStaticServer..."
-HTTP_SERVER_CONTAINER_ID=$(docker run -d --rm -v ${RESOURCES_FOLDER}/download:/download -p 23333:23333 ${HTTP_SERVER_IMAGE_NAME} static-http -r /download -p 23333 -n 0.0.0.0)
+HTTP_SERVER_CONTAINER_ID=$(docker run -d --rm -v "${RESOURCES_FOLDER}/download:/download" -p 23333:23333 ${HTTP_SERVER_IMAGE_NAME} static-http -r /download -p 23333 -n 0.0.0.0)
 
 if [ $? -ne 0 ]; then
   echo "Fail. Cannot run HttpStaticServer" >&2
@@ -39,10 +40,10 @@ fi
 
 # Copy all file from source to test
 echo "Preparing sources..."
-mkdir -p ${FOLDER_TO_TEST} >> ${LOG_FILE} 2>&1
-cp ../src/d.sh ${FOLDER_TO_TEST}/ >> ${LOG_FILE} 2>&1
-cp -r ../src/scripts ${FOLDER_TO_TEST}/ >> ${LOG_FILE} 2>&1
-cp -r ${RESOURCES_FOLDER}/program ${FOLDER_TO_TEST}/ >> ${LOG_FILE} 2>&1
+mkdir -p "${FOLDER_TO_TEST}" >> ${LOG_FILE} 2>&1
+cp "${SOURCES_FOLDER}/d.sh" "${FOLDER_TO_TEST}/" >> ${LOG_FILE} 2>&1
+cp -r "${SOURCES_FOLDER}/scripts" "${FOLDER_TO_TEST}/" >> ${LOG_FILE} 2>&1
+cp -r "${RESOURCES_FOLDER}/program" "${FOLDER_TO_TEST}/" >> ${LOG_FILE} 2>&1
 
 # Change base image name in Dockerfile to don't delete existing
 sed -i.bak -r "s/FROM .+/FROM ${IMAGE_BASE_NAME}/" ${FOLDER_TO_TEST}/scripts/Dockerfile.from-* >> ${LOG_FILE} 2>&1
@@ -57,7 +58,7 @@ echo "Running test.."
 TOTAL_TEST=0
 FAIL_TEST=0
 
-for currentTestScript in $(find src/main/test -name '*.sh'); do
+for currentTestScript in $(find tests/ -name '*.sh'); do
   . ${currentTestScript}
 
   echo "  - ${DESCRIPTION}" >> ${LOG_FILE}
