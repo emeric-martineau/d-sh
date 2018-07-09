@@ -41,7 +41,7 @@ command_build_download() {
   mkdir -p "${BASEDIR}/download"
 
   # Get date when file downloaded
-  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "$1" -R -u 2>/dev/null)"
+  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
 
   if [ -f "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
     # Download file only if no updated

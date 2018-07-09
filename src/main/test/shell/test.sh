@@ -4,7 +4,7 @@ REALPATH="$(realpath $0)"
 BASEDIR="$(dirname ${REALPATH})"
 LOG_FILE="${BASEDIR}/test.log"
 
-HTTP_SERVER_IMAGE_NAME='d-sh-test-static-server:latest'
+HTTP_SERVER_IMAGE_NAME='httpd:2.4'
 FOLDER_TO_TEST='d-sh'
 IMAGE_BASE_NAME='d-base-image:d-sh-test-1.0'
 
@@ -15,23 +15,9 @@ echo "Running D-SH tests. Full log in ${LOG_FILE}"
 
 echo "" > ${LOG_FILE}
 
-# Check if image exists
-NUMBER_IMAGE_EXISTS=$(docker image list ${HTTP_SERVER_IMAGE_NAME} | wc -l)
-
-if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
-  # Build image for static server
-  echo "Build HttpStaticServer image..."
-  docker build . -t ${HTTP_SERVER_IMAGE_NAME} -f "${RESOURCES_FOLDER}/httpstaticserver/Dockerfile.httpserver" >> ${LOG_FILE} 2>&1
-
-  if [ $? -ne 0 ]; then
-    echo "Fail. Cannot build HttpStaticServer" >&2
-    exit 255
-  fi
-fi
-
 # Run static server
 echo "Run HttpStaticServer..."
-HTTP_SERVER_CONTAINER_ID=$(docker run -d --rm -v "${RESOURCES_FOLDER}/download:/download" -p 23333:23333 ${HTTP_SERVER_IMAGE_NAME} static-http -r /download -p 23333 -n 0.0.0.0)
+HTTP_SERVER_CONTAINER_ID=$(docker run -d --rm -v "${RESOURCES_FOLDER}/download:/usr/local/apache2/htdocs/" -p 23333:80 ${HTTP_SERVER_IMAGE_NAME})
 
 if [ $? -ne 0 ]; then
   echo "Fail. Cannot run HttpStaticServer" >&2
