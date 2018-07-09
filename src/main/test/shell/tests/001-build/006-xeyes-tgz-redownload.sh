@@ -6,7 +6,9 @@ COMMAND="build"
 ARGS="xeyestgz"
 TEST_FUNCTION="p6yj3bmahmnhgcm7"
 
-LAST_MODIFY_1=$(stat -c %y ${FOLDER_TO_TEST}/download/xeyes.tgz | grep 'Modify:')
+p6yj3bmahmnhgcm7_before() {
+  LAST_MODIFY_1=$(stat -c %y ${FOLDER_TO_TEST}/download/xeyes.tgz | grep 'Modify:')  
+}
 
 # First argument is return of d.sh
 p6yj3bmahmnhgcm7() {

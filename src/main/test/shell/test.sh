@@ -39,18 +39,41 @@ error() {
   echo "      Message: $1"
 }
 
+# Reset variable of test
+reset_test() {
+  DESCRIPTION=""
+  COMMAND=""
+  ARGS=""
+  TEST_FUNCTION=""
+}
+
+# Run before function and run command
+run_command() {
+  echo "  - ${DESCRIPTION}" >> ${LOG_FILE}
+  echo "  - ${DESCRIPTION}"
+
+  BEFORE_FUNCTION="${TEST_FUNCTION}_before"
+
+  IS_BEFORE_EXISTS=$(type -t "${BEFORE_FUNCTION}")
+
+  if [ "${IS_BEFORE_EXISTS}" = "function" ]; then
+    "${BEFORE_FUNCTION}"
+  fi
+
+  ${FOLDER_TO_TEST}/d.sh ${COMMAND} ${ARGS}  >> ${LOG_FILE} 2>&1
+}
+
 echo "Running test.."
 
 TOTAL_TEST=0
 FAIL_TEST=0
 
 for currentTestScript in $(find tests/ -name '*.sh' | sort); do
+  reset_test
+
   . ${currentTestScript}
 
-  echo "  - ${DESCRIPTION}" >> ${LOG_FILE}
-  echo "  - ${DESCRIPTION}"
-
-  ${FOLDER_TO_TEST}/d.sh ${COMMAND} ${ARGS}  >> ${LOG_FILE} 2>&1
+  run_command
 
   ${TEST_FUNCTION} $?
 
@@ -81,6 +104,3 @@ docker container kill ${HTTP_SERVER_CONTAINER_ID} >> ${LOG_FILE} 2>&1
 # Delete all test image
 docker image rm $(docker image list --filter=reference='*:d-sh-test-*' -q) >> ${LOG_FILE} 2>&1
 docker system prune --force >> ${LOG_FILE} 2>&1
-
-# Delete image for static server
-#docker image rm ${HTTP_SERVER_IMAGE_NAME}
