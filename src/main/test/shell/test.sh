@@ -26,6 +26,7 @@ fi
 
 # Copy all file from source to test
 echo "Preparing sources..."
+rm -rf "${FOLDER_TO_TEST}"
 mkdir -p "${FOLDER_TO_TEST}" >> ${LOG_FILE} 2>&1
 cp "${SOURCES_FOLDER}/d.sh" "${FOLDER_TO_TEST}/" >> ${LOG_FILE} 2>&1
 cp -r "${SOURCES_FOLDER}/scripts" "${FOLDER_TO_TEST}/" >> ${LOG_FILE} 2>&1
@@ -54,11 +55,8 @@ run_command() {
 
   BEFORE_FUNCTION="${TEST_FUNCTION}_before"
 
-  IS_BEFORE_EXISTS=$(type -t "${BEFORE_FUNCTION}")
-
-  if [ "${IS_BEFORE_EXISTS}" = "function" ]; then
-    "${BEFORE_FUNCTION}"
-  fi
+  # If before function doesn't exists
+  "${BEFORE_FUNCTION}" 2>/dev/null || true
 
   ${FOLDER_TO_TEST}/d.sh ${COMMAND} ${ARGS}  >> ${LOG_FILE} 2>&1
 }
