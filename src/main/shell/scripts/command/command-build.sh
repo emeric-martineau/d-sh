@@ -120,7 +120,7 @@ command_build_base() {
 
   local DEPENDENCIES_ALL=""
 
-  for prog in $(ls program); do
+  for prog in $(ls "${BASEDIR}/program"); do
     programmName="${prog%.*}"
     commonFile="${BASEDIR}/program/${programmName}.sh"
 
