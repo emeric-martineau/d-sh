@@ -13,12 +13,12 @@ SOURCES_FOLDER="${PWD}/../../shell/"
 
 # Display log in screen (stdout) and file
 log() {
-  echo "$1" | tee ${LOG_FILE}
+  echo "$1" | tee -a ${LOG_FILE}
 }
 
 # Display log in screen (stderr) and file
 log_error() {
-  echo "$1" >&2 | tee ${LOG_FILE}
+  echo "$1" >&2 | tee -a ${LOG_FILE}
 }
 
 # Function to display error in test
@@ -43,8 +43,11 @@ run_command() {
   # If before function doesn't exists
   "${BEFORE_FUNCTION}" 2>/dev/null || true
 
-  D_SH_OUTPUT=$(${FOLDER_TO_TEST}/d.sh ${COMMAND} ${ARGS} 2>&1 | tee ${LOG_FILE})
+  D_SH_OUTPUT=$(${FOLDER_TO_TEST}/d.sh ${COMMAND} ${ARGS} 2>&1 | tee -a ${LOG_FILE})
 }
+
+# Reset log file
+echo "" > ${LOG_FILE}
 
 log "Running D-SH tests. Full log in ${LOG_FILE}"
 log ""
