@@ -6,11 +6,11 @@ COMMAND="run"
 ARGS="filezilladeb"
 TEST_FUNCTION="c5ufm5rp5uf3ntbz"
 
-APPLICATION_IMAGE_DOCKER="run-filezilla:d-sh-test-latest-deb"
-
 # First argument is return of d.sh
 c5ufm5rp5uf3ntbz() {
   if [ $1 -eq 0 ]; then
+    . "../resources/program/${ARGS}.sh"
+
     RUNNING_CONTAINER_ID=$(docker container list --filter="ancestor=${APPLICATION_IMAGE_DOCKER}" -q)
 
     if [ -n "${RUNNING_CONTAINER_ID}" ]; then
