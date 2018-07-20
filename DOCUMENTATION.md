@@ -94,3 +94,7 @@ Dockerfile.base           : Base image for all application
 Dockerfile.from-deb-file  : Use to build image of application if file is a *.deb
 Dockerfile.from-package   : Use to build image of application if file is a package in linux distribution
 ```
+
+### Add tests
+
+For more informations, read [TESTS](TESTS.md) file.
