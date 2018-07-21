@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# This file test build base image
 DESCRIPTION="Test build tgz application"
 COMMAND="build"
 ARGS="xeyestgz"

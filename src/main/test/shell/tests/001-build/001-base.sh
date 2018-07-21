@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# This file test build base image
 DESCRIPTION="Test build base image"
 COMMAND="build"
 ARGS="-b"

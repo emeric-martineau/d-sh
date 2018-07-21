@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# This file test build base image
 DESCRIPTION="Test build deb application"
 COMMAND="build"
 ARGS="filezilladeb"
