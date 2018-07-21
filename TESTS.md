@@ -48,6 +48,10 @@ If you create a function, with same name that `TEST_FUNCTION` variable, but ende
 
 In test function, you car use `error` function to display error.
 
+You can use also `IMAGE_BASE_NAME` variable to know the name of base name image.
+
+`LOG_FILE` variable is current log file of all tests.
+
 `TEST_FUNCTION` must be return `0` for success or another value for fail.
 
 In `TEST_FUNCTION`, the first parameter is exit code of D-SH after execute `COMMAND`.
