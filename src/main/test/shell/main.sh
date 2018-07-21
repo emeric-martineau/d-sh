@@ -112,3 +112,7 @@ docker container kill $(docker container list | grep ':d-sh-test-' | cut -d ' ' 
 log "Delete all test image"
 docker image rm --force $(docker image list --filter=reference='*:d-sh-test-*' -q) >> ${LOG_FILE} 2>&1
 docker system prune --force >> ${LOG_FILE} 2>&1
+
+if [ ${FAIL_TEST} -ne 0 ]; then
+  exit 1
+fi
