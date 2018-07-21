@@ -1,5 +1,5 @@
 command_check() {
-  for prog in $(ls program); do
+  for prog in $(ls "${BASEDIR}/program"); do
     . "${BASEDIR}/program/${prog}"
 
     local NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)

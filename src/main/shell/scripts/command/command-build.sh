@@ -38,32 +38,49 @@ command_build_get_command_options() {
 command_build_download() {
   local DOWNLOADED_FILE_NAME_DEST="$1"
 
-  mkdir -p download
+  mkdir -p "${BASEDIR}/download"
 
   # Get date when file downloaded
-  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "$1" -R -u 2>/dev/null)"
+  local LAST_DOWNLOAD_CONTENT_FILE="$(date -r "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -R -u 2>/dev/null)"
 
-  if [ -f "${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
+  echo "Downloading file to ${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}"
+
+  if [ -f "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" ] && [ -n "${LAST_DOWNLOAD_CONTENT_FILE}" ]; then
     # Download file only if no updated
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -z "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+    curl -o "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -z "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
   else
-    curl -o "${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+    curl -o "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" -L "${APPLICATION_URL}"
+  fi
+}
+
+# $1 : if delete
+# $2 : name of image to delete
+command_build_remove_image() {
+  if [ "$1" = "true" ]; then
+    local NUMBER_IMAGE_EXISTS=$(docker image list "$2" | wc -l)
+
+    if [ "${NUMBER_IMAGE_EXISTS}" -gt 1 ]; then
+      docker image rm -f "$2"
+    fi
   fi
 }
 
 command_build_help() {
   cat <<EOF
 
-Usage:	${CURRENT_SCRIPT_NAME} build PROGRAM | OPTIONS
+Usage:	${CURRENT_SCRIPT_NAME} build [OPTIONS] PROGRAM1 PROGRAM2 ...
 
 Build an image for a program
 
 Options:
   -a, --all                Build all image of program
-  -b, --base               Build base image (TODO)
+  -b, --base               Build base image
+  -f  --force              Remove existing image before build
+  -m  --missing            Build only missing image
 EOF
 }
 
+# $1 : force build
 command_build_one() {
   echo "Building ${PROGRAM_NAME}..."
 
@@ -78,12 +95,14 @@ command_build_one() {
   local NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
-    command_build_base
+    command_build_base "$1"
   fi
+
+  command_build_remove_image "$1" "${APPLICATION_IMAGE_DOCKER}"
 
   if [ -n "${APPLICATION_URL}" ]; then
     #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
-    local DOWNLOADED_FILE_NAME_DEST="./download/${APPLICATION_DOWNLOADED_FILE_NAME}"
+    local DOWNLOADED_FILE_NAME_DEST="download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
     command_build_download "${DOWNLOADED_FILE_NAME_DEST}"
   fi
@@ -101,26 +120,28 @@ command_build_one() {
   docker build \
     --build-arg "APPLICATION_DOWNLOADED_FILE_NAME=${APPLICATION_DOWNLOADED_FILE_NAME}" \
     ${BUILD_OPTS} \
-    . -f "${DOCKERFILE}" -t ${APPLICATION_IMAGE_DOCKER}
+    "${BASEDIR}" -f "${DOCKERFILE}" -t "${APPLICATION_IMAGE_DOCKER}"
 
   RETURN_CODE=$?
 }
 
+# $1 : force build
 command_build_all() {
   for prog in $(ls program); do
     local PROGRAM_NAME="${prog%.*}"
     local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
-    command_build_one
+    command_build_one $1
   done
 }
 
+# $1 : force build
 command_build_base() {
   echo "Building base image..."
 
   local DEPENDENCIES_ALL=""
 
-  for prog in $(ls program); do
+  for prog in $(ls "${BASEDIR}/program"); do
     programmName="${prog%.*}"
     commonFile="${BASEDIR}/program/${programmName}.sh"
 
@@ -131,34 +152,80 @@ command_build_base() {
 
   local BASE_IMAGE_DOCKER=$(command_build_get_base_image_version ${DOCKERFILE_DEB})
 
+  command_build_remove_image "$1" "${BASE_IMAGE_DOCKER}"
+
   docker build \
     --build-arg "DEPENDENCIES_ALL=${DEPENDENCIES_ALL}" \
-    . -f "${DOCKERFILE_BASE}" -t ${BASE_IMAGE_DOCKER}
+    ${BASEDIR} -f "${DOCKERFILE_BASE}" -t ${BASE_IMAGE_DOCKER}
 
   RETURN_CODE=$?
 }
 
+command_build_missing() {
+  for prog in $(ls "${BASEDIR}/program"); do
+    local PROGRAM_NAME="${prog%.*}"
+
+    local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
+
+    . "${COMMON_FILE}"
+
+    local NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
+
+    if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
+      command_build_one "false"
+    fi
+  done
+}
+
 # Main function
 command_build() {
-  case ${PROGRAM_NAME} in
-    -h | --help    ) command_build_help;;
-    -a | --all     ) command_build_all;;
-    -b | --base    ) command_build_base;;
-    *              )
-      local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
+  local BUILD_BASE="false"
+  local BUILD_ALL="false"
+  local BUILD_FORCE="false"
+  local BUILD_MISSING="false"
+  local LIST_BUILD_PROGRAM=""
 
-      if [ -n "${COMMON_FILE}" ] && [ -f "${COMMON_FILE}" ]; then
-        command_build_one
-      elif [ -n "${COMMON_FILE}" ]; then
-        echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+  for cmd in "${PROGRAM_NAME}" $@; do
+    case ${cmd} in
+      -h | --help    ) command_build_help; return;;
+      -a | --all     ) BUILD_ALL="true";;
+      -b | --base    ) BUILD_BASE="true";;
+      -f | --force   ) BUILD_FORCE="true";;
+      -m | --missing ) BUILD_MISSING="true";;
+      *              )
+        LIST_BUILD_PROGRAM="${LIST_BUILD_PROGRAM} ${cmd}"
+    esac
+  done
 
-        RETURN_CODE=3
-      else
-        RETURN_CODE=128
-      fi;;
-  esac
+  if [ "${BUILD_BASE}" = "true" ]; then
+    command_build_base "${BUILD_FORCE}"
+  fi
+
+  if [ "${BUILD_ALL}" = "true" ]; then
+    command_build_all "${BUILD_FORCE}"
+  elif [ "${BUILD_MISSING}" = "true" ]; then
+    command_build_missing
+  fi
+
+  for PROGRAM_NAME in ${LIST_BUILD_PROGRAM}; do
+    local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
+
+    if [ -n "${COMMON_FILE}" ] && [ -f "${COMMON_FILE}" ]; then
+      command_build_one "${BUILD_FORCE}"
+    elif [ -n "${COMMON_FILE}" ]; then
+      echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
+
+      RETURN_CODE=3
+
+      return
+    else
+      RETURN_CODE=128
+
+      return
+    fi
+  done
 }
 
 COMMAND_DESCRIPTION="Build container image"
 COMMAND_MIN_ARGS=1
-COMMAND_MAX_ARGS=1
+COMMAND_MAX_ARGS=-1
