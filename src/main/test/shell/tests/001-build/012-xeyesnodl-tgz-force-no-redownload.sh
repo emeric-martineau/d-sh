@@ -1,11 +1,11 @@
 #!/bin/sh
 
-DESCRIPTION="Test build tgz application (force no redownload by commandline option)"
+DESCRIPTION="Test build tgz application (force no redownload by config file)"
 COMMAND="build"
-ARGS="-s xeyestgz"
-TEST_FUNCTION="t3h86fxn8f7czg26"
+ARGS="xeyestgznodl"
+TEST_FUNCTION="hw6a9j3csp2kxg6r"
 
-t3h86fxn8f7czg26_before() {
+hw6a9j3csp2kxg6r_before() {
   # Get time stamp of file use by static server
   TIMESTAMP_OF_RESSOURCE_FILE=$(stat -c %Y "${RESOURCES_FOLDER}/download/xeyes.tgz")
   # Caculate a new time stamp
@@ -19,7 +19,7 @@ t3h86fxn8f7czg26_before() {
 }
 
 # First argument is return of d.sh
-t3h86fxn8f7czg26() {
+hw6a9j3csp2kxg6r() {
   if [ $1 -eq 0 ]; then
     LAST_MODIFY_2=$(stat -c %y "${FOLDER_TO_TEST}/download/xeyes.tgz")
 

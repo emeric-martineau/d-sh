@@ -14,12 +14,13 @@ extension) is the name of application.
 
 In this file, we need some environment variables:
 ```
-APPLICATION_DOWNLOADED_FILE_NAME: name of file that store in download folder (e.g. atom.deb)
-APPLICATION_URL                 : url to download file (e.g. https://.../atom/1.27.2/release.deb)
-APPLICATION_IMAGE_DOCKER        : name of docker image to be create (e.g. run-atom:v1.27.2)
-APPLICATION_DEPENDENCIES        : list of dependencies that you would like install in base image
-APPLICATION_COMMAND_LINE        : command to run application in container (e.g /user/bin/atom)
-APPLICATION_IPC_HOST            : set true if need ipc host. Some X11 application need this
+APPLICATION_DOWNLOADED_FILE_NAME  : name of file that store in download folder (e.g. atom.deb)
+APPLICATION_URL                   : url to download file (e.g. https://.../atom/1.27.2/release.deb)
+APPLICATION_IMAGE_DOCKER          : name of docker image to be create (e.g. run-atom:v1.27.2)
+APPLICATION_DEPENDENCIES          : list of dependencies that you would like install in base image
+APPLICATION_COMMAND_LINE          : command to run application in container (e.g /user/bin/atom)
+APPLICATION_IPC_HOST              : set true if need ipc host. Some X11 application need this
+APPLICATION_SKIP_CHECK_REDOWNLOAD : if we want never check new version. Example for Postman, If-modified-date not supported
 ```
 
 # Hack D-SH

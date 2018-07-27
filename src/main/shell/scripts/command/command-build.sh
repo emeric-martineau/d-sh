@@ -118,6 +118,11 @@ command_build_one() {
     #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
     local DOWNLOADED_FILE_NAME_DEST="download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
+    # If in config application we don't want check redownload
+    if [ "${APPLICATION_SKIP_CHECK_REDOWNLOAD}" = "true" ]; then
+      BUILD_SKIP_REDOWNLOAD="true"
+    fi
+
     command_build_download "${DOWNLOADED_FILE_NAME_DEST}" "${BUILD_SKIP_REDOWNLOAD}"
   fi
 
