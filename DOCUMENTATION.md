@@ -5,6 +5,7 @@ D-SH support install file from:
  * `.tar.gz`
  * `.tgz`
  * `.tar.bz2`
+ * `.tar.xz`
  * native linux distribution repository
 
 # How add application

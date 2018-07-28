@@ -11,24 +11,26 @@ command_build_get_base_image_version() {
 
 command_build_get_dockerfile() {
   case "$1" in
-    *.tar.bz2) echo "${DOCKERFILE_TAR_GZ}";;
+    *.tar.bz2 ) echo "${DOCKERFILE_TAR_GZ}";;
     # *.bz2)     bunzip_only ;;
-    *.tar.gz)  echo "${DOCKERFILE_TAR_GZ}";;
-    *.tgz)     echo "${DOCKERFILE_TAR_GZ}";;
+    *.tar.gz  ) echo "${DOCKERFILE_TAR_GZ}";;
+    *.tgz     ) echo "${DOCKERFILE_TAR_GZ}";;
     # *.gz)      gunzip_only ;;
     # *.zip)     unzip ;;
     # *.7z)      do something ;;
-    *.deb)     echo "${DOCKERFILE_DEB}";;
-    *)         echo "${DOCKERFILE_PACKAGE}";;
+    *.tar.xz  ) echo "${DOCKERFILE_TAR_GZ}";;
+    *.deb     ) echo "${DOCKERFILE_DEB}";;
+    *         ) echo "${DOCKERFILE_PACKAGE}";;
   esac
 }
 
 command_build_get_command_options() {
   case "$1" in
-    *.tar.bz2) echo "-xjf";;
+    *.tar.bz2 ) echo "-xjf";;
     # *.bz2)     bunzip_only ;;
-    *.tar.gz)  echo "-xzf";;
-    *.tgz)     echo "-xzf";;
+    *.tar.gz  ) echo "-xzf";;
+    *.tgz     ) echo "-xzf";;
+    *.tar.xz  ) echo "-xJf";;
     # *.gz)      gunzip_only ;;
     # *.zip)     unzip ;;
     # *.7z)      do something ;;
