@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CURRENT_SCRIPT_NAME="d.sh"
-CURRENT_SCRIPT_VERSION="1.0.1"
+CURRENT_SCRIPT_VERSION="1.0.2"
 REALPATH="$(realpath $0)"
 BASEDIR="$(dirname ${REALPATH})"
 # Return code of script
