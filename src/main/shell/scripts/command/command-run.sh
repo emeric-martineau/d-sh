@@ -1,7 +1,7 @@
 command_run_help() {
   cat <<EOF
 
-Usage:	${CURRENT_SCRIPT_NAME} run PROGRAM [PROGRAM ARGS]
+Usage:	${CURRENT_SCRIPT_NAME} run [-i | --interactive] PROGRAM [PROGRAM ARGS]
 
 Run an program
 
@@ -11,13 +11,16 @@ EOF
 command_run_one() {
   echo "Running ${PROGRAM_NAME}..."
 
+  local RUN_INTERACTIVE="$1"
+  shift
+
   local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
 
   if [ -z "${COMMON_FILE}" ]; then
     RETURN_CODE=128
     return
   fi
-  
+
   . "${COMMON_FILE}"
 
   # Check if image exists
@@ -41,26 +44,39 @@ command_run_one() {
       EXTRA_RUN_ARG="${EXTRA_RUN_ARG} --ipc=host"
     fi
 
-    docker run -d -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
-                -v /dev/shm:/dev/shm \
-                -v ${HOME}:/home/${USER} \
-                -e DISPLAY \
-                -e USERNAME_TO_RUN=${USER} \
-                -e USERNAME_TO_RUN_GID=${GID} \
-                -e USERNAME_TO_RUN_UID=${UID} \
-                ${EXTRA_RUN_ARG} \
-                --rm \
-                ${APPLICATION_IMAGE_DOCKER} ${APPLICATION_COMMAND_LINE} $@
+    if [ "${APPLICATION_INTERACTIVE}" = "true" ] || [ "${RUN_INTERACTIVE}" = "true" ]; then
+      EXTRA_RUN_ARG="${EXTRA_RUN_ARG} -it"
+    else
+      EXTRA_RUN_ARG="${EXTRA_RUN_ARG} -d"
+    fi
+
+    docker run -v /tmp/.X11-unix/:/tmp/.X11-unix/ \
+               -v /dev/shm:/dev/shm \
+               -v ${HOME}:/home/${USER} \
+               -e DISPLAY \
+               -e USERNAME_TO_RUN=${USER} \
+               -e USERNAME_TO_RUN_GID=${GID} \
+               -e USERNAME_TO_RUN_UID=${UID} \
+               ${EXTRA_RUN_ARG} \
+               --rm \
+               ${APPLICATION_IMAGE_DOCKER} ${APPLICATION_COMMAND_LINE} $@
 
     RETURN_CODE=$?
   fi
 }
 
 command_run() {
+  local RUN_INTERACTIVE="false"
+
   case ${PROGRAM_NAME} in
-    -h | --help    ) command_run_help;;
-    *              ) command_run_one $@;;
+    -h | --help        ) command_run_help; return;;
+    -i | --interactive )
+                         RUN_INTERACTIVE="true"
+                         PROGRAM_NAME="$1"
+                         shift;;
   esac
+
+  command_run_one "${RUN_INTERACTIVE}" $@
 }
 
 COMMAND_DESCRIPTION="Run container"
