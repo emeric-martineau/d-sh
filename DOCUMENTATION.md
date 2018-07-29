@@ -96,6 +96,7 @@ Full home user that launch application are mount in container home user's folder
 Dockerfile.base           : Base image for all application
 Dockerfile.from-deb-file  : Use to build image of application if file is a *.deb
 Dockerfile.from-package   : Use to build image of application if file is a package in linux distribution
+Dockerfile.from-tgz-file  : Use to build image of application if file is a *.tar.gz, *.tgz, *.tar.bz2, *.tar.xz
 ```
 
 ### Add tests

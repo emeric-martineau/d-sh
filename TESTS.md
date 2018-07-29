@@ -36,21 +36,15 @@ my_name_of_test_function_but_must_be_single() {
 }
 ```
 
-`DESCRIPTION` is variable to be display the current test to be execute.
-
-`COMMAND` is D-SH command (build, run, check...)
-
-`ARGS` is argument of D-SH command
-
-`TEST_FUNCTION` is the name of test function. This must be single in all tests files.
+Test required variables:
+```
+DESCRIPTION   : is variable to be display the current test to be execute
+COMMAND       : is D-SH command (build, run, check...)
+ARGS          : is argument of D-SH command
+TEST_FUNCTION : is the name of test function. This must be single in all tests files.
+```
 
 If you create a function, with same name that `TEST_FUNCTION` variable, but ended by `_before`, this function call before `TEST_FUNCTION`.
-
-In test function, you car use `error` function to display error.
-
-You can use also `IMAGE_BASE_NAME` variable to know the name of base name image.
-
-`LOG_FILE` variable is current log file of all tests.
 
 `TEST_FUNCTION` must be return `0` for success or another value for fail.
 
@@ -58,3 +52,13 @@ In `TEST_FUNCTION`, the first parameter is exit code of D-SH after execute `COMM
 You can use it to check if command work find before check anything.
 
 The second parameter is output of `COMMAND`.
+
+Variables can be use in test:
+```
+LOG_FILE variable : is current log file of all tests. WARNING, when you write in, append your write !
+IMAGE_BASE_NAME   : is to know the name of base name image.
+RESOURCES_FOLDER  : is path to the tests resources folder (normaly src/main/test/resources)
+SOURCES_FOLDER    : is path to the tests D-SH folder copied when tests run (normaly src/main/test/d-sh) and remove at end of tests
+```
+
+In test function, you car use `error` function to display error.
