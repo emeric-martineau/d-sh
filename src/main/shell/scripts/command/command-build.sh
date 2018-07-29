@@ -11,32 +11,43 @@ command_build_get_base_image_version() {
 
 command_build_get_dockerfile() {
   case "$1" in
-    *.tar.bz2) echo "${DOCKERFILE_TAR_GZ}";;
+    *.tar.bz2 ) echo "${DOCKERFILE_TAR_GZ}";;
     # *.bz2)     bunzip_only ;;
-    *.tar.gz)  echo "${DOCKERFILE_TAR_GZ}";;
-    *.tgz)     echo "${DOCKERFILE_TAR_GZ}";;
+    *.tar.gz  ) echo "${DOCKERFILE_TAR_GZ}";;
+    *.tgz     ) echo "${DOCKERFILE_TAR_GZ}";;
     # *.gz)      gunzip_only ;;
     # *.zip)     unzip ;;
     # *.7z)      do something ;;
-    *.deb)     echo "${DOCKERFILE_DEB}";;
-    *)         echo "${DOCKERFILE_PACKAGE}";;
+    *.tar.xz  ) echo "${DOCKERFILE_TAR_GZ}";;
+    *.deb     ) echo "${DOCKERFILE_DEB}";;
+    *         ) echo "${DOCKERFILE_PACKAGE}";;
   esac
 }
 
 command_build_get_command_options() {
   case "$1" in
-    *.tar.bz2) echo "-xjf";;
+    *.tar.bz2 ) echo "-xjf";;
     # *.bz2)     bunzip_only ;;
-    *.tar.gz)  echo "-xzf";;
-    *.tgz)     echo "-xzf";;
+    *.tar.gz  ) echo "-xzf";;
+    *.tgz     ) echo "-xzf";;
+    *.tar.xz  ) echo "-xJf";;
     # *.gz)      gunzip_only ;;
     # *.zip)     unzip ;;
     # *.7z)      do something ;;
   esac
 }
 
+# $1 : name of download file
+# $2 : if skip redownload
 command_build_download() {
   local DOWNLOADED_FILE_NAME_DEST="$1"
+  local BUILD_SKIP_REDOWNLOAD="$2"
+
+  # If file exists and we don't want redownload it
+  if [ -f "${BASEDIR}/${DOWNLOADED_FILE_NAME_DEST}" ] && [ "${BUILD_SKIP_REDOWNLOAD}" = "true" ]; then
+    echo "Skip downloading ${DOWNLOADED_FILE_NAME_DEST}"
+    return
+  fi
 
   mkdir -p "${BASEDIR}/download"
 
@@ -77,11 +88,16 @@ Options:
   -b, --base               Build base image
   -f  --force              Remove existing image before build
   -m  --missing            Build only missing image
+  -s  --skip-redownload    If binary is present, don't check if new version is available
 EOF
 }
 
 # $1 : force build
+# $2 : if skip redownload
 command_build_one() {
+  local BUILD_FORCE="$1"
+  local BUILD_SKIP_REDOWNLOAD="$2"
+
   echo "Building ${PROGRAM_NAME}..."
 
   . "${COMMON_FILE}"
@@ -95,16 +111,21 @@ command_build_one() {
   local NUMBER_IMAGE_EXISTS=$(docker image list ${BASE_IMAGE_DOCKER} | wc -l)
 
   if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
-    command_build_base "$1"
+    command_build_base "${BUILD_FORCE}"
   fi
 
-  command_build_remove_image "$1" "${APPLICATION_IMAGE_DOCKER}"
+  command_build_remove_image "${BUILD_FORCE}" "${APPLICATION_IMAGE_DOCKER}"
 
   if [ -n "${APPLICATION_URL}" ]; then
     #DOWNLOADED_FILE_NAME_DEST="${BASEDIR}/download/${DOWNLOADED_FILE_NAME}"
     local DOWNLOADED_FILE_NAME_DEST="download/${APPLICATION_DOWNLOADED_FILE_NAME}"
 
-    command_build_download "${DOWNLOADED_FILE_NAME_DEST}"
+    # If in config application we don't want check redownload
+    if [ "${APPLICATION_SKIP_CHECK_REDOWNLOAD}" = "true" ]; then
+      BUILD_SKIP_REDOWNLOAD="true"
+    fi
+
+    command_build_download "${DOWNLOADED_FILE_NAME_DEST}" "${BUILD_SKIP_REDOWNLOAD}"
   fi
 
   local BUILD_OPTS=""
@@ -126,12 +147,16 @@ command_build_one() {
 }
 
 # $1 : force build
+# $2 : if skip redownload
 command_build_all() {
+  local BUILD_FORCE="$1"
+  local BUILD_SKIP_REDOWNLOAD="$2"
+
   for prog in $(ls program); do
     local PROGRAM_NAME="${prog%.*}"
     local COMMON_FILE="${BASEDIR}/program/${PROGRAM_NAME}.sh"
 
-    command_build_one $1
+    command_build_one "${BUILD_FORCE}" "${BUILD_SKIP_REDOWNLOAD}"
   done
 }
 
@@ -161,7 +186,10 @@ command_build_base() {
   RETURN_CODE=$?
 }
 
+# $1 : if skip redownload
 command_build_missing() {
+  local BUILD_SKIP_REDOWNLOAD="$1"
+
   for prog in $(ls "${BASEDIR}/program"); do
     local PROGRAM_NAME="${prog%.*}"
 
@@ -172,7 +200,7 @@ command_build_missing() {
     local NUMBER_IMAGE_EXISTS=$(docker image list ${APPLICATION_IMAGE_DOCKER} | wc -l)
 
     if [ "${NUMBER_IMAGE_EXISTS}" -lt 2 ]; then
-      command_build_one "false"
+      command_build_one "false" "${BUILD_SKIP_REDOWNLOAD}"
     fi
   done
 }
@@ -183,16 +211,18 @@ command_build() {
   local BUILD_ALL="false"
   local BUILD_FORCE="false"
   local BUILD_MISSING="false"
+  local BUILD_SKIP_REDOWNLOAD="false"
   local LIST_BUILD_PROGRAM=""
 
   for cmd in "${PROGRAM_NAME}" $@; do
     case ${cmd} in
-      -h | --help    ) command_build_help; return;;
-      -a | --all     ) BUILD_ALL="true";;
-      -b | --base    ) BUILD_BASE="true";;
-      -f | --force   ) BUILD_FORCE="true";;
-      -m | --missing ) BUILD_MISSING="true";;
-      *              )
+      -h | --help            ) command_build_help; return;;
+      -a | --all             ) BUILD_ALL="true";;
+      -b | --base            ) BUILD_BASE="true";;
+      -f | --force           ) BUILD_FORCE="true";;
+      -m | --missing         ) BUILD_MISSING="true";;
+      -s | --skip-redownload ) BUILD_SKIP_REDOWNLOAD="true";;
+      *                      )
         LIST_BUILD_PROGRAM="${LIST_BUILD_PROGRAM} ${cmd}"
     esac
   done
@@ -202,16 +232,16 @@ command_build() {
   fi
 
   if [ "${BUILD_ALL}" = "true" ]; then
-    command_build_all "${BUILD_FORCE}"
+    command_build_all "${BUILD_FORCE}" "${BUILD_SKIP_REDOWNLOAD}"
   elif [ "${BUILD_MISSING}" = "true" ]; then
-    command_build_missing
+    command_build_missing "${BUILD_SKIP_REDOWNLOAD}"
   fi
 
   for PROGRAM_NAME in ${LIST_BUILD_PROGRAM}; do
     local COMMON_FILE=$(get_common_file ${PROGRAM_NAME})
 
     if [ -n "${COMMON_FILE}" ] && [ -f "${COMMON_FILE}" ]; then
-      command_build_one "${BUILD_FORCE}"
+      command_build_one "${BUILD_FORCE}" "${BUILD_SKIP_REDOWNLOAD}"
     elif [ -n "${COMMON_FILE}" ]; then
       echo "Program ${PROGRAM_NAME} not found. Check 'program' folder." >&2
 

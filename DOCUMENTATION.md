@@ -5,6 +5,7 @@ D-SH support install file from:
  * `.tar.gz`
  * `.tgz`
  * `.tar.bz2`
+ * `.tar.xz`
  * native linux distribution repository
 
 # How add application
@@ -14,12 +15,14 @@ extension) is the name of application.
 
 In this file, we need some environment variables:
 ```
-APPLICATION_DOWNLOADED_FILE_NAME: name of file that store in download folder (e.g. atom.deb)
-APPLICATION_URL                 : url to download file (e.g. https://.../atom/1.27.2/release.deb)
-APPLICATION_IMAGE_DOCKER        : name of docker image to be create (e.g. run-atom:v1.27.2)
-APPLICATION_DEPENDENCIES        : list of dependencies that you would like install in base image
-APPLICATION_COMMAND_LINE        : command to run application in container (e.g /user/bin/atom)
-APPLICATION_IPC_HOST            : set true if need ipc host. Some X11 application need this
+APPLICATION_DOWNLOADED_FILE_NAME  : name of file that store in download folder (e.g. atom.deb)
+APPLICATION_URL                   : url to download file (e.g. https://.../atom/1.27.2/release.deb)
+APPLICATION_IMAGE_DOCKER          : name of docker image to be create (e.g. run-atom:v1.27.2)
+APPLICATION_DEPENDENCIES          : list of dependencies that you would like install in base image
+APPLICATION_COMMAND_LINE          : command to run application in container (e.g /user/bin/atom)
+APPLICATION_IPC_HOST              : set "true" if need ipc host. Some X11 application need this
+APPLICATION_SKIP_CHECK_REDOWNLOAD : if we want never check new version. Example for Postman, If-modified-date not supported (set to "true")
+APPLICATION_INTERACTIVE           : run application in console (set to "true")
 ```
 
 # Hack D-SH
@@ -93,6 +96,7 @@ Full home user that launch application are mount in container home user's folder
 Dockerfile.base           : Base image for all application
 Dockerfile.from-deb-file  : Use to build image of application if file is a *.deb
 Dockerfile.from-package   : Use to build image of application if file is a package in linux distribution
+Dockerfile.from-tgz-file  : Use to build image of application if file is a *.tar.gz, *.tgz, *.tar.bz2, *.tar.xz
 ```
 
 ### Add tests
