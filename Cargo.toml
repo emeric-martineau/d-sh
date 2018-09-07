@@ -1,0 +1,6 @@
+[package]
+name = "d-sh"
+version = "0.0.1"
+authors = ["Emeric MARTINEAU"]
+
+[dependencies]

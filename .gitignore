@@ -1,5 +1,2 @@
-icon/*
-src/main/shell/download/*
-src/main/test/shell/d-sh
-src/main/test/shell/test.log
-TODO
+/target
+**/*.rs.bk
