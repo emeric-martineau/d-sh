@@ -9,11 +9,12 @@ mod io;
 use std::env;
 use command::Command;
 use command::check::CHECK;
+use command::init::INIT;
 use help::help;
 use help::version;
 use io::DefaultOutputWriter;
 
-const ALL_COMMANDS: &'static [Command] = &[CHECK];
+const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT];
 
 ///
 /// Main function of D-SH
@@ -26,8 +27,6 @@ fn main() {
 
     let println = &mut DefaultOutputWriter;
 
-    ALL_COMMANDS[0].exec(&args, println);
-
     if args.len() == 1 {
         help(ALL_COMMANDS, println);
         exit_code = 1
@@ -38,10 +37,23 @@ fn main() {
             "-h" | "--help" => help(ALL_COMMANDS, println),
             "-v" | "--version" => version(&args, println),
             cmd => {
-                eprintln!("D-SH: '{}' is not a d.sh command.", cmd);
-                eprintln!("See '{} --help'", args[0]);
+                let mut command_to_run = None;
 
-                exit_code = 2;
+                for c in ALL_COMMANDS {
+                    if cmd == c.name {
+                        command_to_run = Some(c);
+                    }
+                }
+
+                exit_code = match command_to_run {
+                    Some(c) => c.exec(&args, println),
+                    None => {
+                        eprintln!("D-SH: '{}' is not a d.sh command.", cmd);
+                        eprintln!("See '{} --help'", args[0]);
+
+                        2
+                    }
+                }
             }
         };
     }

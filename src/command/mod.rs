@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 pub mod check;
+pub mod init;
 
 use super::io::OutputWriter;
 
