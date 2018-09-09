@@ -23,18 +23,11 @@ fn init(command: &Command, args: &[String], writer: &mut OutputWriter) -> i32 {
             let home_dir = match path.to_str() {
                 None => String::from(""),
                 Some(p) => {
-                    let slash = match p.chars().last() {
-                        None => "",
-                        Some(c) => if c == '/' {
-                                ""
-                            } else {
-                                "/"
-                            }
-                    };
-
                     let mut result = String::from(p);
 
-                    result.push_str(slash);
+                    if ! p.ends_with("/") {
+                        result.push_str("/");
+                    }
 
                     result
                 }
