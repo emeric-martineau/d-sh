@@ -4,7 +4,7 @@
 /// Release under MIT License.
 ///
 use command::Command;
-use super::super::io::OutputWriter;
+use super::super::io::InputOutputHelper;
 
 ///
 /// Function to implement check D-SH command.
@@ -13,8 +13,8 @@ use super::super::io::OutputWriter;
 ///
 /// returning exit code of D-SH.
 ///
-fn check(command: &Command, args: &[String], writer: &mut OutputWriter) -> i32 {
-    writer.println(&format!("Coucou !"));
+fn check(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+    io_helper.println(&format!("Coucou !"));
     0
 }
 

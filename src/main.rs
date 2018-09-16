@@ -12,7 +12,7 @@ use command::check::CHECK;
 use command::init::INIT;
 use help::help;
 use help::version;
-use io::DefaultOutputWriter;
+use io::DefaultInputOutputHelper;
 
 const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT];
 
@@ -25,7 +25,7 @@ fn main() {
     // Default exit code
     let mut exit_code: i32 = 0;
 
-    let println = &mut DefaultOutputWriter;
+    let println = &mut DefaultInputOutputHelper;
 
     if args.len() == 1 {
         help(ALL_COMMANDS, println);

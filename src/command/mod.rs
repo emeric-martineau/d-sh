@@ -6,7 +6,7 @@
 pub mod check;
 pub mod init;
 
-use super::io::OutputWriter;
+use super::io::InputOutputHelper;
 
 
 ///
@@ -26,7 +26,7 @@ pub struct Command {
     /// Usage for help command.
     pub usage: &'static str,
     /// Execute Command.
-    pub exec_cmd: fn(command: &Command, args: &[String], println: &mut OutputWriter) -> i32
+    pub exec_cmd: fn(command: &Command, args: &[String], println: &mut InputOutputHelper) -> i32
 }
 
 impl Command {
@@ -37,7 +37,7 @@ impl Command {
     ///
     /// returning exit code of D-SH
     ///
-    pub fn exec(&self, args: &[String], println: &mut OutputWriter) -> i32 {
+    pub fn exec(&self, args: &[String], println: &mut InputOutputHelper) -> i32 {
         (self.exec_cmd)(self, &args, println)
     }
 }

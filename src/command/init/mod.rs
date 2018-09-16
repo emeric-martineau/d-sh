@@ -4,20 +4,20 @@
 /// Release under MIT License.
 ///
 use command::Command;
-use super::super::io::OutputWriter;
+use super::super::io::InputOutputHelper;
 use std::env::home_dir;
-use std::path::Path;
+
+/// Default directory of downloading applictions.
+pub const DOWNLOAD_DIR: &str = "~/.d-sh/download";
+/// Default directory to store applications.
+pub const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
+/// Default config filename.
+pub const DEFAULT_CONFIG_FILE: &str = ".d-sh/config.yml";
 
 ///
-/// Function to implement check D-SH command.
+/// Function to return config filename.
 ///
-/// `args` parameter is command line arguments of D-SH.
-///
-/// returning exit code of D-SH.
-///
-fn init(command: &Command, args: &[String], writer: &mut OutputWriter) -> i32 {
-    let mut exit_code = 0;
-
+fn get_config_filename() -> Option<String> {
     match home_dir() {
         Some(path) => {
             let home_dir = match path.to_str() {
@@ -34,16 +34,44 @@ fn init(command: &Command, args: &[String], writer: &mut OutputWriter) -> i32 {
             };
 
             let mut config_file = String::from(home_dir);
-            config_file.push_str(".d-sh/config.yml");
-println!("{}", &config_file);
-            if Path::new(&config_file).exists() {
-                println!("{}", "yes");
+            config_file.push_str(DEFAULT_CONFIG_FILE);
+
+            Some(config_file)
+        },
+        None => None
+    }
+}
+
+///
+/// Function to implement check D-SH command.
+///
+/// `args` parameter is command line arguments of D-SH.
+///
+/// returning exit code of D-SH.
+///
+fn init(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+    let mut exit_code = 0;
+
+    match get_config_filename() {
+        Some(config_file) => {
+            if io_helper.file_exits(&config_file) {
+                io_helper.eprintln(&format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file));
+                exit_code = 3;
             } else {
-                println!("{}", "no");
+                io_helper.print(&format!("Enter the path of download directory (default: {}): ", DOWNLOAD_DIR));
+                let download_dir = io_helper.read_line();
+                let download_dir = download_dir.trim();
+
+                io_helper.print(&format!("Enter the path of applications directory (default: {}): ", APPLICATIONS_DIR));
+                let applications_dir = io_helper.read_line();
+                let applications_dir = applications_dir.trim();
+
+                let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\n", download_dir, applications_dir);
+                io_helper.file_write(&config_file, &data).expect(&format!("Unable to write file '{}'", config_file));
             }
         },
         None => {
-            writer.eprintln("Impossible to get your home dir!");
+            io_helper.eprintln("Impossible to get your home dir!");
             exit_code = 2;
         }
     }
@@ -68,3 +96,60 @@ pub const INIT: Command = Command {
     usage: "",
     exec_cmd: init
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::super::io::InputOutputHelper;
+    use super::super::super::io::tests::TestInputOutputHelper;
+    use super::get_config_filename;
+    use super::init;
+    use super::INIT;
+
+    #[test]
+    fn unable_to_create_configfile_if_exists() {
+        let io_helper = &mut TestInputOutputHelper::new();
+
+        let args = [];
+
+        match get_config_filename() {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.insert(cfg_file, String::from("toto"))
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        let result = init(&INIT, &args, io_helper);
+
+        assert_eq!(result, 3);
+    }
+
+    #[test]
+    fn create_configfile_if_exists() {
+        let io_helper = &mut TestInputOutputHelper::new();
+
+        io_helper.stdin.push(String::from("toto"));
+        io_helper.stdin.push(String::from("titi"));
+
+        let args = [];
+
+        let result = init(&INIT, &args, io_helper);
+
+        assert_eq!(result, 0);
+
+        match get_config_filename() {
+            Some(cfg_file) => {
+                let v = io_helper.files.get(&cfg_file);
+
+                match v {
+                    Some(c) => {
+                        println!("{}", c);
+                        assert_eq!(c, &format!("---\ndownload_dir: \"toto\"\napplications_dir: \"titi\"\n"))
+                    },
+                    None => panic!("The config file was not created")
+                };
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+    }
+}

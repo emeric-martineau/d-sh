@@ -4,27 +4,27 @@
 /// Release under MIT License.
 ///
 use super::command::Command;
-use super::io::OutputWriter;
+use super::io::InputOutputHelper;
 
 ///
 /// Display help of D-SH.
 ///
 /// `commands` parameter is list of all avaible command
 ///
-pub fn help(commands: &[Command], writer: &mut OutputWriter) {
-    writer.println(&format!(""));
-    writer.println(&format!("Usage: d-sh COMMAND"));
-    writer.println(&format!(""));
-    writer.println(&format!("A tool to container all your life"));
-    writer.println(&format!(""));
-    writer.println(&format!("Options:"));
-    writer.println(&format!("  -h, --help               Print this current help"));
-    writer.println(&format!("  -v, --version            Print version information and quit"));
-    writer.println(&format!(""));
-    writer.println(&format!("Commands:"));
+pub fn help(commands: &[Command], io_helper: &mut InputOutputHelper) {
+    io_helper.println(&format!(""));
+    io_helper.println(&format!("Usage: d-sh COMMAND"));
+    io_helper.println(&format!(""));
+    io_helper.println(&format!("A tool to container all your life"));
+    io_helper.println(&format!(""));
+    io_helper.println(&format!("Options:"));
+    io_helper.println(&format!("  -h, --help               Print this current help"));
+    io_helper.println(&format!("  -v, --version            Print version information and quit"));
+    io_helper.println(&format!(""));
+    io_helper.println(&format!("Commands:"));
 
     for cmd in commands {
-        writer.println(&format!("  {:<width$}{}", cmd.name, cmd.description, width = 9));
+        io_helper.println(&format!("  {:<width$}{}", cmd.name, cmd.description, width = 9));
     }
 }
 
@@ -33,40 +33,40 @@ pub fn help(commands: &[Command], writer: &mut OutputWriter) {
 ///
 /// `args` parameter is command line arguments of D-SH.
 ///
-pub fn version(args: &[String], writer: &mut OutputWriter) {
+pub fn version(args: &[String], io_helper: &mut InputOutputHelper) {
     let version = env!("CARGO_PKG_VERSION");
 
-    writer.println(&format!("{} version {}", args[0], version));
-    writer.println(&format!("Copyleft Emeric MARTINEAU (c) 2018"));
+    io_helper.println(&format!("{} version {}", args[0], version));
+    io_helper.println(&format!("Copyleft Emeric MARTINEAU (c) 2018"));
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::io::OutputWriter;
-    use super::super::io::tests::TestOutputWriter;
+    use super::super::io::InputOutputHelper;
+    use super::super::io::tests::TestInputOutputHelper;
     use super::version;
     use super::help;
     use super::super::command::Command;
 
     #[test]
     fn display_version() {
-        let writer = &mut TestOutputWriter::new();
+        let io_helper = &mut TestInputOutputHelper::new();
 
         let args = [String::from("ttt")];
 
-        version(&args, writer);
+        version(&args, io_helper);
 
-        assert_eq!(writer.stdout.len(), 2);
+        assert_eq!(io_helper.stdout.len(), 2);
     }
 
-    fn test_help(command: &Command, args: &[String], writer: &mut OutputWriter) -> i32 {
-        writer.println(&format!("Coucou !"));
+    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+        io_helper.println(&format!("Coucou !"));
         0
     }
 
     #[test]
     fn display_help() {
-        let writer = &mut TestOutputWriter::new();
+        let io_helper = &mut TestInputOutputHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -80,11 +80,11 @@ mod tests {
 
         let commands = &[one_cmd];
 
-        help(commands, writer);
+        help(commands, io_helper);
 
-        assert_eq!(writer.stdout.len(), 11);
+        assert_eq!(io_helper.stdout.len(), 11);
 
-        match writer.stdout.get(10) {
+        match io_helper.stdout.get(10) {
             Some(s) => assert_eq!(s, "  test     It's a test"),
             None => panic!("Help is not valid")
         }
