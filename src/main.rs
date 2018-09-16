@@ -13,6 +13,7 @@ use command::init::INIT;
 use help::help;
 use help::version;
 use io::DefaultInputOutputHelper;
+use io::InputOutputHelper;
 
 const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT];
 
@@ -25,17 +26,17 @@ fn main() {
     // Default exit code
     let mut exit_code: i32 = 0;
 
-    let println = &mut DefaultInputOutputHelper;
+    let io_helper = &mut DefaultInputOutputHelper;
 
     if args.len() == 1 {
-        help(ALL_COMMANDS, println);
+        help(ALL_COMMANDS, io_helper);
         exit_code = 1
     } else {
         let command = &args[1];
 
         match command.as_str() {
-            "-h" | "--help" => help(ALL_COMMANDS, println),
-            "-v" | "--version" => version(&args, println),
+            "-h" | "--help" => help(ALL_COMMANDS, io_helper),
+            "-v" | "--version" => version(&args, io_helper),
             cmd => {
                 let mut command_to_run = None;
 
@@ -46,10 +47,10 @@ fn main() {
                 }
 
                 exit_code = match command_to_run {
-                    Some(c) => c.exec(&args, println),
+                    Some(c) => c.exec(&args, io_helper),
                     None => {
-                        eprintln!("D-SH: '{}' is not a d.sh command.", cmd);
-                        eprintln!("See '{} --help'", args[0]);
+                        io_helper.eprintln(&format!("D-SH: '{}' is not a d.sh command.", cmd));
+                        io_helper.eprintln(&format!("See '{} --help'", args[0]));
 
                         2
                     }
