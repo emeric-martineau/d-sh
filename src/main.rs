@@ -47,7 +47,7 @@ fn main() {
                 }
 
                 exit_code = match command_to_run {
-                    Some(c) => c.exec(&args, io_helper),
+                    Some(c) => c.exec(&args[2..], io_helper),
                     None => {
                         io_helper.eprintln(&format!("D-SH: '{}' is not a d.sh command.", cmd));
                         io_helper.eprintln(&format!("See '{} --help'", args[0]));
