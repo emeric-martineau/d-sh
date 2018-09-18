@@ -1,5 +1,17 @@
 FROM ubuntu:18.04
 
+ENV ALL_PROXY socks://20.10.5.252:3128/
+ENV FTP_PROXY http://20.10.5.252:3128/
+ENV HTTPS_PROXY http://20.10.5.252:3128/
+ENV HTTP_PROXY http://20.10.5.252:3128/
+ENV all_proxy socks://20.10.5.252:3128/
+ENV ftp_proxy http://20.10.5.252:3128/
+ENV http_proxy http://20.10.5.252:3128/
+ENV https_proxy http://20.10.5.252:3128/
+
+RUN echo 'Acquire::http::Proxy "http://20.10.5.252:3128";' >> /etc/apt/apt.conf && \
+    echo 'Acquire::https::Proxy "http://20.10.5.252:3128";' >> /etc/apt/apt.conf
+
 ENV RUSTUP_HOME /opt/rustup
 ENV CARGO_HOME /opt/cargo
 

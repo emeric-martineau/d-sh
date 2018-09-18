@@ -14,6 +14,8 @@ use super::super::io::InputOutputHelper;
 /// returning exit code of D-SH.
 ///
 fn check(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+
+
     io_helper.println(&format!("Coucou !"));
     0
 }
@@ -33,5 +35,6 @@ pub const CHECK: Command = Command {
     max_args: 0,
     /// `check` command have no help.
     usage: "",
+    need_config_file: true,
     exec_cmd: check
 };

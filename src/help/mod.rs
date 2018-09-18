@@ -75,6 +75,7 @@ mod tests {
             min_args: 0,
             max_args: 0,
             usage: "",
+            need_config_file: false,
             exec_cmd: test_help
         };
 

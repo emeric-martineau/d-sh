@@ -2,6 +2,7 @@
 //! # D-SH a tool to create easy container's applications.
 //!
 //! Release under MIT License.
+mod common;
 mod command;
 mod help;
 mod io;

@@ -5,42 +5,12 @@
 ///
 use command::Command;
 use super::super::io::InputOutputHelper;
-use std::env::home_dir;
+use super::super::common::get_config_filename;
 
 /// Default directory of downloading applictions.
-pub const DOWNLOAD_DIR: &str = "~/.d-sh/download";
+const DOWNLOAD_DIR: &str = "~/.d-sh/download";
 /// Default directory to store applications.
-pub const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
-/// Default config filename.
-pub const DEFAULT_CONFIG_FILE: &str = ".d-sh/config.yml";
-
-///
-/// Function to return config filename.
-///
-fn get_config_filename() -> Option<String> {
-    match home_dir() {
-        Some(path) => {
-            let home_dir = match path.to_str() {
-                None => String::from(""),
-                Some(p) => {
-                    let mut result = String::from(p);
-
-                    if ! p.ends_with("/") {
-                        result.push_str("/");
-                    }
-
-                    result
-                }
-            };
-
-            let mut config_file = String::from(home_dir);
-            config_file.push_str(DEFAULT_CONFIG_FILE);
-
-            Some(config_file)
-        },
-        None => None
-    }
-}
+const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 
 ///
 /// Function to implement check D-SH command.
@@ -94,6 +64,7 @@ pub const INIT: Command = Command {
     max_args: 0,
     /// `check` command have no help.
     usage: "",
+    need_config_file: false,
     exec_cmd: init
 };
 
