@@ -8,6 +8,7 @@ use std::process::Command;
 /// Trait to write one screen.
 pub trait ContainerHelper {
     /// List image.
+    /// Return list of image id.
     fn list_image(&mut self, image_name: &str) -> Vec<String>;
 }
 
@@ -16,16 +17,23 @@ pub struct DefaultContainerHelper;
 
 impl ContainerHelper for DefaultContainerHelper {
     fn list_image(&mut self, image_name: &str)  -> Vec<String> {
-        // TODO check status
-        let output = Command::new("docker")
+        match Command::new("docker")
             .args(&["image", "list", "--format", "{{.ID}}", image_name])
-            .output()
-            .expect("failed to execute process");
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let result: Vec<&str> = stdout.split(r"\n").collect();
-        // Convert to string
-        result.iter().map(|s| s.to_string()).collect()
+            .output() {
+           Ok(output) => {
+                   let stdout = String::from_utf8_lossy(&output.stdout);
+                   let result: Vec<&str> = stdout
+                       .split(r"\n")
+                       .collect();
+                   // Convert to string
+                   result
+                       .iter()
+                       .map(|s| s.to_string())
+                       .filter(|s| !s.trim().is_empty()) // Remove empty line
+                       .collect()
+           },
+           Err(_) => Vec::new()
+        }
     }
 }
 
