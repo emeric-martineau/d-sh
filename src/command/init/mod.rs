@@ -5,7 +5,7 @@
 ///
 use command::Command;
 use super::super::io::InputOutputHelper;
-use super::super::common::get_config_filename;
+use super::super::config::get_config_filename;
 use super::super::docker::ContainerHelper;
 
 /// Default directory of downloading applictions.

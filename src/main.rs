@@ -11,7 +11,7 @@ extern crate regex;
 extern crate glob;
 
 mod command;
-mod common;
+mod config;
 mod docker;
 mod help;
 mod io;

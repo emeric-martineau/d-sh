@@ -7,8 +7,8 @@ use std::path::Path;
 use command::Command;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::common::get_config;
-use super::super::common::get_config_application;
+use super::super::config::get_config;
+use super::super::config::get_config_application;
 
 ///
 /// Function to implement check D-SH command.
@@ -99,7 +99,7 @@ pub const CHECK: Command = Command {
 mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::common::get_config_filename;
+    use super::super::super::config::get_config_filename;
     use super::CHECK;
     use super::check;
 

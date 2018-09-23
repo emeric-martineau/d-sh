@@ -7,7 +7,7 @@ pub mod check;
 pub mod init;
 
 use super::io::InputOutputHelper;
-use super::common::get_config_filename;
+use super::config::get_config_filename;
 use super::docker::ContainerHelper;
 
 ///
@@ -30,7 +30,7 @@ pub struct Command {
     pub need_config_file: bool,
     /// Execute Command.
     pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &mut InputOutputHelper,
-        dck_helper: &mut ContainerHelper) -> i32
+        dck_helper: &mut ContainerHelper) -> i32 // TODO use enum with exit code
 }
 
 impl Command {
