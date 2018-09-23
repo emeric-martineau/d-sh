@@ -4,11 +4,13 @@
 /// Release under MIT License.
 ///
 use std::io;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::fs;
 use std::io::Write;
-use std::collections::HashMap;
 use std::path::Path;
+use std::io::prelude::*;
+use std::fs::File;
+use glob::glob;
 
 /// Trait to write one screen.
 pub trait InputOutputHelper {
@@ -24,6 +26,10 @@ pub trait InputOutputHelper {
     fn file_write(&mut self, path: &str, contents: &str) -> Result<(), Error>;
     /// Check if file exits
     fn file_exits(&mut self, filename: &str) -> bool;
+    /// Read file and return as string
+    fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error>;
+    /// List file in folder
+    fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error>;
 }
 
 /// Default print on tty.
@@ -64,13 +70,49 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     fn file_exits(&mut self, filename: &str) -> bool {
         Path::new(filename).exists()
     }
+
+    fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error> {
+        let mut file = File::open(filename)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        Ok(contents)
+    }
+
+    fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
+        let mut new_dir = String::from(dir);
+
+        if ! dir.ends_with("/") {
+            new_dir.push_str("/");
+        }
+
+// TODO replace ~/ by home_dir
+        new_dir.push_str(pattern);
+
+        match glob(&new_dir) {
+            Ok(all_files) => {
+                let mut result: Vec<String> = Vec::new();
+
+                for entry in all_files {
+                    if let Ok(path) = entry {
+                        result.push(path.display().to_string());
+                    }
+                }
+
+                Ok(result)
+            },
+            Err(e) => Err(Error::new(ErrorKind::PermissionDenied, e.msg))
+        }
+
+    }
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::InputOutputHelper;
     use std::collections::HashMap;
-    use std::io::Error;
+    use std::io::{Error, ErrorKind};
+    use regex::Regex;
 
     /// Use this fonction for test.
     pub struct TestInputOutputHelper {
@@ -79,7 +121,6 @@ pub mod tests {
         pub stdin: Vec<String>,
         pub files: HashMap<String, String>
     }
-
 
     impl InputOutputHelper for TestInputOutputHelper {
         fn println(&mut self, expr: &str) {
@@ -105,6 +146,29 @@ pub mod tests {
 
         fn file_exits(&mut self, filename: &str) -> bool {
             self.files.contains_key(filename)
+        }
+
+        fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error> {
+            match self.files.get(filename) {
+                Some(data) => Ok(data.to_string()),
+                None => Err(Error::new(ErrorKind::NotFound, "Not found"))
+            }
+        }
+
+        fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
+            let regex = pattern.replace(r".", r"\.").replace(r"*", r".*");
+
+            let re = Regex::new(&regex).unwrap();
+
+            let file_in_folder = self.files
+                .keys()
+                .filter(|k| k.starts_with(dir) && re.is_match(k))
+                // Convert &str to String
+                .map(|k| k.to_string())
+                .collect();
+
+            Ok(file_in_folder)
+//            Err(Error::new(ErrorKind::NotFound, "Not found"))
         }
     }
 

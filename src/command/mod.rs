@@ -8,6 +8,7 @@ pub mod init;
 
 use super::io::InputOutputHelper;
 use super::common::get_config_filename;
+use super::docker::ContainerHelper;
 
 ///
 /// Command structure
@@ -28,7 +29,8 @@ pub struct Command {
     /// If command need config file exists.
     pub need_config_file: bool,
     /// Execute Command.
-    pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -> i32
+    pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &mut InputOutputHelper,
+        dck_helper: &mut ContainerHelper) -> i32
 }
 
 impl Command {
@@ -39,16 +41,17 @@ impl Command {
     ///
     /// returning exit code of D-SH
     ///
-    pub fn exec(&self, args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
-        let mut exit_code = 0;
+    pub fn exec(&self, args: &[String], io_helper: &mut InputOutputHelper,
+        dck_helper: &mut ContainerHelper) -> i32 {
+        let exit_code;
 
         // Check parameter
         if args.len() >= self.min_args && args.len() <= self.max_args {
-            if (self.need_config_file) {
+            if self.need_config_file {
                 match get_config_filename() {
                     Some(config_file) => {
                         if io_helper.file_exits(&config_file) {
-                            exit_code = (self.exec_cmd)(self, &args, io_helper)
+                            exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper)
                         } else {
                             io_helper.eprintln(&format!("The file '{}' exits. Please remove it (or rename) and retry this command.", config_file));
                             exit_code = 5;
@@ -60,7 +63,7 @@ impl Command {
                     }
                 };
             } else {
-                exit_code = (self.exec_cmd)(self, &args, io_helper)
+                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper)
             }
 
         } else {
@@ -80,8 +83,11 @@ mod tests {
     use super::super::io::tests::TestInputOutputHelper;
     use super::Command;
     use super::get_config_filename;
+    use super::super::docker::ContainerHelper;
+    use super::super::docker::tests::TestContainerHelper;
 
-    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
+        _dck_helper: &mut ContainerHelper) -> i32 {
         io_helper.println(&format!("Coucou !"));
         0
     }
@@ -89,6 +95,7 @@ mod tests {
     #[test]
     fn check_if_need_argument_but_not_provide() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -105,7 +112,7 @@ mod tests {
 
         let args = [];
 
-        let exit_code = commands[0].exec(&args, io_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, 4);
     }
@@ -113,6 +120,7 @@ mod tests {
     #[test]
     fn check_if_too_many_argument() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -129,7 +137,7 @@ mod tests {
 
         let args = [String::from("eeee"), String::from("eeee")];
 
-        let exit_code = commands[0].exec(&args, io_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, 4);
     }
@@ -137,6 +145,7 @@ mod tests {
     #[test]
     fn check_if_not_enough_many_argument() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -153,7 +162,7 @@ mod tests {
 
         let args = [String::from("eeee")];
 
-        let exit_code = commands[0].exec(&args, io_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, 4);
     }
@@ -161,6 +170,7 @@ mod tests {
     #[test]
     fn check_if_need_config_file_and_not_found() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -177,7 +187,7 @@ mod tests {
 
         let args = [];
 
-        let exit_code = commands[0].exec(&args, io_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, 5);
     }
@@ -185,6 +195,7 @@ mod tests {
     #[test]
     fn check_if_need_config_file_and_found() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -209,7 +220,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let exit_code = commands[0].exec(&args, io_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, 0);
     }

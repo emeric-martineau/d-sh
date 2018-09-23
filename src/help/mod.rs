@@ -47,6 +47,7 @@ mod tests {
     use super::version;
     use super::help;
     use super::super::command::Command;
+    use super::super::docker::ContainerHelper;
 
     #[test]
     fn display_version() {
@@ -59,7 +60,8 @@ mod tests {
         assert_eq!(io_helper.stdout.len(), 2);
     }
 
-    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
+        _dck_helper: &mut ContainerHelper) -> i32 {
         io_helper.println(&format!("Coucou !"));
         0
     }

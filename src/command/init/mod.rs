@@ -6,6 +6,7 @@
 use command::Command;
 use super::super::io::InputOutputHelper;
 use super::super::common::get_config_filename;
+use super::super::docker::ContainerHelper;
 
 /// Default directory of downloading applictions.
 const DOWNLOAD_DIR: &str = "~/.d-sh/download";
@@ -19,7 +20,8 @@ const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 ///
 /// returning exit code of D-SH.
 ///
-fn init(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -> i32 {
+fn init(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
+    _dck_helper: &mut ContainerHelper) -> i32 {
     let mut exit_code = 0;
 
     match get_config_filename() {
@@ -37,11 +39,14 @@ fn init(command: &Command, args: &[String], io_helper: &mut InputOutputHelper) -
                 let applications_dir = applications_dir.trim();
 
                 let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\n", download_dir, applications_dir);
-                io_helper.file_write(&config_file, &data).expect(&format!("Unable to write file '{}'", config_file));
+                // TODO create folder
+                io_helper
+                    .file_write(&config_file, &data)
+                    .expect(&format!("Unable to write file '{}'", config_file));
             }
         },
         None => {
-            io_helper.eprintln("Impossible to get your home dir!");
+            io_helper.eprintln("Unable to get your home dir!");
             exit_code = 2;
         }
     }
@@ -70,15 +75,16 @@ pub const INIT: Command = Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::io::InputOutputHelper;
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::get_config_filename;
     use super::init;
     use super::INIT;
+    use super::super::super::docker::tests::TestContainerHelper;
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         let args = [];
 
@@ -90,7 +96,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper);
 
         assert_eq!(result, 3);
     }
@@ -98,13 +104,14 @@ mod tests {
     #[test]
     fn create_configfile_if_exists() {
         let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
 
         io_helper.stdin.push(String::from("toto"));
         io_helper.stdin.push(String::from("titi"));
 
         let args = [];
 
-        let result = init(&INIT, &args, io_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper);
 
         assert_eq!(result, 0);
 

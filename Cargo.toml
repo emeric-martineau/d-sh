@@ -5,4 +5,9 @@ authors = ["Emeric MARTINEAU"]
 
 [dependencies]
 serde = "1.0"
+serde_derive = "1.0"
 serde_yaml = "0.8"
+glob = "0.2"
+
+[dev-dependencies]
+regex = "1"

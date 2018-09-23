@@ -1,3 +1,24 @@
+# Config file of D-SH format
+
+```
+---
+download_dir: "dwn"
+applications_dir: "app"
+```
+
+# Config file of application format
+
+```
+---
+download_filename: "...."
+url: "..."
+image_name: "..."
+dependencies:
+  - ...
+  - ...
+cmd_line : "...."
+```
+
 # Support installation format
 
 D-SH support install file from:
