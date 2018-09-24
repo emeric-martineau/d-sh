@@ -103,6 +103,16 @@ mod tests {
     use super::CHECK;
     use super::check;
 
+    fn found_item(io_helper: &mut TestInputOutputHelper, value: &str) {
+        let result: Vec<String> = io_helper.stdout
+            .iter()
+            .filter(|l| *l == value)
+            .map(|l| l.to_string())
+            .collect();
+
+        assert_eq!(result.len(), 1);
+    }
+
     #[test]
     fn check_if_image_found() {
         let io_helper = &mut TestInputOutputHelper::new();
@@ -111,9 +121,9 @@ mod tests {
         let args = [];
 
         // Create list of images returned by docker
-        dck_helper.images.push(String::from("run-atom"));
-        dck_helper.images.push(String::from("run-gitkraken"));
-        dck_helper.images.push(String::from("run-filezilla"));
+        dck_helper.images.push(String::from("run-atom:latest"));
+        dck_helper.images.push(String::from("run-gitkraken:latest"));
+        dck_helper.images.push(String::from("run-filezilla:latest"));
 
         // Create configuration file
         match get_config_filename() {
@@ -125,16 +135,31 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom\""));
-        io_helper.files.insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla\""));
+        io_helper.files.insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\""));
+        io_helper.files.insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\""));
+        io_helper.files.insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\""));
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
         assert_eq!(result, 0);
+
+        found_item(io_helper, "atom                              run-atom:latest                   Build done   ");
+        found_item(io_helper, "filezilla                         run-filezilla:latest              Build done   ");
+        found_item(io_helper, "titi                              run-titi:latest                   Build need   ");
     }
 
     #[test]
     fn check_if_image_not_found() {
 
+    }
+
+    #[test]
+    fn check_if_config_file_not_found() {
+//7
+    }
+
+    #[test]
+    fn check_if_application_format_has_an_error() {
+//9
     }
 }
