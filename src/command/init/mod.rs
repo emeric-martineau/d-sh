@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 use command::Command;
+use std::path::Path;
 use super::super::io::InputOutputHelper;
 use super::super::config::get_config_filename;
 use super::super::docker::ContainerHelper;
@@ -39,10 +40,22 @@ fn init(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
                 let applications_dir = applications_dir.trim();
 
                 let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\n", download_dir, applications_dir);
-                // TODO create folder
-                io_helper
-                    .file_write(&config_file, &data)
-                    .expect(&format!("Unable to write file '{}'", config_file));
+
+                // Create folder
+                let path = Path::new(&config_file);
+
+                if let Some(parent) = path.parent() {
+                    // No parent ? Not a error.
+                    if io_helper.create_dir_all(parent.to_str().unwrap()).is_err() {
+                        io_helper.eprintln(&format!("Cannot create folder '{}'!", parent.display()));
+                        return 10;
+                    }
+                }
+
+                if io_helper.file_write(&config_file, &data).is_err() {
+                    io_helper.eprintln(&format!("Unable to write file '{}'", config_file));
+                    exit_code = 11;
+                }
             }
         },
         None => {
@@ -80,6 +93,7 @@ mod tests {
     use super::init;
     use super::INIT;
     use super::super::super::docker::tests::TestContainerHelper;
+    use std::path::Path;
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
@@ -129,5 +143,53 @@ mod tests {
             },
             None => panic!("Unable to get config filename for test")
         };
+    }
+
+    #[test]
+    fn create_configfile_but_cannot_write() {
+        let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
+
+        io_helper.stdin.push(String::from("toto"));
+        io_helper.stdin.push(String::from("titi"));
+
+        let args = [];
+
+        match get_config_filename() {
+            Some(cfg_file) => {
+                io_helper.files_error.insert(cfg_file, true);
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        let result = init(&INIT, &args, io_helper, dck_helper);
+
+        assert_eq!(result, 11);
+    }
+
+    #[test]
+    fn create_configfile_but_cannot_create_parent_folder() {
+        let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
+
+        io_helper.stdin.push(String::from("toto"));
+        io_helper.stdin.push(String::from("titi"));
+
+        let args = [];
+
+        match get_config_filename() {
+            Some(cfg_file) => {
+                let path = Path::new(&cfg_file);
+
+                if let Some(parent) = path.parent() {
+                    io_helper.files_error.insert(String::from(parent.to_str().unwrap()), true);
+                }
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        let result = init(&INIT, &args, io_helper, dck_helper);
+
+        assert_eq!(result, 10);
     }
 }

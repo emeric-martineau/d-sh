@@ -11,6 +11,7 @@ use std::path::Path;
 use std::io::prelude::*;
 use std::fs::File;
 use glob::glob;
+use std::fs::create_dir_all;
 
 /// Trait to write one screen.
 pub trait InputOutputHelper {
@@ -30,6 +31,8 @@ pub trait InputOutputHelper {
     fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error>;
     /// List file in folder
     fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error>;
+    /// Create all dir
+    fn create_dir_all(&mut self, dir: &str) -> Result<(), Error>;
 }
 
 /// Default print on tty.
@@ -105,6 +108,13 @@ impl InputOutputHelper for DefaultInputOutputHelper {
         }
 
     }
+
+    fn create_dir_all(&mut self, dir: &str) -> Result<(), Error> {
+        match create_dir_all(dir) {
+            Ok(a) => Ok(a),
+            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -119,7 +129,8 @@ pub mod tests {
         pub stdout: Vec<String>,
         pub stderr: Vec<String>,
         pub stdin: Vec<String>,
-        pub files: HashMap<String, String>
+        pub files: HashMap<String, String>,
+        pub files_error: HashMap<String, bool>
     }
 
     impl InputOutputHelper for TestInputOutputHelper {
@@ -140,8 +151,12 @@ pub mod tests {
         }
 
         fn file_write(&mut self, path: &str, contents: &str) -> Result<(), Error> {
-            self.files.insert(String::from(path), String::from(contents));
-            Ok(())
+            if self.files_error.contains_key(path) {
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            } else {
+                self.files.insert(String::from(path), String::from(contents));
+                Ok(())
+            }
         }
 
         fn file_exits(&mut self, filename: &str) -> bool {
@@ -170,6 +185,14 @@ pub mod tests {
             Ok(file_in_folder)
 //            Err(Error::new(ErrorKind::NotFound, "Not found"))
         }
+
+        fn create_dir_all(&mut self, dir: &str) -> Result<(), Error> {
+            if self.files_error.contains_key(dir) {
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            } else {
+                Ok(())
+            }
+        }
     }
 
     impl TestInputOutputHelper {
@@ -178,7 +201,8 @@ pub mod tests {
                 stdout: Vec::new(),
                 stderr: Vec::new(),
                 stdin: Vec::new(),
-                files: HashMap::new()
+                files: HashMap::new(),
+                files_error: HashMap::new()
             }
         }
     }
