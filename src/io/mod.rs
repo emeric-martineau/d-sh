@@ -12,6 +12,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use glob::glob;
 use std::fs::create_dir_all;
+use std::env::home_dir;
 
 /// Trait to write one screen.
 pub trait InputOutputHelper {
@@ -89,7 +90,12 @@ impl InputOutputHelper for DefaultInputOutputHelper {
             new_dir.push_str("/");
         }
 
-// TODO replace ~/ by home_dir
+        if dir.starts_with("~/") {
+            if let Some(path) = home_dir() {
+                new_dir = path.to_str().unwrap().to_owned() + &new_dir[1..];
+            }
+        }
+
         new_dir.push_str(pattern);
 
         match glob(&new_dir) {
