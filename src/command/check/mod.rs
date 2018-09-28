@@ -114,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn check_if_image_found() {
+    fn check_if_image_found_qnd_not_found() {
         let io_helper = &mut TestInputOutputHelper::new();
         let dck_helper = &mut TestContainerHelper::new();
 
@@ -149,17 +149,41 @@ mod tests {
     }
 
     #[test]
-    fn check_if_image_not_found() {
-
-    }
-
-    #[test]
     fn check_if_config_file_not_found() {
-//7
+        let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
+
+        let args = [];
+
+        let result = check(&CHECK, &args, io_helper, dck_helper);
+
+        assert_eq!(result, 7);
     }
 
     #[test]
     fn check_if_application_format_has_an_error() {
-//9
+        let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
+
+        let args = [];
+
+        // Create list of images returned by docker
+        dck_helper.images.push(String::from("run-atom:latest"));
+
+        // Create configuration file
+        match get_config_filename() {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        // Create application file atom
+        io_helper.files.insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\""));
+
+        let result = check(&CHECK, &args, io_helper, dck_helper);
+
+        assert_eq!(result, 9);
     }
 }
