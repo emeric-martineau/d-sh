@@ -64,7 +64,7 @@ mod tests {
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         _dck_helper: &ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
-        CommandExitCode::OK
+        CommandExitCode::Ok
     }
 
     #[test]

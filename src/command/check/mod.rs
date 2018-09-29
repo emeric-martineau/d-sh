@@ -61,7 +61,7 @@ fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
                     };
 
                     if error_filename.len() == 0 {
-                        CommandExitCode::OK
+                        CommandExitCode::Ok
                     } else {
                         for filename in error_filename {
                              io_helper.eprintln(&format!("The file {} have bad format!", &filename));
@@ -99,24 +99,15 @@ pub const CHECK: Command = Command {
 #[cfg(test)]
 mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
+    use super::super::super::io::tests::found_item;
     use super::super::super::docker::tests::TestContainerHelper;
     use super::super::super::config::get_config_filename;
     use super::CHECK;
     use super::check;
     use command::CommandExitCode;
 
-    fn found_item(io_helper: &TestInputOutputHelper, value: &str) {
-        let result: Vec<String> = io_helper.stdout.borrow()
-            .iter()
-            .filter(|l| *l == value)
-            .map(|l| l.to_string())
-            .collect();
-
-        assert_eq!(result.len(), 1);
-    }
-
     #[test]
-    fn check_if_image_found_qnd_not_found() {
+    fn check_if_image_found_and_not_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
 
@@ -143,11 +134,13 @@ mod tests {
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
-        assert_eq!(result, CommandExitCode::OK);
+        assert_eq!(result, CommandExitCode::Ok);
 
-        found_item(io_helper, "atom                              run-atom:latest                   Build done   ");
-        found_item(io_helper, "filezilla                         run-filezilla:latest              Build done   ");
-        found_item(io_helper, "titi                              run-titi:latest                   Build need   ");
+        let stdout = io_helper.stdout.borrow();
+
+        found_item(&stdout, "atom                              run-atom:latest                   Build done   ");
+        found_item(&stdout, "filezilla                         run-filezilla:latest              Build done   ");
+        found_item(&stdout, "titi                              run-titi:latest                   Build need   ");
     }
 
     #[test]

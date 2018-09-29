@@ -21,13 +21,14 @@ use command::Command;
 use command::CommandExitCode;
 use command::check::CHECK;
 use command::init::INIT;
+use command::list::LIST;
 use help::help;
 use help::version;
 use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
 use docker::DefaultContainerHelper;
 
-const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT];
+const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT, LIST];
 
 ///
 /// Main function of D-SH
@@ -36,7 +37,7 @@ fn main() {
     // Get command line options
     let args: Vec<String> = env::args().collect();
     // Default exit code
-    let mut exit_code = CommandExitCode::OK;
+    let mut exit_code = CommandExitCode::Ok;
 
     let io_helper = &DefaultInputOutputHelper;
     let dck_help = &DefaultContainerHelper;

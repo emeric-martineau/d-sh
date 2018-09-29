@@ -5,6 +5,7 @@
 ///
 pub mod check;
 pub mod init;
+pub mod list;
 
 use super::io::InputOutputHelper;
 use super::config::get_config_filename;
@@ -15,7 +16,7 @@ use super::docker::ContainerHelper;
 ///
 #[derive(Debug, PartialEq)]
 pub enum CommandExitCode {
-    OK = 0,
+    Ok = 0,
     ConfigFileNotFound = 1,
     CannotAccessToFolderOfConfigFile = 2,
     BadArgument = 3,
@@ -110,7 +111,7 @@ mod tests {
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         _dck_helper: &ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
-        CommandExitCode::OK
+        CommandExitCode::Ok
     }
 
     #[test]
@@ -243,6 +244,6 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, CommandExitCode::OK);
+        assert_eq!(exit_code, CommandExitCode::Ok);
     }
 }

@@ -24,7 +24,7 @@ const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 ///
 fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     _dck_helper: &ContainerHelper) -> CommandExitCode {
-    let mut exit_code = CommandExitCode::OK;
+    let mut exit_code = CommandExitCode::Ok;
 
     match get_config_filename() {
         Some(config_file) => {
@@ -129,7 +129,7 @@ mod tests {
 
         let result = init(&INIT, &args, io_helper, dck_helper);
 
-        assert_eq!(result, CommandExitCode::OK);
+        assert_eq!(result, CommandExitCode::Ok);
 
         match get_config_filename() {
             Some(cfg_file) => {
@@ -138,7 +138,6 @@ mod tests {
 
                 match v {
                     Some(c) => {
-                        println!("{}", c);
                         assert_eq!(c, &format!("---\ndownload_dir: \"toto\"\napplications_dir: \"titi\"\n"))
                     },
                     None => panic!("The config file was not created")

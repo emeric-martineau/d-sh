@@ -131,6 +131,15 @@ pub mod tests {
     use regex::Regex;
     use std::cell::RefCell;
 
+    pub fn found_item(list: &Vec<String>, value: &str) {
+        let result: Vec<String> = list
+            .iter()
+            .filter(|l| *l == value)
+            .map(|l| l.to_string())
+            .collect();
+
+        assert_eq!(result.len(), 1, "Cannot find '{}' value in list", value);
+    }
 
     /// Use this fonction for test.
     pub struct TestInputOutputHelper {
@@ -138,7 +147,7 @@ pub mod tests {
         pub stderr: RefCell<Vec<String>>,
         pub stdin: RefCell<Vec<String>>,
         pub files: RefCell<HashMap<String, String>>,
-        pub files_error: RefCell<HashMap<String, bool>>
+        pub files_error: RefCell<HashMap<String, bool>>,
     }
 
     impl InputOutputHelper for TestInputOutputHelper {
