@@ -22,8 +22,8 @@ const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 ///
 /// returning exit code of D-SH.
 ///
-fn init(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-    _dck_helper: &mut ContainerHelper) -> CommandExitCode {
+fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
+    _dck_helper: &ContainerHelper) -> CommandExitCode {
     let mut exit_code = CommandExitCode::OK;
 
     match get_config_filename() {
@@ -99,15 +99,15 @@ mod tests {
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let args = [];
 
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.insert(cfg_file, String::from("toto"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("toto"))
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -119,11 +119,11 @@ mod tests {
 
     #[test]
     fn create_configfile_if_exists() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
-        io_helper.stdin.push(String::from("toto"));
-        io_helper.stdin.push(String::from("titi"));
+        io_helper.stdin.borrow_mut().push(String::from("toto"));
+        io_helper.stdin.borrow_mut().push(String::from("titi"));
 
         let args = [];
 
@@ -133,7 +133,8 @@ mod tests {
 
         match get_config_filename() {
             Some(cfg_file) => {
-                let v = io_helper.files.get(&cfg_file);
+                let f = io_helper.files.borrow_mut();
+                let v = f.get(&cfg_file);
 
                 match v {
                     Some(c) => {
@@ -149,17 +150,17 @@ mod tests {
 
     #[test]
     fn create_configfile_but_cannot_write() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
-        io_helper.stdin.push(String::from("toto"));
-        io_helper.stdin.push(String::from("titi"));
+        io_helper.stdin.borrow_mut().push(String::from("toto"));
+        io_helper.stdin.borrow_mut().push(String::from("titi"));
 
         let args = [];
 
         match get_config_filename() {
             Some(cfg_file) => {
-                io_helper.files_error.insert(cfg_file, true);
+                io_helper.files_error.borrow_mut().insert(cfg_file, true);
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -171,11 +172,11 @@ mod tests {
 
     #[test]
     fn create_configfile_but_cannot_create_parent_folder() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
-        io_helper.stdin.push(String::from("toto"));
-        io_helper.stdin.push(String::from("titi"));
+        io_helper.stdin.borrow_mut().push(String::from("toto"));
+        io_helper.stdin.borrow_mut().push(String::from("titi"));
 
         let args = [];
 
@@ -184,7 +185,7 @@ mod tests {
                 let path = Path::new(&cfg_file);
 
                 if let Some(parent) = path.parent() {
-                    io_helper.files_error.insert(String::from(parent.to_str().unwrap()), true);
+                    io_helper.files_error.borrow_mut().insert(String::from(parent.to_str().unwrap()), true);
                 }
             },
             None => panic!("Unable to get config filename for test")

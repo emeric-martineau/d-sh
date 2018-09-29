@@ -56,7 +56,7 @@ pub fn get_config_filename() -> Option<String> {
 ///
 /// Return config structure.
 ///
-pub fn get_config(io_helper: &mut InputOutputHelper) -> Result<Config, Error> {
+pub fn get_config(io_helper: &InputOutputHelper) -> Result<Config, Error> {
     match get_config_filename() {
         Some(config_file) => {
             let data = io_helper.file_read_at_string(&config_file)?;
@@ -76,7 +76,7 @@ pub fn get_config(io_helper: &mut InputOutputHelper) -> Result<Config, Error> {
 ///
 /// Return config application structure.
 ///
-pub fn get_config_application(io_helper: &mut InputOutputHelper, filename: &str) -> Result<ConfigApplication, Error> {
+pub fn get_config_application(io_helper: &InputOutputHelper, filename: &str) -> Result<ConfigApplication, Error> {
     let data = io_helper.file_read_at_string(&filename)?;
 
     match serde_yaml::from_str(&data) {

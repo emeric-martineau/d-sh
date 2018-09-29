@@ -49,8 +49,8 @@ pub struct Command {
     /// If command need config file exists.
     pub need_config_file: bool,
     /// Execute Command.
-    pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &mut InputOutputHelper,
-        dck_helper: &mut ContainerHelper) -> CommandExitCode
+    pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &InputOutputHelper,
+        dck_helper: &ContainerHelper) -> CommandExitCode
 }
 
 impl Command {
@@ -61,8 +61,8 @@ impl Command {
     ///
     /// returning exit code of D-SH
     ///
-    pub fn exec(&self, args: &[String], io_helper: &mut InputOutputHelper,
-        dck_helper: &mut ContainerHelper) -> CommandExitCode {
+    pub fn exec(&self, args: &[String], io_helper: &InputOutputHelper,
+        dck_helper: &ContainerHelper) -> CommandExitCode {
         let exit_code;
 
         // Check parameter
@@ -107,16 +107,16 @@ mod tests {
     use super::super::docker::ContainerHelper;
     use super::super::docker::tests::TestContainerHelper;
 
-    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-        _dck_helper: &mut ContainerHelper) -> CommandExitCode {
+    fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
+        _dck_helper: &ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::OK
     }
 
     #[test]
     fn check_if_need_argument_but_not_provide() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -140,8 +140,8 @@ mod tests {
 
     #[test]
     fn check_if_too_many_argument() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -165,8 +165,8 @@ mod tests {
 
     #[test]
     fn check_if_not_enough_many_argument() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -190,8 +190,8 @@ mod tests {
 
     #[test]
     fn check_if_need_config_file_and_not_found() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -215,8 +215,8 @@ mod tests {
 
     #[test]
     fn check_if_need_config_file_and_found() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -236,7 +236,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.insert(cfg_file, String::from("toto"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("toto"))
             },
             None => panic!("Unable to get config filename for test")
         };

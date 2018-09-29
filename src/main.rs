@@ -38,8 +38,8 @@ fn main() {
     // Default exit code
     let mut exit_code = CommandExitCode::OK;
 
-    let io_helper = &mut DefaultInputOutputHelper;
-    let dck_help = &mut DefaultContainerHelper;
+    let io_helper = &DefaultInputOutputHelper;
+    let dck_help = &DefaultContainerHelper;
 
     if args.len() == 1 {
         help(ALL_COMMANDS, io_helper);

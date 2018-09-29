@@ -17,43 +17,43 @@ use std::env::home_dir;
 /// Trait to write one screen.
 pub trait InputOutputHelper {
     /// Print a line with line-feed.
-    fn println(&mut self, expr: &str);
+    fn println(&self, expr: &str);
     /// Print a string.
-    fn print(&mut self, expr: &str);
+    fn print(&self, expr: &str);
     /// Print a line with line-feed on stderr.
-    fn eprintln(&mut self, expr: &str);
+    fn eprintln(&self, expr: &str);
     /// Read a line
-    fn read_line(&mut self) -> String;
+    fn read_line(&self) -> String;
     /// Write a file.
-    fn file_write(&mut self, path: &str, contents: &str) -> Result<(), Error>;
+    fn file_write(&self, path: &str, contents: &str) -> Result<(), Error>;
     /// Check if file exits
-    fn file_exits(&mut self, filename: &str) -> bool;
+    fn file_exits(&self, filename: &str) -> bool;
     /// Read file and return as string
-    fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error>;
+    fn file_read_at_string(&self, filename: &str) -> Result<String, Error>;
     /// List file in folder
-    fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error>;
+    fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error>;
     /// Create all dir
-    fn create_dir_all(&mut self, dir: &str) -> Result<(), Error>;
+    fn create_dir_all(&self, dir: &str) -> Result<(), Error>;
 }
 
 /// Default print on tty.
 pub struct DefaultInputOutputHelper;
 
 impl InputOutputHelper for DefaultInputOutputHelper {
-    fn println(&mut self, expr: &str) {
+    fn println(&self, expr: &str) {
         println!("{}", expr);
     }
 
-    fn print(&mut self, expr: &str) {
+    fn print(&self, expr: &str) {
         print!("{}", expr);
         io::stdout().flush().unwrap();
     }
 
-    fn eprintln(&mut self, expr: &str) {
+    fn eprintln(&self, expr: &str) {
         eprintln!("{}", expr);
     }
 
-    fn read_line(&mut self) -> String {
+    fn read_line(&self) -> String {
         let mut input = String::new();
 
         match io::stdin().read_line(&mut input) {
@@ -64,18 +64,18 @@ impl InputOutputHelper for DefaultInputOutputHelper {
         }
     }
 
-    fn file_write(&mut self, path: &str, contents: &str) -> Result<(), Error> {
+    fn file_write(&self, path: &str, contents: &str) -> Result<(), Error> {
         match fs::write(path, contents) {
             Ok(f) => Ok(f),
             Err(e) => Err(e)
         }
     }
 
-    fn file_exits(&mut self, filename: &str) -> bool {
+    fn file_exits(&self, filename: &str) -> bool {
         Path::new(filename).exists()
     }
 
-    fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error> {
+    fn file_read_at_string(&self, filename: &str) -> Result<String, Error> {
         let mut file = File::open(filename)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
@@ -83,7 +83,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
         Ok(contents)
     }
 
-    fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
+    fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
         let mut new_dir = String::from(dir);
 
         if ! dir.ends_with("/") {
@@ -115,7 +115,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
 
     }
 
-    fn create_dir_all(&mut self, dir: &str) -> Result<(), Error> {
+    fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
         match create_dir_all(dir) {
             Ok(a) => Ok(a),
             Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
@@ -129,62 +129,64 @@ pub mod tests {
     use std::collections::HashMap;
     use std::io::{Error, ErrorKind};
     use regex::Regex;
+    use std::cell::RefCell;
+
 
     /// Use this fonction for test.
     pub struct TestInputOutputHelper {
-        pub stdout: Vec<String>,
-        pub stderr: Vec<String>,
-        pub stdin: Vec<String>,
-        pub files: HashMap<String, String>,
-        pub files_error: HashMap<String, bool>
+        pub stdout: RefCell<Vec<String>>,
+        pub stderr: RefCell<Vec<String>>,
+        pub stdin: RefCell<Vec<String>>,
+        pub files: RefCell<HashMap<String, String>>,
+        pub files_error: RefCell<HashMap<String, bool>>
     }
 
     impl InputOutputHelper for TestInputOutputHelper {
-        fn println(&mut self, expr: &str) {
-            self.stdout.push(String::from(expr));
+        fn println(&self, expr: &str) {
+            self.stdout.borrow_mut().push(String::from(expr));
         }
 
-        fn print(&mut self, expr: &str) {
-            self.stdout.push(String::from(expr));
+        fn print(&self, expr: &str) {
+            self.stdout.borrow_mut().push(String::from(expr));
         }
 
-        fn eprintln(&mut self, expr: &str) {
-            self.stderr.push(String::from(expr));
+        fn eprintln(&self, expr: &str) {
+            self.stderr.borrow_mut().push(String::from(expr));
         }
 
-        fn read_line(&mut self) -> String {
-            self.stdin.remove(0)
+        fn read_line(&self) -> String {
+            self.stdin.borrow_mut().remove(0)
         }
 
-        fn file_write(&mut self, path: &str, contents: &str) -> Result<(), Error> {
-            if self.files_error.contains_key(path) {
+        fn file_write(&self, path: &str, contents: &str) -> Result<(), Error> {
+            if self.files_error.borrow().contains_key(path) {
                 Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
             } else {
-                self.files.insert(String::from(path), String::from(contents));
+                self.files.borrow_mut().insert(String::from(path), String::from(contents));
                 Ok(())
             }
         }
 
-        fn file_exits(&mut self, filename: &str) -> bool {
-            self.files.contains_key(filename)
+        fn file_exits(&self, filename: &str) -> bool {
+            self.files.borrow().contains_key(filename)
         }
 
-        fn file_read_at_string(&mut self, filename: &str) -> Result<String, Error> {
-            match self.files.get(filename) {
+        fn file_read_at_string(&self, filename: &str) -> Result<String, Error> {
+            match self.files.borrow().get(filename) {
                 Some(data) => Ok(data.to_string()),
                 None => Err(Error::new(ErrorKind::NotFound, "Not found"))
             }
         }
 
-        fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
-            if self.files_error.contains_key(dir) {
+        fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
+            if self.files_error.borrow().contains_key(dir) {
                 Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
             } else {
                 let regex = pattern.replace(r".", r"\.").replace(r"*", r".*");
 
                 let re = Regex::new(&regex).unwrap();
 
-                let file_in_folder = self.files
+                let file_in_folder = self.files.borrow()
                     .keys()
                     .filter(|k| k.starts_with(dir) && re.is_match(k))
                     // Convert &str to String
@@ -196,8 +198,8 @@ pub mod tests {
 //            Err(Error::new(ErrorKind::NotFound, "Not found"))
         }
 
-        fn create_dir_all(&mut self, dir: &str) -> Result<(), Error> {
-            if self.files_error.contains_key(dir) {
+        fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
+            if self.files_error.borrow().contains_key(dir) {
                 Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
             } else {
                 Ok(())
@@ -208,11 +210,11 @@ pub mod tests {
     impl TestInputOutputHelper {
         pub fn new() -> TestInputOutputHelper {
             TestInputOutputHelper {
-                stdout: Vec::new(),
-                stderr: Vec::new(),
-                stdin: Vec::new(),
-                files: HashMap::new(),
-                files_error: HashMap::new()
+                stdout: RefCell::new(Vec::new()),
+                stderr: RefCell::new(Vec::new()),
+                stdin: RefCell::new(Vec::new()),
+                files: RefCell::new(HashMap::new()),
+                files_error: RefCell::new(HashMap::new())
             }
         }
     }

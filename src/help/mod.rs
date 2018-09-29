@@ -11,7 +11,7 @@ use super::io::InputOutputHelper;
 ///
 /// `commands` parameter is list of all avaible command
 ///
-pub fn help(commands: &[Command], io_helper: &mut InputOutputHelper) {
+pub fn help(commands: &[Command], io_helper: &InputOutputHelper) {
     io_helper.println(&format!(""));
     io_helper.println(&format!("Usage: d-sh COMMAND"));
     io_helper.println(&format!(""));
@@ -33,7 +33,7 @@ pub fn help(commands: &[Command], io_helper: &mut InputOutputHelper) {
 ///
 /// `args` parameter is command line arguments of D-SH.
 ///
-pub fn version(args: &[String], io_helper: &mut InputOutputHelper) {
+pub fn version(args: &[String], io_helper: &InputOutputHelper) {
     let version = env!("CARGO_PKG_VERSION");
 
     io_helper.println(&format!("{} version {}", args[0], version));
@@ -52,24 +52,24 @@ mod tests {
 
     #[test]
     fn display_version() {
-        let io_helper = &mut TestInputOutputHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
 
         let args = [String::from("ttt")];
 
         version(&args, io_helper);
 
-        assert_eq!(io_helper.stdout.len(), 2);
+        assert_eq!(io_helper.stdout.borrow().len(), 2);
     }
 
-    fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-        _dck_helper: &mut ContainerHelper) -> CommandExitCode {
+    fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
+        _dck_helper: &ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::OK
     }
 
     #[test]
     fn display_help() {
-        let io_helper = &mut TestInputOutputHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -86,9 +86,11 @@ mod tests {
 
         help(commands, io_helper);
 
-        assert_eq!(io_helper.stdout.len(), 11);
+        let stdout = io_helper.stdout.borrow();
 
-        match io_helper.stdout.get(10) {
+        assert_eq!(stdout.len(), 11);
+
+        match stdout.get(10) {
             Some(s) => assert_eq!(s, "  test     It's a test"),
             None => panic!("Help is not valid")
         }

@@ -18,8 +18,8 @@ use super::super::config::get_config_application;
 ///
 /// returning exit code of D-SH.
 ///
-fn check(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-    dck_helper: &mut ContainerHelper) -> CommandExitCode {
+fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
+    dck_helper: &ContainerHelper) -> CommandExitCode {
 
     match get_config(io_helper) {
         Ok(config) => {
@@ -105,8 +105,8 @@ mod tests {
     use super::check;
     use command::CommandExitCode;
 
-    fn found_item(io_helper: &mut TestInputOutputHelper, value: &str) {
-        let result: Vec<String> = io_helper.stdout
+    fn found_item(io_helper: &TestInputOutputHelper, value: &str) {
+        let result: Vec<String> = io_helper.stdout.borrow()
             .iter()
             .filter(|l| *l == value)
             .map(|l| l.to_string())
@@ -117,29 +117,29 @@ mod tests {
 
     #[test]
     fn check_if_image_found_qnd_not_found() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let args = [];
 
         // Create list of images returned by docker
-        dck_helper.images.push(String::from("run-atom:latest"));
-        dck_helper.images.push(String::from("run-gitkraken:latest"));
-        dck_helper.images.push(String::from("run-filezilla:latest"));
+        dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+        dck_helper.images.borrow_mut().push(String::from("run-gitkraken:latest"));
+        dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
         // Create configuration file
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
 
         // Create application file atom
-        io_helper.files.insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\""));
-        io_helper.files.insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\""));
-        io_helper.files.insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\""));
+        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\""));
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
@@ -152,8 +152,8 @@ mod tests {
 
     #[test]
     fn check_if_config_file_not_found() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let args = [];
 
@@ -164,25 +164,25 @@ mod tests {
 
     #[test]
     fn check_if_application_format_has_an_error() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let args = [];
 
         // Create list of images returned by docker
-        dck_helper.images.push(String::from("run-atom:latest"));
+        dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
         // Create configuration file
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
 
         // Create application file atom
-        io_helper.files.insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\""));
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
@@ -191,8 +191,8 @@ mod tests {
 
     #[test]
     fn check_if_cannot_read_application_dir() {
-        let io_helper = &mut TestInputOutputHelper::new();
-        let dck_helper = &mut TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
 
         let args = [];
 
@@ -200,12 +200,12 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
 
-        io_helper.files_error.insert(String::from("app"), true);
+        io_helper.files_error.borrow_mut().insert(String::from("app"), true);
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
