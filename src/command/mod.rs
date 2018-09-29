@@ -11,6 +11,26 @@ use super::config::get_config_filename;
 use super::docker::ContainerHelper;
 
 ///
+/// Exit code of command.
+///
+#[derive(Debug, PartialEq)]
+pub enum CommandExitCode {
+    OK = 0,
+    ConfigFileNotFound = 1,
+    CannotAccessToFolderOfConfigFile = 2,
+    BadArgument = 3,
+    BadApplicationFormat = 4,
+    CannotReadApplicationsFolder = 5,
+    CannotReadConfigFile = 6,
+    CannotGetHomeFolder = 7,
+    ConfigFileExits = 8,
+    CannotCreateFolderForConfigFile = 9,
+    CannotWriteConfigFile = 10,
+    Help = 11,
+    CommandNotFound = 12
+}
+
+///
 /// Command structure
 ///
 pub struct Command {
@@ -30,7 +50,7 @@ pub struct Command {
     pub need_config_file: bool,
     /// Execute Command.
     pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &mut InputOutputHelper,
-        dck_helper: &mut ContainerHelper) -> i32 // TODO use enum with exit code
+        dck_helper: &mut ContainerHelper) -> CommandExitCode
 }
 
 impl Command {
@@ -42,7 +62,7 @@ impl Command {
     /// returning exit code of D-SH
     ///
     pub fn exec(&self, args: &[String], io_helper: &mut InputOutputHelper,
-        dck_helper: &mut ContainerHelper) -> i32 {
+        dck_helper: &mut ContainerHelper) -> CommandExitCode {
         let exit_code;
 
         // Check parameter
@@ -53,13 +73,13 @@ impl Command {
                         if io_helper.file_exits(&config_file) {
                             exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper)
                         } else {
-                            io_helper.eprintln(&format!("The file '{}' exits. Please remove it (or rename) and retry this command.", config_file));
-                            exit_code = 5;
+                            io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", config_file));
+                            exit_code = CommandExitCode::ConfigFileNotFound;
                         }
                     },
                     None => {
-                        io_helper.eprintln("Enable to find d-sh config file. Please run 'd-sh init' first.");
-                        exit_code = 6;
+                        io_helper.eprintln("Cannot access to folder where config must be.");
+                        exit_code = CommandExitCode::CannotAccessToFolderOfConfigFile;
                     }
                 };
             } else {
@@ -70,7 +90,7 @@ impl Command {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
             io_helper.eprintln("See 'd-sh $1 --help'.");
 
-            exit_code = 4
+            exit_code = CommandExitCode::BadArgument
         }
 
         exit_code
@@ -82,14 +102,15 @@ mod tests {
     use super::super::io::InputOutputHelper;
     use super::super::io::tests::TestInputOutputHelper;
     use super::Command;
-    use super::get_config_filename;
+    use super::super::config::get_config_filename;
+    use super::CommandExitCode;
     use super::super::docker::ContainerHelper;
     use super::super::docker::tests::TestContainerHelper;
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-        _dck_helper: &mut ContainerHelper) -> i32 {
+        _dck_helper: &mut ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
-        0
+        CommandExitCode::OK
     }
 
     #[test]
@@ -114,7 +135,7 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, 4);
+        assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
 
     #[test]
@@ -139,7 +160,7 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, 4);
+        assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
 
     #[test]
@@ -164,7 +185,7 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, 4);
+        assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
 
     #[test]
@@ -189,7 +210,7 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, 5);
+        assert_eq!(exit_code, CommandExitCode::ConfigFileNotFound);
     }
 
     #[test]
@@ -222,6 +243,6 @@ mod tests {
 
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
-        assert_eq!(exit_code, 0);
+        assert_eq!(exit_code, CommandExitCode::OK);
     }
 }

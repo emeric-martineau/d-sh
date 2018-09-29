@@ -177,18 +177,22 @@ pub mod tests {
         }
 
         fn dir_list_file(&mut self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
-            let regex = pattern.replace(r".", r"\.").replace(r"*", r".*");
+            if self.files_error.contains_key(dir) {
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            } else {
+                let regex = pattern.replace(r".", r"\.").replace(r"*", r".*");
 
-            let re = Regex::new(&regex).unwrap();
+                let re = Regex::new(&regex).unwrap();
 
-            let file_in_folder = self.files
-                .keys()
-                .filter(|k| k.starts_with(dir) && re.is_match(k))
-                // Convert &str to String
-                .map(|k| k.to_string())
-                .collect();
+                let file_in_folder = self.files
+                    .keys()
+                    .filter(|k| k.starts_with(dir) && re.is_match(k))
+                    // Convert &str to String
+                    .map(|k| k.to_string())
+                    .collect();
 
-            Ok(file_in_folder)
+                Ok(file_in_folder)
+            }
 //            Err(Error::new(ErrorKind::NotFound, "Not found"))
         }
 

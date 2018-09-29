@@ -18,6 +18,7 @@ mod io;
 
 use std::env;
 use command::Command;
+use command::CommandExitCode;
 use command::check::CHECK;
 use command::init::INIT;
 use help::help;
@@ -35,14 +36,14 @@ fn main() {
     // Get command line options
     let args: Vec<String> = env::args().collect();
     // Default exit code
-    let mut exit_code: i32 = 0;
+    let mut exit_code = CommandExitCode::OK;
 
     let io_helper = &mut DefaultInputOutputHelper;
     let dck_help = &mut DefaultContainerHelper;
 
     if args.len() == 1 {
         help(ALL_COMMANDS, io_helper);
-        exit_code = 1
+        exit_code = CommandExitCode::Help;
     } else {
         let command = &args[1];
 
@@ -64,12 +65,12 @@ fn main() {
                         io_helper.eprintln(&format!("D-SH: '{}' is not a d.sh command.", cmd));
                         io_helper.eprintln(&format!("See '{} --help'", args[0]));
 
-                        2
+                        CommandExitCode::CommandNotFound
                     }
                 }
             }
         };
     }
 
-    std::process::exit(exit_code)
+    std::process::exit(exit_code as i32)
 }

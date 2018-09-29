@@ -5,6 +5,7 @@
 ///
 use std::path::Path;
 use command::Command;
+use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
 use super::super::config::get_config;
@@ -18,7 +19,7 @@ use super::super::config::get_config_application;
 /// returning exit code of D-SH.
 ///
 fn check(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-    dck_helper: &mut ContainerHelper) -> i32 {
+    dck_helper: &mut ContainerHelper) -> CommandExitCode {
 
     match get_config(io_helper) {
         Ok(config) => {
@@ -60,19 +61,19 @@ fn check(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper
                     };
 
                     if error_filename.len() == 0 {
-                        0
+                        CommandExitCode::OK
                     } else {
                         for filename in error_filename {
                              io_helper.eprintln(&format!("The file {} have bad format!", &filename));
                         }
 
-                        9
+                        CommandExitCode::BadApplicationFormat
                     }
                 },
-                Err(_) => 8
+                Err(_) => CommandExitCode::CannotReadApplicationsFolder
             }
         },
-        Err(_) => 7
+        Err(_) => CommandExitCode::CannotReadConfigFile
     }
 }
 
@@ -102,6 +103,7 @@ mod tests {
     use super::super::super::config::get_config_filename;
     use super::CHECK;
     use super::check;
+    use command::CommandExitCode;
 
     fn found_item(io_helper: &mut TestInputOutputHelper, value: &str) {
         let result: Vec<String> = io_helper.stdout
@@ -141,7 +143,7 @@ mod tests {
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, CommandExitCode::OK);
 
         found_item(io_helper, "atom                              run-atom:latest                   Build done   ");
         found_item(io_helper, "filezilla                         run-filezilla:latest              Build done   ");
@@ -157,7 +159,7 @@ mod tests {
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 7);
+        assert_eq!(result, CommandExitCode::CannotReadConfigFile);
     }
 
     #[test]
@@ -184,6 +186,29 @@ mod tests {
 
         let result = check(&CHECK, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 9);
+        assert_eq!(result, CommandExitCode::BadApplicationFormat);
+    }
+
+    #[test]
+    fn check_if_cannot_read_application_dir() {
+        let io_helper = &mut TestInputOutputHelper::new();
+        let dck_helper = &mut TestContainerHelper::new();
+
+        let args = [];
+
+        // Create configuration file
+        match get_config_filename() {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        io_helper.files_error.insert(String::from("app"), true);
+
+        let result = check(&CHECK, &args, io_helper, dck_helper);
+
+        assert_eq!(result, CommandExitCode::CannotReadApplicationsFolder);
     }
 }

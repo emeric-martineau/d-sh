@@ -48,6 +48,7 @@ mod tests {
     use super::help;
     use super::super::command::Command;
     use super::super::docker::ContainerHelper;
+    use command::CommandExitCode;
 
     #[test]
     fn display_version() {
@@ -61,9 +62,9 @@ mod tests {
     }
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-        _dck_helper: &mut ContainerHelper) -> i32 {
+        _dck_helper: &mut ContainerHelper) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
-        0
+        CommandExitCode::OK
     }
 
     #[test]

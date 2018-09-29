@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 use command::Command;
+use command::CommandExitCode;
 use std::path::Path;
 use super::super::io::InputOutputHelper;
 use super::super::config::get_config_filename;
@@ -22,14 +23,14 @@ const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 /// returning exit code of D-SH.
 ///
 fn init(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
-    _dck_helper: &mut ContainerHelper) -> i32 {
-    let mut exit_code = 0;
+    _dck_helper: &mut ContainerHelper) -> CommandExitCode {
+    let mut exit_code = CommandExitCode::OK;
 
     match get_config_filename() {
         Some(config_file) => {
             if io_helper.file_exits(&config_file) {
                 io_helper.eprintln(&format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file));
-                exit_code = 3;
+                exit_code = CommandExitCode::ConfigFileExits;
             } else {
                 io_helper.print(&format!("Enter the path of download directory (default: {}): ", DOWNLOAD_DIR));
                 let download_dir = io_helper.read_line();
@@ -48,19 +49,19 @@ fn init(_command: &Command, _args: &[String], io_helper: &mut InputOutputHelper,
                     // No parent ? Not a error.
                     if io_helper.create_dir_all(parent.to_str().unwrap()).is_err() {
                         io_helper.eprintln(&format!("Cannot create folder '{}'!", parent.display()));
-                        return 10;
+                        return CommandExitCode::CannotCreateFolderForConfigFile;
                     }
                 }
 
                 if io_helper.file_write(&config_file, &data).is_err() {
                     io_helper.eprintln(&format!("Unable to write file '{}'", config_file));
-                    exit_code = 11;
+                    exit_code = CommandExitCode::CannotWriteConfigFile;
                 }
             }
         },
         None => {
             io_helper.eprintln("Unable to get your home dir!");
-            exit_code = 2;
+            exit_code = CommandExitCode::CannotGetHomeFolder;
         }
     }
 
@@ -94,6 +95,7 @@ mod tests {
     use super::INIT;
     use super::super::super::docker::tests::TestContainerHelper;
     use std::path::Path;
+    use command::CommandExitCode;
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
@@ -112,7 +114,7 @@ mod tests {
 
         let result = init(&INIT, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 3);
+        assert_eq!(result, CommandExitCode::ConfigFileExits);
     }
 
     #[test]
@@ -127,7 +129,7 @@ mod tests {
 
         let result = init(&INIT, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, CommandExitCode::OK);
 
         match get_config_filename() {
             Some(cfg_file) => {
@@ -164,7 +166,7 @@ mod tests {
 
         let result = init(&INIT, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 11);
+        assert_eq!(result, CommandExitCode::CannotWriteConfigFile);
     }
 
     #[test]
@@ -190,6 +192,6 @@ mod tests {
 
         let result = init(&INIT, &args, io_helper, dck_helper);
 
-        assert_eq!(result, 10);
+        assert_eq!(result, CommandExitCode::CannotCreateFolderForConfigFile);
     }
 }
