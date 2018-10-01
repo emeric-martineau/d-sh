@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 pub mod check;
+pub mod delete;
 pub mod init;
 pub mod list;
 
@@ -28,7 +29,9 @@ pub enum CommandExitCode {
     CannotCreateFolderForConfigFile = 9,
     CannotWriteConfigFile = 10,
     Help = 11,
-    CommandNotFound = 12
+    CommandNotFound = 12,
+    ContainerImageNotFound = 13,
+    ApplicationFileNotFound = 14
 }
 
 ///

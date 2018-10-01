@@ -7,6 +7,7 @@ extern crate serde_yaml;
 
 use std::env::home_dir;
 use std::io::{Error, ErrorKind};
+use super::io::convert_path;
 use super::io::InputOutputHelper;
 
 /// Config structure of D-SH
@@ -77,7 +78,9 @@ pub fn get_config(io_helper: &InputOutputHelper) -> Result<Config, Error> {
 /// Return config application structure.
 ///
 pub fn get_config_application(io_helper: &InputOutputHelper, filename: &str) -> Result<ConfigApplication, Error> {
-    let data = io_helper.file_read_at_string(&filename)?;
+    let new_filename = convert_path(&filename);
+
+    let data = io_helper.file_read_at_string(&new_filename)?;
 
     match serde_yaml::from_str(&data) {
         Ok(deserialized_config) => Ok(deserialized_config),

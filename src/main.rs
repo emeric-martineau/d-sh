@@ -20,6 +20,7 @@ use std::env;
 use command::Command;
 use command::CommandExitCode;
 use command::check::CHECK;
+use command::delete::DELETE;
 use command::init::INIT;
 use command::list::LIST;
 use help::help;
@@ -28,7 +29,7 @@ use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
 use docker::DefaultContainerHelper;
 
-const ALL_COMMANDS: &'static [Command] = &[CHECK, INIT, LIST];
+const ALL_COMMANDS: &'static [Command] = &[CHECK, DELETE, INIT, LIST];
 
 ///
 /// Main function of D-SH

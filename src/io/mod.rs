@@ -14,6 +14,17 @@ use glob::glob;
 use std::fs::create_dir_all;
 use std::env::home_dir;
 
+/// Convert path with start "~/"
+pub fn convert_path(x: &str) -> String {
+    if x.starts_with("~/") {
+        if let Some(path) = home_dir() {
+            return path.to_str().unwrap().to_owned() + &x[1..]
+        }
+    }
+
+    String::from(x)
+}
+
 /// Trait to write one screen.
 pub trait InputOutputHelper {
     /// Print a line with line-feed.
@@ -84,16 +95,10 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     }
 
     fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
-        let mut new_dir = String::from(dir);
+        let mut new_dir = String::from(convert_path(dir));
 
         if ! dir.ends_with("/") {
             new_dir.push_str("/");
-        }
-
-        if dir.starts_with("~/") {
-            if let Some(path) = home_dir() {
-                new_dir = path.to_str().unwrap().to_owned() + &new_dir[1..];
-            }
         }
 
         new_dir.push_str(pattern);

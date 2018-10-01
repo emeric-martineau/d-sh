@@ -48,7 +48,7 @@ fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
 }
 
 ///
-/// The `check` command.
+/// The `list` command.
 ///
 pub const LIST: Command = Command {
     /// This command call by `check`.
