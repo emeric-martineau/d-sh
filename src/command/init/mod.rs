@@ -34,11 +34,20 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
             } else {
                 io_helper.print(&format!("Enter the path of download directory (default: {}): ", DOWNLOAD_DIR));
                 let download_dir = io_helper.read_line();
-                let download_dir = download_dir.trim();
+                let mut download_dir = download_dir.trim();
 
                 io_helper.print(&format!("Enter the path of applications directory (default: {}): ", APPLICATIONS_DIR));
                 let applications_dir = io_helper.read_line();
-                let applications_dir = applications_dir.trim();
+                let mut applications_dir = applications_dir.trim();
+
+                // Default value
+                if download_dir.is_empty() {
+                    download_dir = DOWNLOAD_DIR;
+                }
+
+                if applications_dir.is_empty() {
+                    applications_dir = APPLICATIONS_DIR;
+                }
 
                 let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\n", download_dir, applications_dir);
 
