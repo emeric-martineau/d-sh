@@ -7,6 +7,7 @@ pub mod check;
 pub mod delete;
 pub mod init;
 pub mod list;
+pub mod run;
 
 use super::io::InputOutputHelper;
 use super::config::get_config_filename;
@@ -17,6 +18,7 @@ use super::docker::ContainerHelper;
 ///
 #[derive(Debug, PartialEq)]
 pub enum CommandExitCode {
+    Todo = -1,
     Ok = 0,
     ConfigFileNotFound = 1,
     CannotAccessToFolderOfConfigFile = 2,
@@ -31,7 +33,10 @@ pub enum CommandExitCode {
     Help = 11,
     CommandNotFound = 12,
     ContainerImageNotFound = 13,
-    ApplicationFileNotFound = 14
+    ApplicationFileNotFound = 14,
+    CannotGetCurrentUser = 15,
+    ContainerRunError = 16,
+    ApplicationNameMissing = 17
 }
 
 ///
@@ -92,7 +97,7 @@ impl Command {
 
         } else {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
-            io_helper.eprintln("See 'd-sh $1 --help'.");
+            io_helper.eprintln(&format!("See 'd-sh {} --help'.", self.name));
 
             exit_code = CommandExitCode::BadArgument
         }

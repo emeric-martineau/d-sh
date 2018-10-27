@@ -20,7 +20,11 @@ pub struct Config {
 /// Config structure of D-SH
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConfigApplication {
-    pub image_name: String
+    pub image_name: String,
+    pub cmd_line: String,
+    pub cmd_line_args: Option<Vec<String>>,
+    pub interactive: Option<bool>,
+    pub ipc_host: Option<bool>,
 }
 
 /// Default config filename.

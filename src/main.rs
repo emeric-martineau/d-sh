@@ -9,6 +9,7 @@ extern crate serde_derive;
 extern crate regex;
 
 extern crate glob;
+extern crate users;
 
 mod command;
 mod config;
@@ -23,13 +24,14 @@ use command::check::CHECK;
 use command::delete::DELETE;
 use command::init::INIT;
 use command::list::LIST;
+use command::run::RUN;
 use help::help;
 use help::version;
 use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
 use docker::DefaultContainerHelper;
 
-const ALL_COMMANDS: &'static [Command] = &[CHECK, DELETE, INIT, LIST];
+const ALL_COMMANDS: &'static [Command] = &[CHECK, DELETE, INIT, LIST, RUN];
 
 ///
 /// Main function of D-SH
@@ -64,7 +66,7 @@ fn main() {
                 exit_code = match command_to_run {
                     Some(c) => c.exec(&args[2..], io_helper, dck_help),
                     None => {
-                        io_helper.eprintln(&format!("D-SH: '{}' is not a d.sh command.", cmd));
+                        io_helper.eprintln(&format!("D-SH: '{}' is not a d-sh command.", cmd));
                         io_helper.eprintln(&format!("See '{} --help'", args[0]));
 
                         CommandExitCode::CommandNotFound
@@ -73,6 +75,8 @@ fn main() {
             }
         };
     }
+
+    // TODO  If application format not good, display help
 
     std::process::exit(exit_code as i32)
 }
