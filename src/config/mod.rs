@@ -5,7 +5,7 @@
 ///
 extern crate serde_yaml;
 
-use std::env::home_dir;
+use dirs::home_dir;
 use std::io::{Error, ErrorKind};
 use super::io::convert_path;
 use super::io::InputOutputHelper;

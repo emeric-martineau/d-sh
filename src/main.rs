@@ -10,6 +10,7 @@ extern crate regex;
 
 extern crate glob;
 extern crate users;
+extern crate dirs;
 
 mod command;
 mod config;

@@ -12,7 +12,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use glob::glob;
 use std::fs::create_dir_all;
-use std::env::home_dir;
+use dirs::home_dir;
 
 /// Convert path with start "~/"
 pub fn convert_path(x: &str) -> String {
