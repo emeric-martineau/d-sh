@@ -6,8 +6,22 @@ download_dir: "dwn"
 applications_dir: "app"
 ```
 
-# Config file of application format
+# Support installation format
 
+D-SH support install file from:
+ * `.deb`
+ * `.tar.gz`
+ * `.tgz`
+ * `.tar.bz2`
+ * `.tar.xz`
+ * native linux distribution repository
+
+# How add application
+
+To add a new application, add file in `applications_dir` folder. Filename (without `.yml`
+extension) is the name of application.
+
+In this file, we need some properties:
 ```
 ---
 download_filename: "...."
@@ -23,43 +37,20 @@ cmd_line_args:
 interactive: true | false
 ```
 
-# Support installation format
-
-D-SH support install file from:
- * `.deb`
- * `.tar.gz`
- * `.tgz`
- * `.tar.bz2`
- * `.tar.xz`
- * native linux distribution repository
-
-# How add application
-
-To add a new application, add file in `program` folder. Filename (without `.sh`
-extension) is the name of application.
-
-In this file, we need some environment variables:
-```
-APPLICATION_DOWNLOADED_FILE_NAME  : name of file that store in download folder (e.g. atom.deb)
-APPLICATION_URL                   : url to download file (e.g. https://.../atom/1.27.2/release.deb)
-APPLICATION_IMAGE_DOCKER          : name of docker image to be create (e.g. run-atom:v1.27.2)
-APPLICATION_DEPENDENCIES          : list of dependencies that you would like install in base image
-APPLICATION_COMMAND_LINE          : command to run application in container (e.g /user/bin/atom)
-APPLICATION_IPC_HOST              : set "true" if need ipc host. Some X11 application need this
-APPLICATION_SKIP_CHECK_REDOWNLOAD : if we want never check new version. Example for Postman, If-modified-date not supported (set to "true")
-APPLICATION_INTERACTIVE           : run application in console (set to "true")
-```
-
 # Hack D-SH
 
 ## Change Ubuntu version or image base
 
+By default, when you initialize D-SH, 4 Dockerfile are created.
+
 If you want change Ubuntu version, edit `scripts/Dockerfile.base` file and
 change line `FROM ubuntu:18.04`.
 
+A last file is entrypoint script `entrypoint.sh`.
+
 ## D-SH behind proxy
 
-To allow Ubuntu image to download dependencies, edit `scripts/Dockerfile.base`
+To allow Ubuntu image to download dependencies, edit `Dockerfile.base`
 file and add juste after line `ARG DEPENDENCIES_ALL`:
 ```
 ENV ALL_PROXY socks://xx.xx.xx.xx:3128/
@@ -79,28 +70,7 @@ Rebuild base image and all applications images
 
 ## Add a new command
 
-To add new command, just create a file in `scripts/command` folder
-named `command-XXXX.sh` where `XXXX` is the name of command.
-
-Command name must be in **lowercase**.
-
-The `command-XXXX.sh` must be contain their environment variables:
-```
-COMMAND_DESCRIPTION : description of command display in help
-COMMAND_MIN_ARGS    : minimum args that command need
-COMMAND_MAX_ARGS    : maximum args (-1 for no maximum)
-```
-
-and need have a function called `command_XXXX`.
-
-In the `command_XXXX.sh` file, you receive two environment variable:
-```
-PROGRAM_NAME : this is the first parameter of command line. Example './d.sh build atom' this is atom
-COMMON_FILE  : this is name of application file
-```
-
-and can use `RETURN_CODE` to set a exit code value of `d.sh` script.
-
+TODO move into other file to explain how developp
 
 ## In nutshell
 

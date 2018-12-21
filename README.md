@@ -27,29 +27,26 @@ Commands:
 
 ## How it's work
 
-D-SH have on main script `d.sh` and launch others scripts called *command* that
-can be found in `scripts/command`.
+D-SH have only one binary file.
 
 Because, many applications have same dependencies, D-SH use a Docker
-*base image*, build with `scripts/Dockerfile.base` file. This image inherit
+*base image*, build with `Dockerfile.base` file. This image inherit
 from Ubuntu 18.04 official Docker image.
 
 Each application inherit from this *base image*.
 
 ## Install D-SH
 
-To install D-SH, just clone this repository.
+Download last release and change add executable bit `chmod u+x ....`.
 
 ## Run D-SH
 
-First, list all applications available:
+First initialize folder with:
 ```
-$ ./d.sh -l
-atom
-gitkraken
-keeweb
+./d-sh init
+```
 
-```
+Then download an application from official repository (TODO where ?).
 
 Now, build image:
 ```
