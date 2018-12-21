@@ -28,12 +28,19 @@ pub struct ConfigApplication {
 }
 
 /// Default config filename.
-pub const DEFAULT_CONFIG_FILE: &str = ".d-sh/config.yml";
+pub const DEFAULT_CONFIG_FILE_PATH: &str = ".d-sh/";
+pub const DEFAULT_CONFIG_FILE: &str = "config.yml";
 
 ///
 /// Function to return config filename.
 ///
 pub fn get_config_filename() -> Option<String> {
+    create_config_filename_path(DEFAULT_CONFIG_FILE)
+}
+
+///
+/// Function to create a path for file,
+pub fn create_config_filename_path(filename: &str)  -> Option<String> {
     match home_dir() {
         Some(path) => {
             let home_dir = match path.to_str() {
@@ -50,7 +57,8 @@ pub fn get_config_filename() -> Option<String> {
             };
 
             let mut config_file = String::from(home_dir);
-            config_file.push_str(DEFAULT_CONFIG_FILE);
+            config_file.push_str(DEFAULT_CONFIG_FILE_PATH);
+            config_file.push_str(filename);
 
             Some(config_file)
         },
