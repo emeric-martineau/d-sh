@@ -1,5 +1,5 @@
 ///
-/// Module to list all application avaible.
+/// Module to build application.
 ///
 /// Release under MIT License.
 ///
@@ -9,6 +9,7 @@ use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
 use super::super::config::get_config;
+use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEB_FILENAME};
 
 ///
 /// Option for build command.
@@ -27,6 +28,17 @@ struct BuildOptions {
 }
 
 const UNKOWN_OPTIONS_MESSAGE: &'static str = "d-sh build: invalid option '{}'\nTry 'd-sh build --help' for more information.\n";
+
+///
+/// Build base image
+///
+fn build_base() -> CommandExitCode {
+    // 1 - Get base image name from dockerfile debian
+    // 2 - If force, remove previous image
+    // 3 - Get all dependencies from applications files
+    // 4 - Build
+    CommandExitCode::Todo
+}
 
 ///
 /// Function to implement build D-SH command.
@@ -63,7 +75,11 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         }
     }
 
-    CommandExitCode::Todo
+    if options.base {
+        build_base()
+    } else {
+        CommandExitCode::Todo
+    }
 }
 
 ///
@@ -100,6 +116,7 @@ mod tests {
     use super::BUILD;
     use super::build;
     use super::UNKOWN_OPTIONS_MESSAGE;
+    use super::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEB_FILENAME};
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
     use super::super::super::config::get_config_filename;
@@ -153,5 +170,42 @@ mod tests {
         let stderr = io_helper.stderr.borrow();
 
         assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
+    }
+
+    #[test]
+    fn build_base_short_option() {
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
+
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        match get_config_filename() {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+
+        let result = build(&BUILD, &args, io_helper, dck_helper);
+
+        assert_eq!(result, CommandExitCode::Ok);
+
+        let builds = dck_helper.builds.borrow();
+        let base_build = builds.get(0).unwrap();
+
+        assert_eq!(base_build.build_options.get(0).unwrap(), "d1 d2 D3");
+        assert_eq!(base_build.tag, "d-base-image:v1.0.0");
+        assert_eq!(base_build.dockerfile_name, DOCKERFILE_BASE_FILENAME);
+        assert_eq!(base_build.base_dir, "dwn");
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building base image...");
     }
 }

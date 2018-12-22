@@ -104,6 +104,14 @@ pub mod tests {
     use std::cell::RefCell;
     use std::fmt::{Display, Formatter, Result};
 
+    /// When build image
+    pub struct TestBuildImage {
+            pub build_options: Vec<String>,
+            pub tag: String,
+            pub dockerfile_name: String,
+            pub base_dir: String
+    }
+
     /// When run a container
     pub struct TestRunContainer {
         pub image_name: String,
@@ -142,7 +150,8 @@ pub mod tests {
     /// Use this fonction for test.
     pub struct TestContainerHelper {
         pub images: RefCell<Vec<String>>,
-        pub containers: RefCell<Vec<TestRunContainer>>
+        pub containers: RefCell<Vec<TestRunContainer>>,
+        pub builds: RefCell<Vec<TestBuildImage>>
     }
 
     impl ContainerHelper for TestContainerHelper {
@@ -214,7 +223,8 @@ pub mod tests {
         pub fn new() -> TestContainerHelper {
             TestContainerHelper {
                 images: RefCell::new(Vec::new()),
-                containers: RefCell::new(Vec::new())
+                containers: RefCell::new(Vec::new()),
+                builds: RefCell::new(Vec::new())
             }
         }
     }

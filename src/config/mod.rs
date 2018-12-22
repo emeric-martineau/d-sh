@@ -5,6 +5,8 @@
 ///
 extern crate serde_yaml;
 
+pub mod dockerfile;
+
 use dirs::home_dir;
 use std::io::{Error, ErrorKind};
 use super::io::convert_path;
@@ -25,6 +27,7 @@ pub struct ConfigApplication {
     pub cmd_line_args: Option<Vec<String>>,
     pub interactive: Option<bool>,
     pub ipc_host: Option<bool>,
+    pub dependencies: Option<Vec<String>>
 }
 
 /// Default config filename.
