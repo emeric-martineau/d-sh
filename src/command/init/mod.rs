@@ -203,10 +203,12 @@ pub const INIT: Command = Command {
 mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::get_config_filename;
+    use super::create_config_filename_path;
     use super::init;
     use super::INIT;
     use super::super::super::docker::tests::TestContainerHelper;
-    use std::path::Path;
+    use super::Path;
+    use super::HashMap;
     use command::CommandExitCode;
 
     #[test]
@@ -230,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn create_configfile_if_exists() {
+    fn create_configfile_if_not_exists() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
 
@@ -249,14 +251,38 @@ mod tests {
                 let v = f.get(&cfg_file);
 
                 match v {
-                    Some(c) => {
-                        assert_eq!(c, &format!("---\ndownload_dir: \"toto\"\napplications_dir: \"titi\"\n"))
-                    },
+                    Some(c) => assert_eq!(c, &format!("---\ndownload_dir: \"toto\"\napplications_dir: \"titi\"\n")),
                     None => panic!("The config file was not created")
                 };
             },
             None => panic!("Unable to get config filename for test")
         };
+
+        let f = io_helper.files.borrow_mut();
+
+        let dockerfile_list: HashMap<&str, &str> = [
+            (super::DOCKERFILE_BASE_FILENAME, super::DOCKERFILE_BASE),
+            (super::DOCKERFILE_DEB_FILENAME, super::DOCKERFILE_DEB),
+            (super::DOCKERFILE_PACKAGE_FILENAME, super::DOCKERFILE_PACKAGE),
+            (super::DOCKERFILE_TGZ_FILENAME, super::DOCKERFILE_TGZ),
+            (super::ENTRYPOINT_FILENAME, super::ENTRYPOINT)]
+            .iter().cloned().collect();
+
+        // Create all docker file
+        for (filename, content) in &dockerfile_list {
+            match create_config_filename_path(filename) {
+                Some(dockerfile_name) => {
+                    let v = f.get(&dockerfile_name);
+
+                    match v {
+                        Some(c) => assert_eq!(c, content),
+                        None => panic!(format!("The dockerfile {} file was not created", filename))
+                    };
+
+                },
+                None => panic!("Unable to get your home dir!")
+            }
+        }
     }
 
     #[test]

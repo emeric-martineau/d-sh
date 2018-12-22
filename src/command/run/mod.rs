@@ -411,8 +411,6 @@ mod tests {
 
         assert_eq!(atom_container.cmd_options.len(), 2);
 
-        let username = get_current_username().unwrap();
-
         assert_eq!(atom_container.cmd_options.get(0).unwrap(), "arg1");
         assert_eq!(atom_container.cmd_options.get(1).unwrap(), "arg2");
     }
