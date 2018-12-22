@@ -169,28 +169,25 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper) -> CommandExitCode {
 
-    match get_config(io_helper) {
-        Ok(config) => {
-            match args[0].as_ref() {
-                "-h" | "--help" => {
-                    io_helper.println(command.usage);
-                    CommandExitCode::Ok
-                },
-                "-i" | "--interactive" => {
-                    if args.len() > 1 {
-                        run_application(&config, &args[1], io_helper, dck_helper, &args[2..], true)
-                    } else {
-                        io_helper.eprintln("You must specify an application !");
+    let config = get_config(io_helper).unwrap();
 
-                        CommandExitCode::ApplicationNameMissing
-                    }
-                },
-                app => {
-                    run_application(&config, &app, io_helper, dck_helper, &args[1..], false)
-                }
+    match args[0].as_ref() {
+        "-h" | "--help" => {
+            io_helper.println(command.usage);
+            CommandExitCode::Ok
+        },
+        "-i" | "--interactive" => {
+            if args.len() > 1 {
+                run_application(&config, &args[1], io_helper, dck_helper, &args[2..], true)
+            } else {
+                io_helper.eprintln("You must specify an application !");
+
+                CommandExitCode::ApplicationNameMissing
             }
         },
-        Err(_) => CommandExitCode::CannotReadConfigFile
+        app => {
+            run_application(&config, &app, io_helper, dck_helper, &args[1..], false)
+        }
     }
 }
 

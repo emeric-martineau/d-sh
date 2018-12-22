@@ -26,7 +26,7 @@ pub enum CommandExitCode {
     BadArgument = 3,
     BadApplicationFormat = 4,
     CannotReadApplicationsFolder = 5,
-    CannotReadConfigFile = 6,
+    UnknowOption = 6,
     CannotGetHomeFolder = 7,
     ConfigFileExits = 8,
     CannotCreateFolderForConfigFile = 9,
@@ -37,8 +37,7 @@ pub enum CommandExitCode {
     ApplicationFileNotFound = 14,
     CannotGetCurrentUser = 15,
     ContainerRunError = 16,
-    ApplicationNameMissing = 17,
-    UnknowOption = 18
+    ApplicationNameMissing = 17
 }
 
 ///

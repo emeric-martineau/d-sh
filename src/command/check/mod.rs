@@ -21,60 +21,58 @@ use super::super::config::get_config_application;
 fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper) -> CommandExitCode {
 
-    match get_config(io_helper) {
-        Ok(config) => {
-            // 1 - We have got configuration
-            match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
-                Ok(list_applications_file) => {
-                    let mut error_filename: Vec<String> = Vec::new();
+    let config = get_config(io_helper).unwrap();
 
-                    // 2 - We have list of application
-                    for filename in list_applications_file  {
-                        // 3 - Now, we check if image exits
-                        match get_config_application(io_helper, &filename) {
-                            Ok(config_application) => {
-                                let status;
-                                let images = dck_helper.list_image(&config_application.image_name);
+    // 1 - We have got configuration
+    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+        Ok(list_applications_file) => {
+            let mut error_filename: Vec<String> = Vec::new();
 
-                                if images.len() > 0 {
-                                    status = "Build done"
-                                } else {
-                                    status = "Build need";
-                                }
+            // 2 - We have list of application
+            for filename in list_applications_file  {
+                // 3 - Now, we check if image exits
+                match get_config_application(io_helper, &filename) {
+                    Ok(config_application) => {
+                        let status;
+                        let images = dck_helper.list_image(&config_application.image_name);
 
-                                let application_name = Path::new(&filename)
-                                    .file_stem()
-                                    .unwrap()   // get OsStr
-                                    .to_str()
-                                    .unwrap();
-
-                                io_helper.println(&format!(
-                                    "{:<with_first$}{:<with_first$}{:<width_second$}",
-                                    application_name,
-                                    &config_application.image_name,
-                                    &status,
-                                    with_first = 34,
-                                    width_second = 13));
-                            },
-                            Err(_) => error_filename.push(filename)
-                        };
-                    };
-
-                    if error_filename.len() == 0 {
-                        CommandExitCode::Ok
-                    } else {
-                        for filename in error_filename {
-                             io_helper.eprintln(&format!("The file {} have bad format!", &filename));
+                        if images.len() > 0 {
+                            status = "Build done"
+                        } else {
+                            status = "Build need";
                         }
 
-                        CommandExitCode::BadApplicationFormat
-                    }
-                },
-                Err(_) => CommandExitCode::CannotReadApplicationsFolder
+                        let application_name = Path::new(&filename)
+                            .file_stem()
+                            .unwrap()   // get OsStr
+                            .to_str()
+                            .unwrap();
+
+                        io_helper.println(&format!(
+                            "{:<with_first$}{:<with_first$}{:<width_second$}",
+                            application_name,
+                            &config_application.image_name,
+                            &status,
+                            with_first = 34,
+                            width_second = 13));
+                    },
+                    Err(_) => error_filename.push(filename)
+                };
+            };
+
+            if error_filename.len() == 0 {
+                CommandExitCode::Ok
+            } else {
+                for filename in error_filename {
+                     io_helper.eprintln(&format!("The file {} have bad format!", &filename));
+                }
+
+                CommandExitCode::BadApplicationFormat
             }
         },
-        Err(_) => CommandExitCode::CannotReadConfigFile
+        Err(_) => CommandExitCode::CannotReadApplicationsFolder
     }
+
 }
 
 ///
@@ -141,18 +139,6 @@ mod tests {
         found_item(&stdout, "atom                              run-atom:latest                   Build done   ");
         found_item(&stdout, "filezilla                         run-filezilla:latest              Build done   ");
         found_item(&stdout, "titi                              run-titi:latest                   Build need   ");
-    }
-
-    #[test]
-    fn check_if_config_file_not_found() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-
-        let args = [];
-
-        let result = check(&CHECK, &args, io_helper, dck_helper);
-
-        assert_eq!(result, CommandExitCode::CannotReadConfigFile);
     }
 
     #[test]

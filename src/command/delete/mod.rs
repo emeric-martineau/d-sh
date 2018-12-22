@@ -84,23 +84,20 @@ fn delete_all(config: &Config, io_helper: &InputOutputHelper,
 fn delete(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper) -> CommandExitCode {
 
-    match get_config(io_helper) {
-        Ok(config) => {
-            match args[0].as_ref() {
-                "-h" | "--help" => {
-                    io_helper.println(command.usage);
-                    CommandExitCode::Ok
-                },
-                "-a" | "--all" => {
-                    delete_all(&config, io_helper, dck_helper)
-                },
-                app => {
-                    delete_one(&config, app, io_helper, dck_helper)
-                }
-            }
+    let config = get_config(io_helper).unwrap();
+
+    match args[0].as_ref() {
+        "-h" | "--help" => {
+            io_helper.println(command.usage);
+            CommandExitCode::Ok
         },
-        Err(_) => CommandExitCode::CannotReadConfigFile
-    }
+        "-a" | "--all" => {
+            delete_all(&config, io_helper, dck_helper)
+        },
+        app => {
+            delete_one(&config, app, io_helper, dck_helper)
+        }
+    }    
 }
 
 ///

@@ -20,30 +20,27 @@ use super::super::config::get_config;
 fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     _dck_helper: &ContainerHelper) -> CommandExitCode {
 
-    match get_config(io_helper) {
-        Ok(config) => {
-            // 1 - We have got configuration
-            match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
-                Ok(mut list_applications_file) => {
-                    list_applications_file.sort();
+    let config = get_config(io_helper).unwrap();
 
-                    // 2 - We have list of application
-                    for filename in list_applications_file  {
-                        let application_name = Path::new(&filename)
-                            .file_stem()
-                            .unwrap()   // get OsStr
-                            .to_str()
-                            .unwrap();
+    // 1 - We have got configuration
+    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+        Ok(mut list_applications_file) => {
+            list_applications_file.sort();
 
-                        io_helper.println(&application_name);
-                    };
+            // 2 - We have list of application
+            for filename in list_applications_file  {
+                let application_name = Path::new(&filename)
+                    .file_stem()
+                    .unwrap()   // get OsStr
+                    .to_str()
+                    .unwrap();
 
-                    CommandExitCode::Ok
-                },
-                Err(_) => CommandExitCode::CannotReadApplicationsFolder
-            }
+                io_helper.println(&application_name);
+            };
+
+            CommandExitCode::Ok
         },
-        Err(_) => CommandExitCode::CannotReadConfigFile
+        Err(_) => CommandExitCode::CannotReadApplicationsFolder
     }
 }
 
