@@ -26,13 +26,14 @@ use command::delete::DELETE;
 use command::init::INIT;
 use command::list::LIST;
 use command::run::RUN;
+use command::build::BUILD;
 use help::help;
 use help::version;
 use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
 use docker::DefaultContainerHelper;
 
-const ALL_COMMANDS: &'static [Command] = &[CHECK, DELETE, INIT, LIST, RUN];
+const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, INIT, LIST, RUN];
 
 ///
 /// Main function of D-SH

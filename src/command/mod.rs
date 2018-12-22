@@ -8,6 +8,7 @@ pub mod delete;
 pub mod init;
 pub mod list;
 pub mod run;
+pub mod build;
 
 use super::io::InputOutputHelper;
 use super::config::get_config_filename;
@@ -36,7 +37,8 @@ pub enum CommandExitCode {
     ApplicationFileNotFound = 14,
     CannotGetCurrentUser = 15,
     ContainerRunError = 16,
-    ApplicationNameMissing = 17
+    ApplicationNameMissing = 17,
+    UnknowOption = 18
 }
 
 ///
