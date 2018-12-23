@@ -11,6 +11,8 @@ extern crate regex;
 extern crate glob;
 extern crate users;
 extern crate dirs;
+extern crate handlebars;
+extern crate rand;
 
 mod command;
 mod config;

@@ -1,15 +1,17 @@
 [package]
 name = "d-sh"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Emeric MARTINEAU"]
 
 [dependencies]
-serde = "1.0"
-serde_derive = "1.0"
-serde_yaml = "0.8"
-glob = "0.2"
-users = "0.7"
-dirs = "1.0"
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_yaml = "^0.8"
+glob = "^0.2"
+users = "^0.7"
+dirs = "^1.0"
+handlebars = "^1.1.0"
+rand = "^0.6"
 
 [dev-dependencies]
-regex = "1"
+regex = "^1"

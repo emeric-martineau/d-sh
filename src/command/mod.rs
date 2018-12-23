@@ -37,7 +37,9 @@ pub enum CommandExitCode {
     ApplicationFileNotFound = 14,
     CannotGetCurrentUser = 15,
     ContainerRunError = 16,
-    ApplicationNameMissing = 17
+    ApplicationNameMissing = 17,
+    CannotGenerateDockerfile = 18,
+    DockerfileTemplateInvalid = 19
 }
 
 ///

@@ -4,12 +4,20 @@
 /// Release under MIT License.
 ///
 use std::path::Path;
+use std::fs::File;
+use std::collections::HashMap;
+use std::env::temp_dir;
 use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
 use super::super::config::get_config;
+use super::super::config::create_config_filename_path;
 use super::super::config::dockerfile::DOCKERFILE_BASE_FILENAME;
+use handlebars::Handlebars;
+use rand::Rng;
+
+// TODO add optionnal parameter un config.yml for tmp_dir
 
 ///
 /// Option for build command.
@@ -30,14 +38,75 @@ struct BuildOptions {
 const UNKOWN_OPTIONS_MESSAGE: &'static str = "d-sh build: invalid option '{}'\nTry 'd-sh build --help' for more information.\n";
 
 ///
-/// Build base image
+/// Generate a random string.
 ///
-fn build_base() -> CommandExitCode {
-    // 1 - Get base image name from dockerfile debian
-    // 2 - If force, remove previous image
-    // 3 - Get all dependencies from applications files
-    // 4 - Build
-    CommandExitCode::Todo
+fn random_string () -> String {
+    let mut rng = rand::thread_rng();
+    let letter: char = rng.gen_range(b'A', b'Z') as char;
+    let number: u32 = rng.gen_range(0, 999999);
+
+    format!("{}{:06}", letter, number)
+}
+
+///
+/// Generate template of dockerfile.
+///
+fn generate_dokerfile(io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
+    let handlebars = Handlebars::new();
+
+    let mut data = HashMap::new();
+    data.insert("dockerfile_base", true);
+
+    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+        Some(dockerfile_name) => {
+            match io_helper.file_read_at_string(&dockerfile_name) {
+                Ok(mut source_template) => {
+                    match handlebars.render_template(&source_template, &data) {
+                        Ok(content) => {
+                            match io_helper.file_write(&output_filename, &content) {
+                                Ok(_) => Ok(true),
+                                Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
+                            }
+                        },
+                        Err(_) => Err(CommandExitCode::DockerfileTemplateInvalid)
+                    }
+                },
+                Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
+            }
+        },
+        None => Err(CommandExitCode::CannotGetHomeFolder)
+    }
+}
+
+///
+/// Build base image.
+///
+fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
+    // 1 - Create tmp folder for build
+    let mut tmp_dir = temp_dir();
+    tmp_dir.push(random_string());
+
+    println!("{:?}", tmp_dir);
+    // 2 - Generate Dockerfile
+    match generate_dokerfile(io_helper, "/tmp/test2.txt".to_string()) {
+        Ok(_) => {
+            CommandExitCode::Todo
+        }
+        Err(err) => {
+            match err {
+                CommandExitCode::CannotGetHomeFolder => io_helper.eprintln("Unable to get your home dir!"),
+                CommandExitCode::CannotGenerateDockerfile => io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!"),
+                _ => io_helper.eprintln("God! Unexpected error. Open issue, cause a test case missing!")
+            }
+
+            err
+        }
+    }
+
+    // 3 - If force, remove previous image
+    // 4 - Get all dependencies from applications files
+    // 5 - Build
+    // 6 - Remove tmp folder
 }
 
 ///
@@ -76,7 +145,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     }
 
     if options.base {
-        build_base()
+        build_base(io_helper)
     } else {
         CommandExitCode::Todo
     }
@@ -93,8 +162,8 @@ pub const BUILD: Command = Command {
     /// Short name.
     short_name: "b",
     /// `check` command have no parameter.
-    min_args: 0,
-    max_args: 0,
+    min_args: 1,
+    max_args: std::usize::MAX,
     /// `check` command have no help.
     usage: "
     Usage:	d-sh build [OPTIONS] PROGRAM1 PROGRAM2 ...
