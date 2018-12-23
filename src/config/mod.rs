@@ -14,9 +14,18 @@ use super::io::InputOutputHelper;
 
 /// Config structure of D-SH
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConfigDocker {
+    pub from: String,
+    pub tag: String
+}
+
+
+/// Config structure of D-SH
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub download_dir: String,
-    pub applications_dir: String
+    pub applications_dir: String,
+    pub dockerfile: ConfigDocker
 }
 
 /// Config structure of D-SH

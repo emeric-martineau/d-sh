@@ -120,7 +120,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -155,7 +155,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -179,7 +179,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };

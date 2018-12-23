@@ -9,7 +9,7 @@ use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
 use super::super::config::get_config;
-use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEB_FILENAME};
+use super::super::config::dockerfile::DOCKERFILE_BASE_FILENAME;
 
 ///
 /// Option for build command.
@@ -116,7 +116,7 @@ mod tests {
     use super::BUILD;
     use super::build;
     use super::UNKOWN_OPTIONS_MESSAGE;
-    use super::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEB_FILENAME};
+    use super::DOCKERFILE_BASE_FILENAME;
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
     use super::super::super::config::get_config_filename;
@@ -133,7 +133,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
