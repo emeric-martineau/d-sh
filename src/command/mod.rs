@@ -39,7 +39,8 @@ pub enum CommandExitCode {
     ContainerRunError = 16,
     ApplicationNameMissing = 17,
     CannotGenerateDockerfile = 18,
-    DockerfileTemplateInvalid = 19
+    DockerfileTemplateInvalid = 19,
+    CannotCreateFolder = 20,
 }
 
 ///

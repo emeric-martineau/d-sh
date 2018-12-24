@@ -153,6 +153,7 @@ pub mod tests {
         pub stdin: RefCell<Vec<String>>,
         pub files: RefCell<HashMap<String, String>>,
         pub files_error: RefCell<HashMap<String, bool>>,
+        pub files_delete: RefCell<HashMap<String, String>>,
     }
 
     impl InputOutputHelper for TestInputOutputHelper {
@@ -194,7 +195,7 @@ pub mod tests {
 
         fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
             if self.files_error.borrow().contains_key(dir) {
-                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot read"))
             } else {
                 let regex = pattern.replace(r".", r"\.").replace(r"*", r".*");
 
@@ -228,7 +229,8 @@ pub mod tests {
                 stderr: RefCell::new(Vec::new()),
                 stdin: RefCell::new(Vec::new()),
                 files: RefCell::new(HashMap::new()),
-                files_error: RefCell::new(HashMap::new())
+                files_error: RefCell::new(HashMap::new()),
+                files_delete: RefCell::new(HashMap::new())
             }
         }
     }

@@ -50,7 +50,8 @@ pub fn get_config_filename() -> Option<String> {
 }
 
 ///
-/// Function to create a path for file,
+/// Function to create a path for file.
+///
 pub fn create_config_filename_path(filename: &str)  -> Option<String> {
     match home_dir() {
         Some(path) => {

@@ -5,7 +5,6 @@
 ///
 use std::path::Path;
 use std::fs::File;
-use std::collections::HashMap;
 use std::env::temp_dir;
 use command::Command;
 use command::CommandExitCode;
@@ -50,7 +49,7 @@ fn random_string () -> String {
 ///
 /// Generate template of dockerfile.
 ///
-fn generate_dokerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
+fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
     let handlebars = Handlebars::new();
 
     let data = json!({
@@ -69,7 +68,9 @@ fn generate_dokerfile(config: &Config, io_helper: &InputOutputHelper, output_fil
                                 Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
                             }
                         },
-                        Err(_) => Err(CommandExitCode::DockerfileTemplateInvalid)
+                        Err(err) => {
+                            Err(CommandExitCode::DockerfileTemplateInvalid)
+                        }
                     }
                 },
                 Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
@@ -87,30 +88,38 @@ fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
     let mut tmp_dir = temp_dir();
     tmp_dir.push(random_string());
 
-    println!("{:?}", tmp_dir);
-
-    let config = get_config(io_helper).unwrap();
-
-    // 2 - Generate Dockerfile
-    match generate_dokerfile(&config, io_helper, "/tmp/test2.txt".to_string()) {
+    match io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
         Ok(_) => {
-            CommandExitCode::Todo
-        }
-        Err(err) => {
-            match err {
-                CommandExitCode::CannotGetHomeFolder => io_helper.eprintln("Unable to get your home dir!"),
-                CommandExitCode::CannotGenerateDockerfile => io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!"),
-                _ => io_helper.eprintln("God! Unexpected error. Open issue, cause a test case missing!")
-            }
+            let config = get_config(io_helper).unwrap();
+            let mut dockerfile_name = tmp_dir.to_owned();
+            dockerfile_name.push("Dockerfile");
 
-            err
+            // 2 - Generate Dockerfile
+            match generate_dockerfile(&config, io_helper, dockerfile_name.to_str().unwrap().to_string()) {
+                Ok(_) => {
+                    // 3 - If force, remove previous image
+                    // 4 - Get all dependencies from applications files
+                    // 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
+                    // 6 - Build
+                    // 7 - Remove tmp folder
+                    CommandExitCode::Todo
+                },
+                Err(err) => {
+                    match err {
+                        CommandExitCode::CannotGetHomeFolder => io_helper.eprintln("Unable to get your home dir!"),
+                        CommandExitCode::CannotGenerateDockerfile => io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!"),
+                        _ => io_helper.eprintln("God! Unexpected error. Open issue, cause a test case missing!")
+                    }
+
+                    err
+                }
+            }
+        },
+        Err(_) => {
+            io_helper.eprintln(&format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()));
+            CommandExitCode::CannotCreateFolder
         }
     }
-
-    // 3 - If force, remove previous image
-    // 4 - Get all dependencies from applications files
-    // 5 - Build
-    // 6 - Remove tmp folder
 }
 
 ///
@@ -189,10 +198,10 @@ mod tests {
     use super::BUILD;
     use super::build;
     use super::UNKOWN_OPTIONS_MESSAGE;
-    use super::DOCKERFILE_BASE_FILENAME;
+    use super::super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT};
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::get_config_filename;
+    use super::super::super::config::{get_config_filename, create_config_filename_path};
     use command::CommandExitCode;
 
     #[test]
@@ -231,7 +240,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -256,9 +265,18 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\n"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
         };
 
         // Add application with dependencies
@@ -267,7 +285,29 @@ mod tests {
 
         let result = build(&BUILD, &args, io_helper, dck_helper);
 
-        assert_eq!(result, CommandExitCode::Ok);
+        // Check if temporary folder was created and remove
+        let f = io_helper.files.borrow_mut();
+
+        let mut not_found_dockerfile = true;
+        let mut not_found_entrypoint = true;
+
+        for filename in f.keys() {
+            if filename.ends_with("/Dockerfile") {
+                not_found_dockerfile = false;
+                assert_eq!(f.get(filename).unwrap(), "tata coucou");
+            } else if filename.ends_with("/entrypoint.sh") {
+                not_found_entrypoint = false;
+                assert_eq!(f.get(filename).unwrap(), ENTRYPOINT);
+            }
+        }
+
+        if not_found_dockerfile {
+            panic!("The temporary Dockerfile in '/tmp/xxx/' folder not found!");
+        }
+
+        if not_found_entrypoint {
+            panic!("The temporary entrypoint.sh in '/tmp/xxx/' folder not found!");
+        }
 
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
@@ -280,5 +320,7 @@ mod tests {
         let stdout = io_helper.stdout.borrow();
 
         assert_eq!(stdout.get(0).unwrap(), "Building base image...");
+
+        assert_eq!(result, CommandExitCode::Ok);
     }
 }

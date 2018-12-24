@@ -146,8 +146,6 @@ mod tests {
     use super::Path;
     use super::HashMap;
     use command::CommandExitCode;
-    use super::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
-        ENTRYPOINT_FILENAME, ENTRYPOINT};
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
