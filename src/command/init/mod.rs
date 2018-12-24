@@ -10,7 +10,8 @@ use std::collections::HashMap;
 use super::super::io::InputOutputHelper;
 use super::super::config::get_config_filename;
 use super::super::config::create_config_filename_path;
-use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE, DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
+use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
+    ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
 use super::super::docker::ContainerHelper;
 
 /// Default directory of downloading applictions.
@@ -19,21 +20,30 @@ const DOWNLOAD_DIR: &str = "~/.d-sh/download";
 const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 
 fn create_dockerfile(io_helper: &InputOutputHelper)  -> CommandExitCode {
-    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
-        Some(dockerfile_name) => {
-            if io_helper.file_write(&dockerfile_name, &DOCKERFILE_BASE).is_err() {
-                io_helper.eprintln(&format!("Unable to write file '{}'", DOCKERFILE_BASE_FILENAME));
-                return CommandExitCode::CannotWriteConfigFile;
+    let dockerfile_list: HashMap<&str, &str> = [
+        (DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE),
+        (ENTRYPOINT_FILENAME, ENTRYPOINT)]
+        .iter().cloned().collect();
+
+    // Create all docker file
+    for (k, v) in &dockerfile_list {
+        match create_config_filename_path(&k) {
+            Some(dockerfile_name) => {
+                if io_helper.file_write(&dockerfile_name, &v).is_err() {
+                    io_helper.eprintln(&format!("Unable to write file '{}'", k));
+                    return CommandExitCode::CannotWriteConfigFile;
+                }
+            },
+            None => {
+                io_helper.eprintln("Unable to get your home dir!");
+                return CommandExitCode::CannotGetHomeFolder;
             }
-        },
-        None => {
-            io_helper.eprintln("Unable to get your home dir!");
-            return CommandExitCode::CannotGetHomeFolder;
         }
     }
 
     CommandExitCode::Ok
 }
+
 
 fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, default_value: &str) -> String {
     let mut new_prompt = String::from(prompt);
@@ -136,6 +146,8 @@ mod tests {
     use super::Path;
     use super::HashMap;
     use command::CommandExitCode;
+    use super::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
+        ENTRYPOINT_FILENAME, ENTRYPOINT};
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
@@ -189,7 +201,8 @@ mod tests {
         let f = io_helper.files.borrow_mut();
 
         let dockerfile_list: HashMap<&str, &str> = [
-            (super::DOCKERFILE_BASE_FILENAME, super::DOCKERFILE_BASE)]
+            (super::DOCKERFILE_BASE_FILENAME, super::DOCKERFILE_BASE),
+            (super::ENTRYPOINT_FILENAME, super::ENTRYPOINT)]
             .iter().cloned().collect();
 
         // Create all docker file
@@ -242,7 +255,7 @@ mod tests {
         io_helper.stdin.borrow_mut().push(String::from("titi"));
         io_helper.stdin.borrow_mut().push(String::from("tata"));
         io_helper.stdin.borrow_mut().push(String::from("tutu"));
-        
+
         let args = [];
 
         match get_config_filename() {
