@@ -11,8 +11,7 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::config::get_config;
-use super::super::config::create_config_filename_path;
+use super::super::config::{get_config, Config, create_config_filename_path};
 use super::super::config::dockerfile::DOCKERFILE_BASE_FILENAME;
 use handlebars::Handlebars;
 use rand::Rng;
@@ -51,11 +50,13 @@ fn random_string () -> String {
 ///
 /// Generate template of dockerfile.
 ///
-fn generate_dokerfile(io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
+fn generate_dokerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
     let handlebars = Handlebars::new();
 
-    let mut data = HashMap::new();
-    data.insert("dockerfile_base", true);
+    let data = json!({
+        "dockerfile_from": config.dockerfile.from.to_owned(),
+        "dockerfile_base": true
+    });
 
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(dockerfile_name) => {
@@ -87,8 +88,11 @@ fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
     tmp_dir.push(random_string());
 
     println!("{:?}", tmp_dir);
+
+    let config = get_config(io_helper).unwrap();
+
     // 2 - Generate Dockerfile
-    match generate_dokerfile(io_helper, "/tmp/test2.txt".to_string()) {
+    match generate_dokerfile(&config, io_helper, "/tmp/test2.txt".to_string()) {
         Ok(_) => {
             CommandExitCode::Todo
         }

@@ -4,6 +4,8 @@
 //! Release under MIT License.
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 
 #[cfg(test)]
 extern crate regex;

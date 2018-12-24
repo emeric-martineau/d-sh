@@ -19,7 +19,6 @@ pub struct ConfigDocker {
     pub tag: String
 }
 
-
 /// Config structure of D-SH
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
