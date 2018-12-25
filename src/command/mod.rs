@@ -41,6 +41,7 @@ pub enum CommandExitCode {
     CannotGenerateDockerfile = 18,
     DockerfileTemplateInvalid = 19,
     CannotCreateFolder = 20,
+    CannotDeleteTemporaryFolder = 21
 }
 
 ///

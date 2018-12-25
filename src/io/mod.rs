@@ -3,15 +3,11 @@
 ///
 /// Release under MIT License.
 ///
-use std::io;
-use std::io::{Error, ErrorKind};
-use std::fs;
-use std::io::Write;
+use std::io::{Error, ErrorKind, Write, stdin, stdout};
 use std::path::Path;
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{File, remove_dir_all, create_dir_all, write};
 use glob::glob;
-use std::fs::create_dir_all;
 use dirs::home_dir;
 
 /// Convert path with start "~/"
@@ -45,6 +41,8 @@ pub trait InputOutputHelper {
     fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error>;
     /// Create all dir
     fn create_dir_all(&self, dir: &str) -> Result<(), Error>;
+    /// Remove dir
+    fn remove_dir_all(&self, dir: &str) -> Result<(), Error>;
 }
 
 /// Default print on tty.
@@ -57,7 +55,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
 
     fn print(&self, expr: &str) {
         print!("{}", expr);
-        io::stdout().flush().unwrap();
+        stdout().flush().unwrap();
     }
 
     fn eprintln(&self, expr: &str) {
@@ -67,7 +65,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     fn read_line(&self) -> String {
         let mut input = String::new();
 
-        match io::stdin().read_line(&mut input) {
+        match stdin().read_line(&mut input) {
             Ok(_) => {
                 input
             }
@@ -76,7 +74,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     }
 
     fn file_write(&self, path: &str, contents: &str) -> Result<(), Error> {
-        match fs::write(path, contents) {
+        match write(path, contents) {
             Ok(f) => Ok(f),
             Err(e) => Err(e)
         }
@@ -122,6 +120,13 @@ impl InputOutputHelper for DefaultInputOutputHelper {
 
     fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
         match create_dir_all(dir) {
+            Ok(a) => Ok(a),
+            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+        }
+    }
+
+    fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
+        match remove_dir_all(dir) {
             Ok(a) => Ok(a),
             Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
         }
@@ -217,6 +222,32 @@ pub mod tests {
             if self.files_error.borrow().contains_key(dir) {
                 Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
             } else {
+                Ok(())
+            }
+        }
+
+        fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
+            if self.files_error.borrow().contains_key(dir) {
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            } else {
+                // Collect file to delete
+                let files_to_delete: Vec<String> = self.files.borrow()
+                    .keys()
+                    .filter(|k| k.starts_with(dir))
+                    // Convert &str to String
+                    .map(|k| k.to_string())
+                    .collect();
+
+                let mut deleted_files = self.files_delete.borrow_mut();
+                let mut files = self.files.borrow_mut();
+
+                // Move file from `files` to `files_delete`
+                for filename in &files_to_delete {
+                    deleted_files.insert(filename.to_owned(),
+                            files.get(filename).unwrap().to_owned());
+                    files.remove(filename);
+                }
+
                 Ok(())
             }
         }

@@ -3,7 +3,7 @@
 ///
 /// Release under MIT License.
 ///
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::env::temp_dir;
 use command::Command;
@@ -65,21 +65,40 @@ fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_fi
                         Ok(content) => {
                             match io_helper.file_write(&output_filename, &content) {
                                 Ok(_) => Ok(true),
-                                Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
+                                Err(_) => {
+                                    io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
+                                    Err(CommandExitCode::CannotGenerateDockerfile)
+                                }
                             }
                         },
                         Err(err) => {
+                            io_helper.eprintln("Something is wrong in Dockerfile template!");
                             Err(CommandExitCode::DockerfileTemplateInvalid)
                         }
                     }
                 },
-                Err(_) => Err(CommandExitCode::CannotGenerateDockerfile)
+                Err(_) => {
+                    io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
+                    Err(CommandExitCode::CannotGenerateDockerfile)
+                }
             }
         },
-        None => Err(CommandExitCode::CannotGetHomeFolder)
+        None => {
+            io_helper.eprintln("Unable to get your home dir!");
+            Err(CommandExitCode::CannotGetHomeFolder)
+        }
     }
 }
 
+///
+/// Remove folder.
+///
+fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandExitCode {
+    match io_helper.remove_dir_all(tmp_dir.to_str().unwrap()) {
+        Ok(_) => CommandExitCode::Ok,
+        Err(_) => CommandExitCode::CannotDeleteTemporaryFolder
+    }
+}
 ///
 /// Build base image.
 ///
@@ -97,22 +116,14 @@ fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
             // 2 - Generate Dockerfile
             match generate_dockerfile(&config, io_helper, dockerfile_name.to_str().unwrap().to_string()) {
                 Ok(_) => {
-                    // 3 - If force, remove previous image
-                    // 4 - Get all dependencies from applications files
-                    // 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
-                    // 6 - Build
+                    // TODO 3 - If force, remove previous image
+                    // TODO 4 - Get all dependencies from applications files
+                    // TODO 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
+                    // TODO 6 - Build
                     // 7 - Remove tmp folder
-                    CommandExitCode::Todo
+                    remove_temp_dir(io_helper, &tmp_dir)
                 },
-                Err(err) => {
-                    match err {
-                        CommandExitCode::CannotGetHomeFolder => io_helper.eprintln("Unable to get your home dir!"),
-                        CommandExitCode::CannotGenerateDockerfile => io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!"),
-                        _ => io_helper.eprintln("God! Unexpected error. Open issue, cause a test case missing!")
-                    }
-
-                    err
-                }
+                Err(err) => err
             }
         },
         Err(_) => {
@@ -286,7 +297,7 @@ mod tests {
         let result = build(&BUILD, &args, io_helper, dck_helper);
 
         // Check if temporary folder was created and remove
-        let f = io_helper.files.borrow_mut();
+        let f = io_helper.files_delete.borrow();
 
         let mut not_found_dockerfile = true;
         let mut not_found_entrypoint = true;
@@ -323,4 +334,9 @@ mod tests {
 
         assert_eq!(result, CommandExitCode::Ok);
     }
+
+    // TODO test: build test with generate Dockerfile error cause template bad
+    // TODO test: build test with generate Dockerfile/entry.sh error cause folder error
+    // TODO test: build test with delete folder error cause folder error
+    // TODO test: build base with -f option
 }
