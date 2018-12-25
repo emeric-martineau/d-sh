@@ -10,12 +10,12 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::config::{get_config, Config, create_config_filename_path};
+use super::super::config::{get_config, Config, create_config_filename_path, get_config_application};
 use super::super::config::dockerfile::DOCKERFILE_BASE_FILENAME;
 use handlebars::Handlebars;
 use rand::Rng;
 
-// TODO add optionnal parameter un config.yml for tmp_dir
+// TODO add optionnal parameter in config.yml for tmp_dir
 
 ///
 /// Option for build command.
@@ -99,6 +99,46 @@ fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandE
         Err(_) => CommandExitCode::CannotDeleteTemporaryFolder
     }
 }
+
+///
+/// Get list of dependencies.
+///
+fn get_dependencies(io_helper: &InputOutputHelper) -> Result<Vec<String>, CommandExitCode> {
+    let config = get_config(io_helper).unwrap();
+
+    // 1 - We have got configuration
+    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+        Ok(mut list_applications_file) => {
+            list_applications_file.sort();
+            let mut dependencies: Vec<String> = Vec::new();
+
+            // 2 - We have list of application
+            for filename in list_applications_file  {
+                let application_name = Path::new(&filename)
+                    .file_stem()
+                    .unwrap()   // get OsStr
+                    .to_str()
+                    .unwrap();
+
+                    match get_config_application(io_helper, &filename) {
+                        Ok(config_application) => {
+                            if let Some(d) = config_application.dependencies {
+                                dependencies.extend(d.iter().cloned());
+                            }
+                        },
+                        Err(_) => {
+                            // Non blocking error
+                            io_helper.eprintln(&format!("Cannot read list of dependencies of '{}' application, please check right or file format!", &filename))
+                        }
+                    };
+            };
+
+            Ok(dependencies)
+        },
+        Err(_) => Err(CommandExitCode::CannotReadApplicationsFolder)
+    }
+}
+
 ///
 /// Build base image.
 ///
@@ -117,9 +157,12 @@ fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
             match generate_dockerfile(&config, io_helper, dockerfile_name.to_str().unwrap().to_string()) {
                 Ok(_) => {
                     // TODO 3 - If force, remove previous image
-                    // TODO 4 - Get all dependencies from applications files
-                    // TODO 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
-                    // TODO 6 - Build
+                    // 4 - Get all dependencies from applications files
+                    if let Ok(dependencies) = get_dependencies(io_helper) {
+                        // TODO 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
+                        // TODO 6 - Build
+                    }
+
                     // 7 - Remove tmp folder
                     remove_temp_dir(io_helper, &tmp_dir)
                 },
@@ -339,4 +382,5 @@ mod tests {
     // TODO test: build test with generate Dockerfile/entry.sh error cause folder error
     // TODO test: build test with delete folder error cause folder error
     // TODO test: build base with -f option
+    // TODO test: build with application bad file format
 }
