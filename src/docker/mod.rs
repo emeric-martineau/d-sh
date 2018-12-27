@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 use std::process::Command;
+use std::collections::HashMap;
 
 /// Trait to write one screen.
 pub trait ContainerHelper {
@@ -20,6 +21,12 @@ pub trait ContainerHelper {
     /// `cmd_options` is optional option of cmd
     fn run_container(&self, image_name: &str, run_options: Option<&Vec<String>>, cmd: Option<&str>,
         cmd_options: Option<&Vec<String>>) -> bool;
+    /// Build a docker image
+    /// `docker_filename` is path of docker_filename
+    /// `docker_context_path` is context of build
+    /// `docker_tag` is docker tag
+    /// `docker_build_args` is docker build args (--build-args)
+    fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str, docker_build_args: &HashMap<String, String>) -> bool;
 }
 
 /// Default print on tty.
@@ -95,6 +102,11 @@ impl ContainerHelper for DefaultContainerHelper {
            Err(_) => false
         }
     }
+
+    fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
+        docker_build_args: &HashMap<String, String>) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -103,6 +115,7 @@ pub mod tests {
     use std::clone::Clone;
     use std::cell::RefCell;
     use std::fmt::{Display, Formatter, Result};
+    use std::collections::HashMap;
 
     /// When build image
     pub struct TestBuildImage {
@@ -216,6 +229,11 @@ pub mod tests {
             } else {
                 false
             }
+        }
+
+        fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
+            docker_build_args: &HashMap<String, String>) -> bool {
+            false
         }
     }
 

@@ -6,7 +6,7 @@
 use std::io::{Error, ErrorKind, Write, stdin, stdout};
 use std::path::Path;
 use std::io::prelude::*;
-use std::fs::{File, remove_dir_all, create_dir_all, write};
+use std::fs::{File, remove_dir_all, create_dir_all, write, hard_link, copy};
 use glob::glob;
 use dirs::home_dir;
 
@@ -43,6 +43,8 @@ pub trait InputOutputHelper {
     fn create_dir_all(&self, dir: &str) -> Result<(), Error>;
     /// Remove dir
     fn remove_dir_all(&self, dir: &str) -> Result<(), Error>;
+    /// Create an hardlink or copy file if not possible
+    fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error>;
 }
 
 /// Default print on tty.
@@ -129,6 +131,18 @@ impl InputOutputHelper for DefaultInputOutputHelper {
         match remove_dir_all(dir) {
             Ok(a) => Ok(a),
             Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+        }
+    }
+
+    fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error> {
+        match hard_link(from, to) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                match copy(from, to) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+                }
+            }
         }
     }
 }
@@ -249,6 +263,18 @@ pub mod tests {
                 }
 
                 Ok(())
+            }
+        }
+
+        fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error> {
+            match self.file_read_at_string(&from) {
+                Ok(content) => {
+                    match self.file_write(&to, &content) {
+                        Ok(_) => Ok(()),
+                        Err(err) => Err(err)
+                    }
+                },
+                Err(err) => Err(err)
             }
         }
     }

@@ -3,19 +3,20 @@
 ///
 /// Release under MIT License.
 ///
-use std::path::{Path, PathBuf};
-use std::fs::File;
+use std::path::PathBuf;
 use std::env::temp_dir;
+use std::collections::HashMap;
 use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
 use super::super::config::{get_config, Config, create_config_filename_path, get_config_application};
-use super::super::config::dockerfile::DOCKERFILE_BASE_FILENAME;
+use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
 use handlebars::Handlebars;
 use rand::Rng;
 
 // TODO add optionnal parameter in config.yml for tmp_dir
+// TODO config load one time
 
 ///
 /// Option for build command.
@@ -49,7 +50,7 @@ fn random_string () -> String {
 ///
 /// Generate template of dockerfile.
 ///
-fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: String) -> Result<bool, CommandExitCode> {
+fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &String) -> Result<(), CommandExitCode> {
     let handlebars = Handlebars::new();
 
     let data = json!({
@@ -64,14 +65,14 @@ fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_fi
                     match handlebars.render_template(&source_template, &data) {
                         Ok(content) => {
                             match io_helper.file_write(&output_filename, &content) {
-                                Ok(_) => Ok(true),
+                                Ok(_) => Ok(()),
                                 Err(_) => {
                                     io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
                                     Err(CommandExitCode::CannotGenerateDockerfile)
                                 }
                             }
                         },
-                        Err(err) => {
+                        Err(_) => {
                             io_helper.eprintln("Something is wrong in Dockerfile template!");
                             Err(CommandExitCode::DockerfileTemplateInvalid)
                         }
@@ -80,6 +81,27 @@ fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_fi
                 Err(_) => {
                     io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
                     Err(CommandExitCode::CannotGenerateDockerfile)
+                }
+            }
+        },
+        None => {
+            io_helper.eprintln("Unable to get your home dir!");
+            Err(CommandExitCode::CannotGetHomeFolder)
+        }
+    }
+}
+
+///
+/// Generate template of entrypoint.
+///
+fn generate_entrypoint(io_helper: &InputOutputHelper, output_dir: &String) -> Result<(), CommandExitCode> {
+    match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+        Some(entrypoint_name) => {
+            match io_helper.hardlink_or_copy_file(&entrypoint_name, &format!("{}/{}", &output_dir, &ENTRYPOINT_FILENAME)) {
+                Ok(_) => Ok(()),
+                Err(_) => {
+                    io_helper.eprintln(&format!("Unable copy '{}' to '{}'!", entrypoint_name, output_dir));
+                    Err(CommandExitCode::CannotCopyFile)
                 }
             }
         },
@@ -114,23 +136,17 @@ fn get_dependencies(io_helper: &InputOutputHelper) -> Result<Vec<String>, Comman
 
             // 2 - We have list of application
             for filename in list_applications_file  {
-                let application_name = Path::new(&filename)
-                    .file_stem()
-                    .unwrap()   // get OsStr
-                    .to_str()
-                    .unwrap();
-
-                    match get_config_application(io_helper, &filename) {
-                        Ok(config_application) => {
-                            if let Some(d) = config_application.dependencies {
-                                dependencies.extend(d.iter().cloned());
-                            }
-                        },
-                        Err(_) => {
-                            // Non blocking error
-                            io_helper.eprintln(&format!("Cannot read list of dependencies of '{}' application, please check right or file format!", &filename))
+                match get_config_application(io_helper, &filename) {
+                    Ok(config_application) => {
+                        if let Some(d) = config_application.dependencies {
+                            dependencies.extend(d.iter().cloned());
                         }
-                    };
+                    },
+                    Err(_) => {
+                        // Non blocking error
+                        io_helper.eprintln(&format!("Cannot read list of dependencies of '{}' application, please check right or file format!", &filename))
+                    }
+                };
             };
 
             Ok(dependencies)
@@ -142,37 +158,34 @@ fn get_dependencies(io_helper: &InputOutputHelper) -> Result<Vec<String>, Comman
 ///
 /// Build base image.
 ///
-fn build_base(io_helper: &InputOutputHelper) -> CommandExitCode {
-    // 1 - Create tmp folder for build
-    let mut tmp_dir = temp_dir();
-    tmp_dir.push(random_string());
+fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf) -> CommandExitCode {
+    let config = get_config(io_helper).unwrap();
+    let mut docker_filename = tmp_dir.to_owned();
+    docker_filename.push("Dockerfile");
 
-    match io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
+    let docker_filename = docker_filename.to_str().unwrap().to_string();
+    let docker_context_path = tmp_dir.to_str().unwrap().to_string();
+
+    // 2 - Generate Dockerfile
+    match generate_dockerfile(&config, io_helper, &docker_filename) {
         Ok(_) => {
-            let config = get_config(io_helper).unwrap();
-            let mut dockerfile_name = tmp_dir.to_owned();
-            dockerfile_name.push("Dockerfile");
-
-            // 2 - Generate Dockerfile
-            match generate_dockerfile(&config, io_helper, dockerfile_name.to_str().unwrap().to_string()) {
+            match generate_entrypoint(io_helper, &docker_context_path) {
                 Ok(_) => {
                     // TODO 3 - If force, remove previous image
                     // 4 - Get all dependencies from applications files
                     if let Ok(dependencies) = get_dependencies(io_helper) {
-                        // TODO 5 - create an hardlink (std::fs::hard_link) or copy entrypoint
-                        // TODO 6 - Build
+                        // 5 - Build
+                        let mut build_args = HashMap::new();
+
+                        dck_helper.build_image(&docker_filename, &docker_context_path, &config.dockerfile.tag, &build_args);
                     }
 
-                    // 7 - Remove tmp folder
-                    remove_temp_dir(io_helper, &tmp_dir)
+                    CommandExitCode::Todo
                 },
                 Err(err) => err
             }
         },
-        Err(_) => {
-            io_helper.eprintln(&format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()));
-            CommandExitCode::CannotCreateFolder
-        }
+        Err(err) => err
     }
 }
 
@@ -211,10 +224,29 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         }
     }
 
-    if options.base {
-        build_base(io_helper)
-    } else {
-        CommandExitCode::Todo
+    // 1 - Create tmp folder for build
+    let mut tmp_dir = temp_dir();
+    tmp_dir.push(random_string());
+
+    match io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
+        Ok(_) => {
+            let mut result;
+
+            if options.base {
+                result = build_base(io_helper, dck_helper, &tmp_dir);
+            } else {
+                result = CommandExitCode::Todo;
+            }
+
+            // Remove tmp folder
+            remove_temp_dir(io_helper, &tmp_dir);
+
+            result
+        },
+        Err(_) => {
+            io_helper.eprintln(&format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()));
+            CommandExitCode::CannotCreateFolder
+        }
     }
 }
 
@@ -252,7 +284,7 @@ mod tests {
     use super::BUILD;
     use super::build;
     use super::UNKOWN_OPTIONS_MESSAGE;
-    use super::super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT};
+    use super::super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME, ENTRYPOINT};
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
     use super::super::super::config::{get_config_filename, create_config_filename_path};
@@ -333,6 +365,15 @@ mod tests {
             None => panic!("Unable to create dockerfile for test")
         };
 
+        // Create dockerfile
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
         // Add application with dependencies
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
@@ -366,7 +407,7 @@ mod tests {
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
 
-        assert_eq!(base_build.build_options.get(0).unwrap(), "d1 d2 D3");
+        assert_eq!(base_build.build_options.get(0).unwrap(), "--build-arg 'DEPENDENCIES_ALL=d1 d2 D3'");
         assert_eq!(base_build.tag, "d-base-image:v1.0.0");
         assert_eq!(base_build.dockerfile_name, DOCKERFILE_BASE_FILENAME);
         assert_eq!(base_build.base_dir, "dwn");
