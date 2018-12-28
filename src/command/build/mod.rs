@@ -5,7 +5,6 @@
 ///
 use std::path::PathBuf;
 use std::env::temp_dir;
-use std::collections::HashMap;
 use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
@@ -14,9 +13,6 @@ use super::super::config::{get_config, Config, create_config_filename_path, get_
 use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
 use handlebars::Handlebars;
 use rand::Rng;
-
-// TODO add optionnal parameter in config.yml for tmp_dir
-// TODO config load one time
 
 ///
 /// Option for build command.
@@ -125,7 +121,7 @@ fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandE
 ///
 /// Get list of dependencies.
 ///
-fn get_dependencies(io_helper: &InputOutputHelper) -> Result<Vec<String>, CommandExitCode> {
+fn get_dependencies(io_helper: &InputOutputHelper) -> Result<String, CommandExitCode> {
     let config = get_config(io_helper).unwrap();
 
     // 1 - We have got configuration
@@ -149,7 +145,7 @@ fn get_dependencies(io_helper: &InputOutputHelper) -> Result<Vec<String>, Comman
                 };
             };
 
-            Ok(dependencies)
+            Ok(dependencies.join(" "))
         },
         Err(_) => Err(CommandExitCode::CannotReadApplicationsFolder)
     }
@@ -175,12 +171,16 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
                     // 4 - Get all dependencies from applications files
                     if let Ok(dependencies) = get_dependencies(io_helper) {
                         // 5 - Build
-                        let mut build_args = HashMap::new();
+                        let mut build_args = Vec::new();
 
-                        dck_helper.build_image(&docker_filename, &docker_context_path, &config.dockerfile.tag, &build_args);
+                        build_args.push(String::from("--build-arg"));
+                        build_args.push(format!("DEPENDENCIES_ALL={}", dependencies));
+
+                        dck_helper.build_image(&docker_filename, &docker_context_path,
+                            &config.dockerfile.tag, Some(&build_args));
                     }
 
-                    CommandExitCode::Todo
+                    CommandExitCode::Ok
                 },
                 Err(err) => err
             }
@@ -233,6 +233,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             let mut result;
 
             if options.base {
+                io_helper.println("Building base image...");
                 result = build_base(io_helper, dck_helper, &tmp_dir);
             } else {
                 result = CommandExitCode::Todo;
@@ -385,10 +386,12 @@ mod tests {
 
         let mut not_found_dockerfile = true;
         let mut not_found_entrypoint = true;
+        let mut generate_dockerfile = String::new();
 
         for filename in f.keys() {
             if filename.ends_with("/Dockerfile") {
                 not_found_dockerfile = false;
+                generate_dockerfile = filename.to_string();
                 assert_eq!(f.get(filename).unwrap(), "tata coucou");
             } else if filename.ends_with("/entrypoint.sh") {
                 not_found_entrypoint = false;
@@ -407,10 +410,11 @@ mod tests {
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
 
-        assert_eq!(base_build.build_options.get(0).unwrap(), "--build-arg 'DEPENDENCIES_ALL=d1 d2 D3'");
-        assert_eq!(base_build.tag, "d-base-image:v1.0.0");
-        assert_eq!(base_build.dockerfile_name, DOCKERFILE_BASE_FILENAME);
-        assert_eq!(base_build.base_dir, "dwn");
+        assert_eq!(base_build.build_options.get(0).unwrap(), "--build-arg");
+        assert_eq!(base_build.build_options.get(1).unwrap(), "DEPENDENCIES_ALL=d1 d2 d3");
+        assert_eq!(base_build.tag, "tutu");
+        assert_eq!(generate_dockerfile, base_build.dockerfile_name);
+        assert!(generate_dockerfile.starts_with(&base_build.base_dir));
 
         let stdout = io_helper.stdout.borrow();
 
@@ -418,6 +422,11 @@ mod tests {
 
         assert_eq!(result, CommandExitCode::Ok);
     }
+
+    // TODO replace build-args DEPENDENCIES_ALL by handlebars
+    // TODO add optionnal parameter in config.yml for tmp_dir
+    // TODO config load one time
+    // TODO display message if Dockerfile.hbs and entrypoint.sh not exists
 
     // TODO test: build test with generate Dockerfile error cause template bad
     // TODO test: build test with generate Dockerfile/entry.sh error cause folder error

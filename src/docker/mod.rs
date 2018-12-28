@@ -4,7 +4,6 @@
 /// Release under MIT License.
 ///
 use std::process::Command;
-use std::collections::HashMap;
 
 /// Trait to write one screen.
 pub trait ContainerHelper {
@@ -25,8 +24,9 @@ pub trait ContainerHelper {
     /// `docker_filename` is path of docker_filename
     /// `docker_context_path` is context of build
     /// `docker_tag` is docker tag
-    /// `docker_build_args` is docker build args (--build-args)
-    fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str, docker_build_args: &HashMap<String, String>) -> bool;
+    /// `build_options` is docker build args (--build-args)
+    fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
+        build_options: Option<&Vec<String>>) -> bool;
 }
 
 /// Default print on tty.
@@ -65,7 +65,7 @@ impl ContainerHelper for DefaultContainerHelper {
     fn run_container(&self, image_name: &str, run_options: Option<&Vec<String>>, cmd: Option<&str>,
         cmd_options: Option<&Vec<String>>) -> bool {
         // docker run
-        let mut args = vec![String::from("run")];
+        let mut args = vec![String::from("container"), String::from("run")];
 
         // -v /tmp/.X11-unix/:/tmp/.X11-unix/
         // -v /dev/shm:/dev/shm
@@ -104,8 +104,31 @@ impl ContainerHelper for DefaultContainerHelper {
     }
 
     fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
-        docker_build_args: &HashMap<String, String>) -> bool {
-        false
+        build_options: Option<&Vec<String>>) -> bool {
+            // docker build
+            let mut args = vec![String::from("image"), String::from("build")];
+
+            if build_options.is_some() {
+                for opt in build_options.unwrap() {
+                    args.push(opt.to_string());
+                }
+            }
+
+            args.push(String::from("-t"));
+            args.push(String::from(docker_tag));
+
+            args.push(String::from("-f"));
+            args.push(String::from(docker_filename));
+
+            // PATH
+            args.push(String::from(docker_context_path));
+
+            match Command::new("docker")
+                .args(&args)
+                .status() {
+               Ok(status) => status.success(),
+               Err(_) => false
+            }
     }
 }
 
@@ -115,7 +138,6 @@ pub mod tests {
     use std::clone::Clone;
     use std::cell::RefCell;
     use std::fmt::{Display, Formatter, Result};
-    use std::collections::HashMap;
 
     /// When build image
     pub struct TestBuildImage {
@@ -203,12 +225,12 @@ pub mod tests {
 
             if nb_image > 0 {
                 let r_opts = match run_options {
-                    Some(opts) => opts.to_vec(),
+                    Some(opts) => opts.clone(),
                     None => Vec::new()
                 };
 
                 let c_opts = match cmd_options {
-                    Some(opts) => opts.to_vec(),
+                    Some(opts) => opts.clone(),
                     None => Vec::new()
                 };
 
@@ -216,6 +238,7 @@ pub mod tests {
                     Some(opts) => String::from(opts),
                     None => String::new()
                 };
+
                 let new_running_container = TestRunContainer {
                     image_name: String::from(image_name),
                     run_options: r_opts,
@@ -232,8 +255,25 @@ pub mod tests {
         }
 
         fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
-            docker_build_args: &HashMap<String, String>) -> bool {
-            false
+            build_options: Option<&Vec<String>>) -> bool {
+
+            self.images.borrow_mut().push(String::from(docker_tag));
+
+            let b_opts = match build_options {
+                Some(opts) => opts.clone(),
+                None => Vec::new()
+            };
+
+            let build = TestBuildImage {
+                build_options:b_opts,
+                tag: String::from(docker_tag),
+                dockerfile_name: String::from(docker_filename),
+                base_dir: String::from(docker_context_path)
+            };
+
+            self.builds.borrow_mut().push(build);
+
+            true
         }
     }
 

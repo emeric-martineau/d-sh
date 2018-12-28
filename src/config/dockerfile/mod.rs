@@ -19,7 +19,7 @@ RUN apt-get update && \
     apt-get install -y \
       $DEPENDENCIES_ALL
 
-COPY scripts/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 {{/if}}
