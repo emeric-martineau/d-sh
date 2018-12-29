@@ -154,7 +154,9 @@ fn get_dependencies(io_helper: &InputOutputHelper) -> Result<String, CommandExit
 ///
 /// Build base image.
 ///
-fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf) -> CommandExitCode {
+fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
+    options: &BuildOptions) -> CommandExitCode {
+
     let config = get_config(io_helper).unwrap();
     let mut docker_filename = tmp_dir.to_owned();
     docker_filename.push("Dockerfile");
@@ -167,14 +169,17 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
         Ok(_) => {
             match generate_entrypoint(io_helper, &docker_context_path) {
                 Ok(_) => {
-                    // TODO 3 - If force, remove previous image
-                    // 4 - Get all dependencies from applications files
+                    // 3 - Get all dependencies from applications files
                     if let Ok(dependencies) = get_dependencies(io_helper) {
-                        // 5 - Build
+                        // 4 - Build
                         let mut build_args = Vec::new();
 
                         build_args.push(String::from("--build-arg"));
                         build_args.push(format!("DEPENDENCIES_ALL={}", dependencies));
+
+                        if options.force {
+                            build_args.push(String::from("--no-cache"));
+                        }
 
                         dck_helper.build_image(&docker_filename, &docker_context_path,
                             &config.dockerfile.tag, Some(&build_args));
@@ -234,7 +239,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
 
             if options.base {
                 io_helper.println("Building base image...");
-                result = build_base(io_helper, dck_helper, &tmp_dir);
+                result = build_base(io_helper, dck_helper, &tmp_dir, &options);
             } else {
                 result = CommandExitCode::Todo;
             }
@@ -341,12 +346,8 @@ mod tests {
         assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
     }
 
-    #[test]
-    fn build_base_short_option() {
+    fn build_base_short_option_args(args: &[String], dck_helper: &TestContainerHelper) {
         let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-
-        let args = [String::from("-b")];
 
         // Create configuration file
         match get_config_filename() {
@@ -421,6 +422,23 @@ mod tests {
         assert_eq!(stdout.get(0).unwrap(), "Building base image...");
 
         assert_eq!(result, CommandExitCode::Ok);
+    }
+
+    #[test]
+    fn build_base_short_option() {
+        let dck_helper = &TestContainerHelper::new();
+        build_base_short_option_args(&[String::from("-b")], dck_helper);
+    }
+
+    #[test]
+    fn build_base_short_option_with_force() {
+        let dck_helper = &TestContainerHelper::new();
+        build_base_short_option_args(&[String::from("-b"), String::from("-f")], dck_helper);
+
+        let builds = dck_helper.builds.borrow();
+        let base_build = builds.get(0).unwrap();
+
+        assert_eq!(base_build.build_options.get(2).unwrap(), "--no-cache");
     }
 
     // TODO replace build-args DEPENDENCIES_ALL by handlebars
