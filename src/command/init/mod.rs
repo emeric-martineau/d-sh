@@ -8,8 +8,7 @@ use command::CommandExitCode;
 use std::path::Path;
 use std::collections::HashMap;
 use super::super::io::InputOutputHelper;
-use super::super::config::get_config_filename;
-use super::super::config::create_config_filename_path;
+use super::super::config::{get_config_filename, create_config_filename_path, Config};
 use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
     ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
 use super::super::docker::ContainerHelper;
@@ -71,7 +70,7 @@ fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, def
 /// returning exit code of D-SH.
 ///
 fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper) -> CommandExitCode {
+    _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {
     let exit_code;
 
     match get_config_filename() {
@@ -138,8 +137,8 @@ pub const INIT: Command = Command {
 #[cfg(test)]
 mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
-    use super::get_config_filename;
     use super::create_config_filename_path;
+    use super::get_config_filename;
     use super::init;
     use super::INIT;
     use super::super::super::docker::tests::TestContainerHelper;
@@ -162,7 +161,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper, None);
 
         assert_eq!(result, CommandExitCode::ConfigFileExits);
     }
@@ -179,7 +178,7 @@ mod tests {
 
         let args = [];
 
-        let result = init(&INIT, &args, io_helper, dck_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper, None);
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -239,7 +238,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper, None);
 
         assert_eq!(result, CommandExitCode::CannotWriteConfigFile);
     }
@@ -267,7 +266,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper);
+        let result = init(&INIT, &args, io_helper, dck_helper, None);
 
         assert_eq!(result, CommandExitCode::CannotCreateFolderForConfigFile);
     }

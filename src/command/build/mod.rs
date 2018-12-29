@@ -9,7 +9,7 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::config::{get_config, Config, create_config_filename_path, get_config_application};
+use super::super::config::{Config, create_config_filename_path, get_config_application};
 use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
 use handlebars::Handlebars;
 use rand::Rng;
@@ -121,9 +121,7 @@ fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandE
 ///
 /// Get list of dependencies.
 ///
-fn get_dependencies(io_helper: &InputOutputHelper) -> Result<String, CommandExitCode> {
-    let config = get_config(io_helper).unwrap();
-
+fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Result<String, CommandExitCode> {
     // 1 - We have got configuration
     match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
         Ok(mut list_applications_file) => {
@@ -155,9 +153,8 @@ fn get_dependencies(io_helper: &InputOutputHelper) -> Result<String, CommandExit
 /// Build base image.
 ///
 fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions) -> CommandExitCode {
+    options: &BuildOptions, config: &Config) -> CommandExitCode {
 
-    let config = get_config(io_helper).unwrap();
     let mut docker_filename = tmp_dir.to_owned();
     docker_filename.push("Dockerfile");
 
@@ -170,7 +167,7 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
             match generate_entrypoint(io_helper, &docker_context_path) {
                 Ok(_) => {
                     // 3 - Get all dependencies from applications files
-                    if let Ok(dependencies) = get_dependencies(io_helper) {
+                    if let Ok(dependencies) = get_dependencies(io_helper, config) {
                         // 4 - Build
                         let mut build_args = Vec::new();
 
@@ -202,7 +199,7 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
 /// returning exit code of D-SH.
 ///
 fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper) -> CommandExitCode {
+    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
     let mut options: BuildOptions = BuildOptions {
         all: false,
         base: false,
@@ -239,7 +236,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
 
             if options.base {
                 io_helper.println("Building base image...");
-                result = build_base(io_helper, dck_helper, &tmp_dir, &options);
+                result = build_base(io_helper, dck_helper, &tmp_dir, &options, config.unwrap());
             } else {
                 result = CommandExitCode::Todo;
             }
@@ -293,7 +290,7 @@ mod tests {
     use super::super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME, ENTRYPOINT};
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::{get_config_filename, create_config_filename_path};
+    use super::super::super::config::{create_config_filename_path, Config, ConfigDocker};
     use command::CommandExitCode;
 
     #[test]
@@ -304,15 +301,16 @@ mod tests {
         let args = [String::from("-h")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper);
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -329,15 +327,16 @@ mod tests {
         let args = [String::from("--dghhfhdgfhdgf")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper);
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::UnknowOption);
 
@@ -350,12 +349,13 @@ mod tests {
         let io_helper = &TestInputOutputHelper::new();
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create dockerfile
@@ -380,7 +380,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper);
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -443,7 +443,6 @@ mod tests {
 
     // TODO replace build-args DEPENDENCIES_ALL by handlebars
     // TODO add optionnal parameter in config.yml for tmp_dir
-    // TODO config load one time
     // TODO display message if Dockerfile.hbs and entrypoint.sh not exists
 
     // TODO test: build test with generate Dockerfile error cause template bad

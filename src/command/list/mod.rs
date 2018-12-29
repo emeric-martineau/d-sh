@@ -8,8 +8,7 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::config::get_config;
-
+use super::super::config::Config;
 ///
 /// Function to implement list D-SH command.
 ///
@@ -18,9 +17,9 @@ use super::super::config::get_config;
 /// returning exit code of D-SH.
 ///
 fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper) -> CommandExitCode {
+    _dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
 
-    let config = get_config(io_helper).unwrap();
+    let config = config.unwrap();
 
     // 1 - We have got configuration
     match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
@@ -68,7 +67,7 @@ mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::io::tests::found_item;
     use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::get_config_filename;
+    use super::super::super::config::{Config, ConfigDocker};
     use super::LIST;
     use super::list;
     use command::CommandExitCode;
@@ -81,12 +80,13 @@ mod tests {
         let args = [];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -94,7 +94,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
         io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\""));
 
-        let result = list(&LIST, &args, io_helper, dck_helper);
+        let result = list(&LIST, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

@@ -48,6 +48,7 @@ mod tests {
     use super::help;
     use super::super::command::Command;
     use super::super::docker::ContainerHelper;
+    use super::super::config::Config;
     use command::CommandExitCode;
 
     #[test]
@@ -62,7 +63,7 @@ mod tests {
     }
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-        _dck_helper: &ContainerHelper) -> CommandExitCode {
+        _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::Ok
     }

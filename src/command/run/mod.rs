@@ -9,10 +9,7 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::{InputOutputHelper, convert_path};
 use super::super::docker::ContainerHelper;
-use super::super::config::Config;
-use super::super::config::ConfigApplication;
-use super::super::config::get_config;
-use super::super::config::get_config_application;
+use super::super::config::{Config, ConfigApplication, get_config_application};
 
 ///
 /// Construct extra args of run
@@ -167,10 +164,10 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper) -> CommandExitCode {
+    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
 
-    let config = get_config(io_helper).unwrap();
-
+    let config = config.unwrap();
+    
     match args[0].as_ref() {
         "-h" | "--help" => {
             io_helper.println(command.usage);
@@ -223,7 +220,7 @@ mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
     use super::super::super::docker::tests::TestRunContainer;
-    use super::super::super::config::get_config_filename;
+    use super::super::super::config::{Config, ConfigDocker};
     use super::super::super::io::tests::found_item;
     use super::RUN;
     use super::run;
@@ -238,15 +235,16 @@ mod tests {
         let args = [String::from("-h")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -263,15 +261,16 @@ mod tests {
         let args = [String::from("atom")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
 
@@ -292,18 +291,19 @@ mod tests {
         let args = [String::from("atom")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ContainerImageNotFound);
 
@@ -326,12 +326,13 @@ mod tests {
         let args = [String::from("atom")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -340,7 +341,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -385,12 +386,13 @@ mod tests {
         let args = [String::from("atom"), String::from("arg1"), String::from("arg2")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -399,7 +401,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -425,12 +427,13 @@ mod tests {
         }
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -439,7 +442,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper);
+        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

@@ -8,9 +8,7 @@ use command::Command;
 use command::CommandExitCode;
 use super::super::io::InputOutputHelper;
 use super::super::docker::ContainerHelper;
-use super::super::config::Config;
-use super::super::config::get_config;
-use super::super::config::get_config_application;
+use super::super::config::{Config, get_config_application};
 
 ///
 /// Function to delete one image.
@@ -82,9 +80,9 @@ fn delete_all(config: &Config, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn delete(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper) -> CommandExitCode {
+    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
 
-    let config = get_config(io_helper).unwrap();
+    let config = config.unwrap();
 
     match args[0].as_ref() {
         "-h" | "--help" => {
@@ -130,7 +128,7 @@ pub const DELETE: Command = Command {
 mod tests {
     use super::super::super::io::tests::TestInputOutputHelper;
     use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::get_config_filename;
+    use super::super::super::config::{Config, ConfigDocker};
     use super::DELETE;
     use super::delete;
     use command::CommandExitCode;
@@ -143,15 +141,16 @@ mod tests {
         let args = [String::from("-h")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper);
+        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -168,12 +167,13 @@ mod tests {
         let args = [String::from("titi")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -186,7 +186,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper);
+        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -209,12 +209,13 @@ mod tests {
         let args = [String::from("titi")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -226,7 +227,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper);
+        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
     }
@@ -239,12 +240,13 @@ mod tests {
         let args = [String::from("-a")];
 
         // Create configuration file
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
         };
 
         // Create application file atom
@@ -257,7 +259,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper);
+        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

@@ -11,7 +11,7 @@ pub mod run;
 pub mod build;
 
 use super::io::InputOutputHelper;
-use super::config::get_config_filename;
+use super::config::{get_config_filename, Config, get_config};
 use super::docker::ContainerHelper;
 
 ///
@@ -42,7 +42,8 @@ pub enum CommandExitCode {
     DockerfileTemplateInvalid = 19,
     CannotCreateFolder = 20,
     CannotDeleteTemporaryFolder = 21,
-    CannotCopyFile = 22
+    CannotCopyFile = 22,
+    ConfigFileFormatWrong = 23
 }
 
 ///
@@ -65,7 +66,7 @@ pub struct Command {
     pub need_config_file: bool,
     /// Execute Command.
     pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-        dck_helper: &ContainerHelper) -> CommandExitCode
+        dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode
 }
 
 impl Command {
@@ -86,7 +87,13 @@ impl Command {
                 match get_config_filename() {
                     Some(config_file) => {
                         if io_helper.file_exits(&config_file) {
-                            exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper)
+                            match get_config(io_helper) {
+                                Ok(config) => exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, Some(&config)),
+                                Err(_) => {
+                                    io_helper.eprintln("Cannot read config file, please check rigts and format!");
+                                    exit_code = CommandExitCode::ConfigFileFormatWrong;
+                                }
+                            }
                         } else {
                             io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", config_file));
                             exit_code = CommandExitCode::ConfigFileNotFound;
@@ -98,14 +105,14 @@ impl Command {
                     }
                 };
             } else {
-                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper)
+                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, None);
             }
 
         } else {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
             io_helper.eprintln(&format!("See 'd-sh {} --help'.", self.name));
 
-            exit_code = CommandExitCode::BadArgument
+            exit_code = CommandExitCode::BadArgument;
         }
 
         exit_code
@@ -117,13 +124,13 @@ mod tests {
     use super::super::io::InputOutputHelper;
     use super::super::io::tests::TestInputOutputHelper;
     use super::Command;
-    use super::super::config::get_config_filename;
+    use super::super::config::{get_config_filename, Config};
     use super::CommandExitCode;
     use super::super::docker::ContainerHelper;
     use super::super::docker::tests::TestContainerHelper;
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-        _dck_helper: &ContainerHelper) -> CommandExitCode {
+        _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::Ok
     }
@@ -251,7 +258,7 @@ mod tests {
         match get_config_filename() {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("toto"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
             },
             None => panic!("Unable to get config filename for test")
         };
@@ -259,5 +266,38 @@ mod tests {
         let exit_code = commands[0].exec(&args, io_helper, dck_helper);
 
         assert_eq!(exit_code, CommandExitCode::Ok);
+    }
+
+    #[test]
+    fn check_if_need_config_file_and_found_but_wrong_format() {
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
+
+        let one_cmd = Command {
+            name: "test",
+            description: "It's a test",
+            short_name: "tst",
+            min_args: 0,
+            max_args: 0,
+            usage: "",
+            need_config_file: true,
+            exec_cmd: test_help
+        };
+
+        let commands = &[one_cmd];
+
+        let args = [];
+
+        match get_config_filename() {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("tutu"))
+            },
+            None => panic!("Unable to get config filename for test")
+        };
+
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+
+        assert_eq!(exit_code, CommandExitCode::ConfigFileFormatWrong);
     }
 }
