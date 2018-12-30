@@ -46,12 +46,13 @@ fn random_string () -> String {
 ///
 /// Generate template of dockerfile.
 ///
-fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &String) -> Result<(), CommandExitCode> {
+fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &String, dependencies: &str) -> Result<(), CommandExitCode> {
     let handlebars = Handlebars::new();
 
     let data = json!({
         "dockerfile_from": config.dockerfile.from.to_owned(),
-        "dockerfile_base": true
+        "dockerfile_base": true,
+        "dependencies": dependencies
     });
 
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -161,34 +162,36 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
     let docker_filename = docker_filename.to_str().unwrap().to_string();
     let docker_context_path = tmp_dir.to_str().unwrap().to_string();
 
-    // 2 - Generate Dockerfile
-    match generate_dockerfile(&config, io_helper, &docker_filename) {
+    match generate_entrypoint(io_helper, &docker_context_path) {
         Ok(_) => {
-            match generate_entrypoint(io_helper, &docker_context_path) {
+            let mut dependencies = String::new();
+
+            //  Get all dependencies from applications files
+            if let Ok(d) = get_dependencies(io_helper, config) {
+                dependencies = d
+            }
+
+            // Generate Dockerfile
+            match generate_dockerfile(&config, io_helper, &docker_filename, &dependencies) {
                 Ok(_) => {
-                    // 3 - Get all dependencies from applications files
-                    if let Ok(dependencies) = get_dependencies(io_helper, config) {
-                        // 4 - Build
-                        let mut build_args = Vec::new();
+                    // Build
+                    let mut build_args = Vec::new();
 
-                        build_args.push(String::from("--build-arg"));
-                        build_args.push(format!("DEPENDENCIES_ALL={}", dependencies));
-
-                        if options.force {
-                            build_args.push(String::from("--no-cache"));
-                        }
-
-                        dck_helper.build_image(&docker_filename, &docker_context_path,
-                            &config.dockerfile.tag, Some(&build_args));
+                    if options.force {
+                        build_args.push(String::from("--no-cache"));
                     }
 
-                    CommandExitCode::Ok
+                    dck_helper.build_image(&docker_filename, &docker_context_path,
+                        &config.dockerfile.tag, Some(&build_args));
                 },
-                Err(err) => err
+                Err(err) => return err
             }
+
+            CommandExitCode::Ok
         },
         Err(err) => err
     }
+
 }
 
 ///
@@ -411,8 +414,6 @@ mod tests {
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
 
-        assert_eq!(base_build.build_options.get(0).unwrap(), "--build-arg");
-        assert_eq!(base_build.build_options.get(1).unwrap(), "DEPENDENCIES_ALL=d1 d2 d3");
         assert_eq!(base_build.tag, "tutu");
         assert_eq!(generate_dockerfile, base_build.dockerfile_name);
         assert!(generate_dockerfile.starts_with(&base_build.base_dir));
@@ -438,7 +439,7 @@ mod tests {
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
 
-        assert_eq!(base_build.build_options.get(2).unwrap(), "--no-cache");
+        assert_eq!(base_build.build_options.get(0).unwrap(), "--no-cache");
     }
 
     // TODO replace build-args DEPENDENCIES_ALL by handlebars

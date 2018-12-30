@@ -13,11 +13,10 @@ pub const DOCKERFILE_DEFAULT_TAG: &'static str = "d-base-image:v1.0.0";
 pub const DOCKERFILE_BASE_FILENAME: &str = "Dockerfile.hbs";
 pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
 {{#if dockerfile_base}}
-ARG DEPENDENCIES_ALL
 
 RUN apt-get update && \
     apt-get install -y \
-      $DEPENDENCIES_ALL
+      {{dependencies}}
 
 COPY entrypoint.sh /entrypoint.sh
 
