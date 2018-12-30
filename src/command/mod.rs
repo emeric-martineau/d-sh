@@ -43,7 +43,8 @@ pub enum CommandExitCode {
     CannotCreateFolder = 20,
     CannotDeleteTemporaryFolder = 21,
     CannotCopyFile = 22,
-    ConfigFileFormatWrong = 23
+    ConfigFileFormatWrong = 23,
+    TemplateNotFound = 24
 }
 
 ///

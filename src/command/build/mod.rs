@@ -57,6 +57,11 @@ fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_fi
 
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(dockerfile_name) => {
+            if ! io_helper.file_exits(&dockerfile_name) {
+                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
+                return Err(CommandExitCode::TemplateNotFound);
+            }
+
             match io_helper.file_read_at_string(&dockerfile_name) {
                 Ok(mut source_template) => {
                     match handlebars.render_template(&source_template, &data) {
@@ -94,6 +99,12 @@ fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_fi
 fn generate_entrypoint(io_helper: &InputOutputHelper, output_dir: &String) -> Result<(), CommandExitCode> {
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(entrypoint_name) => {
+            // Check if file exists
+            if ! io_helper.file_exits(&entrypoint_name) {
+                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", entrypoint_name));
+                return Err(CommandExitCode::TemplateNotFound);
+            }
+
             match io_helper.hardlink_or_copy_file(&entrypoint_name, &format!("{}/{}", &output_dir, &ENTRYPOINT_FILENAME)) {
                 Ok(_) => Ok(()),
                 Err(_) => {
@@ -442,13 +453,108 @@ mod tests {
         assert_eq!(base_build.build_options.get(0).unwrap(), "--no-cache");
     }
 
-    // TODO replace build-args DEPENDENCIES_ALL by handlebars
+    #[test]
+    fn build_base_short_option_dockerfile_template_not_found() {
+        let dck_helper = &TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
+        };
+
+        let dockerfile_name;
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                dockerfile_name = cfg_file;
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+
+        let stderr = io_helper.stderr.borrow();
+
+        assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
+
+        assert_eq!(result, CommandExitCode::TemplateNotFound);
+    }
+
+    #[test]
+    fn build_base_short_option_entrypoint_template_not_found() {
+        let dck_helper = &TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
+        };
+
+        let entrypoint_name;
+
+        // Create dockerfile
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                entrypoint_name = cfg_file;
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("hello man!"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+
+        let stderr = io_helper.stderr.borrow();
+
+        assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", entrypoint_name));
+
+        assert_eq!(result, CommandExitCode::TemplateNotFound);
+    }
+
     // TODO add optionnal parameter in config.yml for tmp_dir
-    // TODO display message if Dockerfile.hbs and entrypoint.sh not exists
 
     // TODO test: build test with generate Dockerfile error cause template bad
     // TODO test: build test with generate Dockerfile/entry.sh error cause folder error
     // TODO test: build test with delete folder error cause folder error
-    // TODO test: build base with -f option
     // TODO test: build with application bad file format
 }
