@@ -130,7 +130,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
         match remove_dir_all(dir) {
             Ok(a) => Ok(a),
-            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete"))
         }
     }
 
@@ -242,7 +242,7 @@ pub mod tests {
 
         fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
             if self.files_error.borrow().contains_key(dir) {
-                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete"))
             } else {
                 // Collect file to delete
                 let files_to_delete: Vec<String> = self.files.borrow()

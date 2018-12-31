@@ -480,7 +480,7 @@ mod tests {
             None => panic!("Unable to create dockerfile for test")
         };
 
-        // Create dockerfile
+        // Create entrypoint
         match create_config_filename_path(&ENTRYPOINT_FILENAME) {
             Some(cfg_file) => {
                 // Create file
@@ -551,10 +551,143 @@ mod tests {
         assert_eq!(result, CommandExitCode::TemplateNotFound);
     }
 
+    #[test]
+    fn build_base_short_option_application_file_format_bad() {
+        let io_helper = &TestInputOutputHelper::new();
+        let dck_helper = &TestContainerHelper::new();
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
+
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+
+        // Check if temporary folder was created and remove
+        let f = io_helper.files_delete.borrow();
+
+        let mut not_found_dockerfile = true;
+        let mut not_found_entrypoint = true;
+        let mut generate_dockerfile = String::new();
+
+        for filename in f.keys() {
+            if filename.ends_with("/Dockerfile") {
+                not_found_dockerfile = false;
+                generate_dockerfile = filename.to_string();
+                assert_eq!(f.get(filename).unwrap(), "tata coucou");
+            } else if filename.ends_with("/entrypoint.sh") {
+                not_found_entrypoint = false;
+                assert_eq!(f.get(filename).unwrap(), ENTRYPOINT);
+            }
+        }
+
+        if not_found_dockerfile {
+            panic!("The temporary Dockerfile in '/tmp/xxx/' folder not found!");
+        }
+
+        if not_found_entrypoint {
+            panic!("The temporary entrypoint.sh in '/tmp/xxx/' folder not found!");
+        }
+
+        let builds = dck_helper.builds.borrow();
+        let base_build = builds.get(0).unwrap();
+
+        assert_eq!(base_build.tag, "tutu");
+        assert_eq!(generate_dockerfile, base_build.dockerfile_name);
+        assert!(generate_dockerfile.starts_with(&base_build.base_dir));
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building base image...");
+
+        let stderr = io_helper.stderr.borrow();
+
+        assert_eq!(stderr.get(0).unwrap(), "Cannot read list of dependencies of 'app/filezilla.yml' application, please check right or file format!");
+
+        assert_eq!(result, CommandExitCode::Ok);
+    }
+
+    #[test]
+    fn build_base_short_option_dockerfile_template_format_bad() {
+        let dck_helper = &TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            }
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/iG}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Create entrypoint
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+
+        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+
+        let stderr = io_helper.stderr.borrow();
+
+        assert_eq!(stderr.get(0).unwrap(), "Something is wrong in Dockerfile template!");
+
+        assert_eq!(result, CommandExitCode::DockerfileTemplateInvalid);
+    }
+
+
     // TODO add optionnal parameter in config.yml for tmp_dir
 
-    // TODO test: build test with generate Dockerfile error cause template bad
-    // TODO test: build test with generate Dockerfile/entry.sh error cause folder error
-    // TODO test: build test with delete folder error cause folder error
-    // TODO test: build with application bad file format
+    // These test need more better implementation of folder/file in test.
+    // Create a real tree with hook when create, read, update, delete
+    // TODO test: build test with generate Dockerfile/entry.sh error caused by folder error
+    // TODO test: build test with delete folder error caused by folder error
 }
