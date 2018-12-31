@@ -86,7 +86,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom

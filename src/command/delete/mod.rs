@@ -147,7 +147,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
@@ -173,7 +174,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -215,7 +217,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -246,7 +249,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom

@@ -7,6 +7,8 @@ applications_dir: "app"
 dockerfile:
   from: "ubuntu:18.04"
   tag: "d-base-image:v1.0.0"
+# This line is optional. By default use /tmp
+tmp_dir: "~/.tmp"
 ```
 
 # Support installation format

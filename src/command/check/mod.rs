@@ -21,7 +21,7 @@ fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
-    
+
     // 1 - We have got configuration
     match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
         Ok(list_applications_file) => {
@@ -122,7 +122,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -158,7 +159,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -183,7 +185,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         io_helper.files_error.borrow_mut().insert(String::from("app"), true);

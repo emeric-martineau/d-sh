@@ -24,7 +24,8 @@ pub struct ConfigDocker {
 pub struct Config {
     pub download_dir: String,
     pub applications_dir: String,
-    pub dockerfile: ConfigDocker
+    pub dockerfile: ConfigDocker,
+    pub tmp_dir: Option<String>
 }
 
 /// Config structure of D-SH

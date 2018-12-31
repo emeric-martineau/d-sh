@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::env::temp_dir;
 use command::Command;
 use command::CommandExitCode;
-use super::super::io::InputOutputHelper;
+use super::super::io::{InputOutputHelper, convert_path};
 use super::super::docker::ContainerHelper;
 use super::super::config::{Config, create_config_filename_path, get_config_application};
 use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
@@ -240,8 +240,16 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         }
     }
 
+    let config = config.unwrap();
+
     // 1 - Create tmp folder for build
-    let mut tmp_dir = temp_dir();
+    let mut tmp_dir;
+
+    match &config.tmp_dir {
+        Some(t) => tmp_dir = PathBuf::from(convert_path(t)),
+        None => tmp_dir = temp_dir()
+    }
+
     tmp_dir.push(random_string());
 
     match io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
@@ -250,7 +258,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
 
             if options.base {
                 io_helper.println("Building base image...");
-                result = build_base(io_helper, dck_helper, &tmp_dir, &options, config.unwrap());
+                result = build_base(io_helper, dck_helper, &tmp_dir, &options, config);
             } else {
                 result = CommandExitCode::Todo;
             }
@@ -321,7 +329,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
@@ -347,7 +356,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
@@ -359,18 +369,8 @@ mod tests {
         assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
     }
 
-    fn build_base_short_option_args(args: &[String], dck_helper: &TestContainerHelper) {
+    fn build_base_short_option_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
         let io_helper = &TestInputOutputHelper::new();
-
-        // Create configuration file
-        let config = Config {
-            download_dir: String::from("dwn"),
-            applications_dir: String::from("app"),
-            dockerfile: ConfigDocker {
-                from: String::from("tata"),
-                tag: String::from("tutu")
-            }
-        };
 
         // Create dockerfile
         match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -439,13 +439,35 @@ mod tests {
     #[test]
     fn build_base_short_option() {
         let dck_helper = &TestContainerHelper::new();
-        build_base_short_option_args(&[String::from("-b")], dck_helper);
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        build_base_short_option_args(&[String::from("-b")], dck_helper, config);
     }
 
     #[test]
     fn build_base_short_option_with_force() {
         let dck_helper = &TestContainerHelper::new();
-        build_base_short_option_args(&[String::from("-b"), String::from("-f")], dck_helper);
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        build_base_short_option_args(&[String::from("-b"), String::from("-f")], dck_helper, config);
 
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
@@ -467,7 +489,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let dockerfile_name;
@@ -516,7 +539,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let entrypoint_name;
@@ -564,7 +588,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create dockerfile
@@ -649,7 +674,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create dockerfile
@@ -683,8 +709,22 @@ mod tests {
         assert_eq!(result, CommandExitCode::DockerfileTemplateInvalid);
     }
 
+    #[test]
+    fn build_base_short_option_with_specified_tmp_dir() {
+        let dck_helper = &TestContainerHelper::new();
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: Some(String::from("~/.tmp/"))
+        };
 
-    // TODO add optionnal parameter in config.yml for tmp_dir
+        build_base_short_option_args(&[String::from("-b")], dck_helper, config);
+    }
 
     // These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete

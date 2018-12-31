@@ -167,7 +167,7 @@ fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
-    
+
     match args[0].as_ref() {
         "-h" | "--help" => {
             io_helper.println(command.usage);
@@ -241,7 +241,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
@@ -267,7 +268,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
@@ -297,7 +299,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -332,7 +335,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -392,7 +396,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
@@ -433,7 +438,8 @@ mod tests {
             dockerfile: ConfigDocker {
                 from: String::from("tata"),
                 tag: String::from("tutu")
-            }
+            },
+            tmp_dir: None
         };
 
         // Create application file atom
