@@ -234,6 +234,8 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             "-m" | "--missing" => options.missing = true,
             "-s" | "--skip-redownload" => options.skip_redownload = true,
             other => {
+                // TODO vérifier si ça commence par un '-' si oui, c'est une options inconnues
+                // TODO sinon c'est un programme à ajouter dans la liste
                 io_helper.eprintln(&UNKOWN_OPTIONS_MESSAGE.replace("{}", other));
                 return CommandExitCode::UnknowOption;
             },
@@ -376,7 +378,7 @@ mod tests {
         match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou{{/if}}"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou {{dependencies}}{{/if}}"))
             },
             None => panic!("Unable to create dockerfile for test")
         };
@@ -407,7 +409,7 @@ mod tests {
             if filename.ends_with("/Dockerfile") {
                 not_found_dockerfile = false;
                 generate_dockerfile = filename.to_string();
-                assert_eq!(f.get(filename).unwrap(), "tata coucou");
+                assert_eq!(f.get(filename).unwrap(), "tata coucou d1 d2 d3");
             } else if filename.ends_with("/entrypoint.sh") {
                 not_found_entrypoint = false;
                 assert_eq!(f.get(filename).unwrap(), ENTRYPOINT);
