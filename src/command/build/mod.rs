@@ -206,6 +206,45 @@ fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_d
 }
 
 ///
+/// Build one application.
+///
+/// Return false if application build fail.
+///
+fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
+    options: &BuildOptions, config: &Config) -> bool {
+        // TODO
+        false
+}
+
+///
+/// Build one application.
+///
+///
+fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
+    options: &BuildOptions, config: &Config, applications: &Vec<&String>) -> CommandExitCode {
+    let mut app_build_fail = Vec::new();
+
+    for app in applications {
+        io_helper.println(&format!("Building {}...", app));
+
+        if ! build_one_application(io_helper, dck_helper, &tmp_dir, &options, config) {
+            app_build_fail.push(app);
+        }
+    }
+
+    if app_build_fail.is_empty() {
+        // TODO
+        CommandExitCode::Todo
+    } else {
+        for app in app_build_fail {
+            io_helper.eprintln(&format!("Build {} failed!", app));
+        }
+        // TODO
+        CommandExitCode::Todo
+    }
+}
+
+///
 /// Function to implement build D-SH command.
 ///
 /// `args` parameter is command line arguments of D-SH.
@@ -222,7 +261,12 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         skip_redownload: false
     };
 
-    for argument in args {
+    // Just get options form command line
+    let opts: Vec<&String> = args.iter().filter(|a| a.starts_with("-")).collect();
+    // Get applications list from command line
+    let applications: Vec<&String> = args.iter().filter(|a| !a.starts_with("-")).collect();
+
+    for argument in opts {
         match argument.as_ref() {
             "-h" | "--help" => {
                 io_helper.println(command.usage);
@@ -234,11 +278,9 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             "-m" | "--missing" => options.missing = true,
             "-s" | "--skip-redownload" => options.skip_redownload = true,
             other => {
-                // TODO vérifier si ça commence par un '-' si oui, c'est une options inconnues
-                // TODO sinon c'est un programme à ajouter dans la liste
                 io_helper.eprintln(&UNKOWN_OPTIONS_MESSAGE.replace("{}", other));
                 return CommandExitCode::UnknowOption;
-            },
+            }
         }
     }
 
@@ -261,8 +303,15 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             if options.base {
                 io_helper.println("Building base image...");
                 result = build_base(io_helper, dck_helper, &tmp_dir, &options, config);
-            } else {
+            } else if options.all {
+                // TODO
                 result = CommandExitCode::Todo;
+            } else if options.missing {
+                // TODO
+                result = CommandExitCode::Todo;
+            } else {
+                result = build_some_application(io_helper, dck_helper, &tmp_dir, &options, config,
+                    &applications);
             }
 
             // Remove tmp folder
