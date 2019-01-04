@@ -10,9 +10,9 @@ pub mod list;
 pub mod run;
 pub mod build;
 
-use super::io::InputOutputHelper;
-use super::config::{get_config_filename, Config, get_config};
-use super::docker::ContainerHelper;
+use io::InputOutputHelper;
+use config::{get_config_filename, Config, get_config};
+use docker::ContainerHelper;
 
 ///
 /// Exit code of command.
@@ -122,13 +122,12 @@ impl Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::io::InputOutputHelper;
-    use super::super::io::tests::TestInputOutputHelper;
-    use super::Command;
-    use super::super::config::{get_config_filename, Config};
-    use super::CommandExitCode;
-    use super::super::docker::ContainerHelper;
-    use super::super::docker::tests::TestContainerHelper;
+    use io::InputOutputHelper;
+    use io::tests::TestInputOutputHelper;
+    use config::{get_config_filename, Config};
+    use super::{Command, CommandExitCode};
+    use docker::ContainerHelper;
+    use docker::tests::TestContainerHelper;
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {

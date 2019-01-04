@@ -7,11 +7,11 @@ use command::Command;
 use command::CommandExitCode;
 use std::path::Path;
 use std::collections::HashMap;
-use super::super::io::InputOutputHelper;
-use super::super::config::{get_config_filename, create_config_filename_path, Config};
-use super::super::config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
+use io::InputOutputHelper;
+use config::{get_config_filename, create_config_filename_path, Config};
+use config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
     ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
-use super::super::docker::ContainerHelper;
+use docker::ContainerHelper;
 
 /// Default directory of downloading applictions.
 const DOWNLOAD_DIR: &str = "~/.d-sh/download";
@@ -136,14 +136,12 @@ pub const INIT: Command = Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::io::tests::TestInputOutputHelper;
-    use super::create_config_filename_path;
-    use super::get_config_filename;
-    use super::init;
-    use super::INIT;
-    use super::super::super::docker::tests::TestContainerHelper;
-    use super::Path;
-    use super::HashMap;
+    use io::tests::TestInputOutputHelper;
+    use config::{create_config_filename_path, get_config_filename};
+    use super::{init, INIT};
+    use docker::tests::TestContainerHelper;
+    use std::path::Path;
+    use std::collections::HashMap;
     use command::CommandExitCode;
 
     #[test]

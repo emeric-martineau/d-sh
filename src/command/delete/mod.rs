@@ -6,9 +6,9 @@
 use std::path::Path;
 use command::Command;
 use command::CommandExitCode;
-use super::super::io::InputOutputHelper;
-use super::super::docker::ContainerHelper;
-use super::super::config::{Config, get_config_application};
+use io::InputOutputHelper;
+use docker::ContainerHelper;
+use config::{Config, get_config_application};
 
 ///
 /// Function to delete one image.
@@ -126,11 +126,10 @@ pub const DELETE: Command = Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::io::tests::TestInputOutputHelper;
-    use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::{Config, ConfigDocker};
-    use super::DELETE;
-    use super::delete;
+    use io::tests::TestInputOutputHelper;
+    use docker::tests::TestContainerHelper;
+    use config::{Config, ConfigDocker};
+    use super::{DELETE, delete};
     use command::CommandExitCode;
 
     #[test]

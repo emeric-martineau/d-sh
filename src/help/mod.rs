@@ -3,8 +3,8 @@
 ///
 /// Release under MIT License.
 ///
-use super::command::Command;
-use super::io::InputOutputHelper;
+use command::Command;
+use io::InputOutputHelper;
 
 ///
 /// Display help of D-SH.
@@ -42,13 +42,12 @@ pub fn version(args: &[String], io_helper: &InputOutputHelper) {
 
 #[cfg(test)]
 mod tests {
-    use super::super::io::InputOutputHelper;
-    use super::super::io::tests::TestInputOutputHelper;
-    use super::version;
-    use super::help;
-    use super::super::command::Command;
-    use super::super::docker::ContainerHelper;
-    use super::super::config::Config;
+    use io::InputOutputHelper;
+    use io::tests::TestInputOutputHelper;
+    use super::{version, help};
+    use command::Command;
+    use docker::ContainerHelper;
+    use config::Config;
     use command::CommandExitCode;
 
     #[test]

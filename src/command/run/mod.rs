@@ -7,9 +7,9 @@ use std::path::Path;
 use users::{get_current_uid, get_current_gid, get_current_username};
 use command::Command;
 use command::CommandExitCode;
-use super::super::io::{InputOutputHelper, convert_path};
-use super::super::docker::ContainerHelper;
-use super::super::config::{Config, ConfigApplication, get_config_application};
+use io::{InputOutputHelper, convert_path};
+use docker::ContainerHelper;
+use config::{Config, ConfigApplication, get_config_application};
 
 ///
 /// Construct extra args of run
@@ -216,14 +216,13 @@ pub const RUN: Command = Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::io::convert_path;
-    use super::super::super::io::tests::TestInputOutputHelper;
-    use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::docker::tests::TestRunContainer;
-    use super::super::super::config::{Config, ConfigDocker};
-    use super::super::super::io::tests::found_item;
-    use super::RUN;
-    use super::run;
+    use io::convert_path;
+    use io::tests::TestInputOutputHelper;
+    use docker::tests::TestContainerHelper;
+    use docker::tests::TestRunContainer;
+    use config::{Config, ConfigDocker};
+    use io::tests::found_item;
+    use super::{RUN, run};
     use command::CommandExitCode;
     use users::{get_current_uid, get_current_gid, get_current_username};
 

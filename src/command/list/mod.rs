@@ -6,9 +6,9 @@
 use std::path::Path;
 use command::Command;
 use command::CommandExitCode;
-use super::super::io::InputOutputHelper;
-use super::super::docker::ContainerHelper;
-use super::super::config::Config;
+use io::InputOutputHelper;
+use docker::ContainerHelper;
+use config::Config;
 ///
 /// Function to implement list D-SH command.
 ///
@@ -64,12 +64,11 @@ pub const LIST: Command = Command {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::io::tests::TestInputOutputHelper;
-    use super::super::super::io::tests::found_item;
-    use super::super::super::docker::tests::TestContainerHelper;
-    use super::super::super::config::{Config, ConfigDocker};
-    use super::LIST;
-    use super::list;
+    use io::tests::TestInputOutputHelper;
+    use io::tests::found_item;
+    use docker::tests::TestContainerHelper;
+    use config::{Config, ConfigDocker};
+    use super::{LIST, list};
     use command::CommandExitCode;
 
     #[test]

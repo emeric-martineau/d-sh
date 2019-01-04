@@ -9,8 +9,8 @@ pub mod dockerfile;
 
 use dirs::home_dir;
 use std::io::{Error, ErrorKind};
-use super::io::convert_path;
-use super::io::InputOutputHelper;
+use io::convert_path;
+use io::InputOutputHelper;
 
 /// Config structure of D-SH
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
