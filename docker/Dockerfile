@@ -6,7 +6,7 @@ ENV CARGO_BIN /opt/cargo/bin
 
 RUN apt-get update && \
     apt-get install -y \
-      curl bash build-essential
+      curl bash build-essential sudo
 
 RUN curl https://sh.rustup.rs -sSf -o /tmp/install-rust.sh && \
     chmod u+x /tmp/install-rust.sh && \
