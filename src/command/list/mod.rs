@@ -9,6 +9,8 @@ use command::CommandExitCode;
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::Config;
+use process::RunCommandHelper;
+
 ///
 /// Function to implement list D-SH command.
 ///
@@ -17,7 +19,8 @@ use config::Config;
 /// returning exit code of D-SH.
 ///
 fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
+    _dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
 
@@ -70,11 +73,13 @@ mod tests {
     use config::{Config, ConfigDocker};
     use super::{LIST, list};
     use command::CommandExitCode;
+    use process::tests::TestRunCommandHelper;
 
     #[test]
     fn list_all_applications() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [];
 
@@ -90,11 +95,11 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = list(&LIST, &args, io_helper, dck_helper, Some(&config));
+        let result = list(&LIST, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

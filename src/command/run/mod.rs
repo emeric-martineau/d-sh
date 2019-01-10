@@ -10,6 +10,7 @@ use command::CommandExitCode;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
 use config::{Config, ConfigApplication, get_config_application};
+use process::RunCommandHelper;
 
 ///
 /// Construct extra args of run
@@ -164,7 +165,8 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
+    dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
 
@@ -225,11 +227,13 @@ mod tests {
     use super::{RUN, run};
     use command::CommandExitCode;
     use users::{get_current_uid, get_current_gid, get_current_username};
+    use process::tests::TestRunCommandHelper;
 
     #[test]
     fn run_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-h")];
 
@@ -244,7 +248,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -257,6 +261,7 @@ mod tests {
     fn run_image_application_not_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("atom")];
 
@@ -271,7 +276,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
 
@@ -288,6 +293,7 @@ mod tests {
     fn run_image_not_found_not_interactive() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("atom")];
 
@@ -303,9 +309,9 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ContainerImageNotFound);
 
@@ -324,6 +330,7 @@ mod tests {
     fn run_image_found_not_interactive() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("atom")];
 
@@ -339,12 +346,12 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\""));
 
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -385,6 +392,7 @@ mod tests {
     fn run_image_found_not_interactive_with_args() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("atom"), String::from("arg1"), String::from("arg2")];
 
@@ -400,12 +408,12 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\""));
 
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -421,6 +429,7 @@ mod tests {
     fn run_image_found_interactive(opt: &str, application_config_content: &str, args_len: usize) -> TestRunContainer {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args;
 
@@ -447,7 +456,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -488,23 +497,23 @@ mod tests {
 
     #[test]
     fn run_image_found_interactive_by_command_line_short_opts() {
-        run_image_found_interactive("-i", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"", 0);
+        run_image_found_interactive("-i", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\"", 0);
     }
 
     #[test]
     fn run_image_found_interactive_by_command_line_long_opts() {
-        run_image_found_interactive("--interactive", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"", 0);
+        run_image_found_interactive("--interactive", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\"", 0);
     }
 
     #[test]
     fn run_image_found_interactive_by_config() {
-        run_image_found_interactive("", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true", 0);
+        run_image_found_interactive("", "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true\ndownload_filename: \"\"\nurl: \"\"", 0);
     }
 
     #[test]
     fn run_image_found_interactive_by_config_with_ipc() {
         let atom_container = run_image_found_interactive("",
-            "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true\nipc_host: true", 1);
+            "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true\nipc_host: true\ndownload_filename: \"\"\nurl: \"\"", 1);
 
         assert_eq!(atom_container.run_options.get(16).unwrap(), "--ipc=host");
     }
@@ -512,7 +521,7 @@ mod tests {
     #[test]
     fn run_image_found_interactive_by_config_and_with_argument() {
         let atom_container = run_image_found_interactive("",
-            "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true\ncmd_line_args:\n - truc\n - bidule", 0);
+            "---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ninteractive: true\ncmd_line_args:\n - truc\n - bidule\ndownload_filename: \"\"\nurl: \"\"", 0);
 
         assert_eq!(atom_container.cmd_options.len(), 2);
         assert_eq!(atom_container.cmd_options.get(0).unwrap(), "truc");

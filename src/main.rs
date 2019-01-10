@@ -21,6 +21,8 @@ mod config;
 mod docker;
 mod help;
 mod io;
+mod process;
+mod template;
 
 use std::env;
 use command::Command;
@@ -33,9 +35,10 @@ use command::run::RUN;
 use command::build::BUILD;
 use help::help;
 use help::version;
-use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
+use io::DefaultInputOutputHelper;
 use docker::DefaultContainerHelper;
+use process::DefaultRunCommandHelper;
 
 const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, INIT, LIST, RUN];
 
@@ -50,6 +53,7 @@ fn main() {
 
     let io_helper = &DefaultInputOutputHelper;
     let dck_help = &DefaultContainerHelper;
+    let run_helper = &DefaultRunCommandHelper;
 
     if args.len() == 1 {
         help(ALL_COMMANDS, io_helper);
@@ -70,7 +74,7 @@ fn main() {
                 }
 
                 exit_code = match command_to_run {
-                    Some(c) => c.exec(&args[2..], io_helper, dck_help),
+                    Some(c) => c.exec(&args[2..], io_helper, dck_help, run_helper),
                     None => {
                         io_helper.eprintln(&format!("D-SH: '{}' is not a d-sh command.", cmd));
                         io_helper.eprintln(&format!("See '{} --help'", args[0]));

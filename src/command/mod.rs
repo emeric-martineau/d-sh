@@ -13,6 +13,7 @@ pub mod build;
 use io::InputOutputHelper;
 use config::{get_config_filename, Config, get_config};
 use docker::ContainerHelper;
+use process::RunCommandHelper;
 
 ///
 /// Exit code of command.
@@ -67,7 +68,8 @@ pub struct Command {
     pub need_config_file: bool,
     /// Execute Command.
     pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-        dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode
+        dck_helper: &ContainerHelper, run_command_helper: &RunCommandHelper,
+        config: Option<&Config>) -> CommandExitCode
 }
 
 impl Command {
@@ -79,7 +81,7 @@ impl Command {
     /// returning exit code of D-SH
     ///
     pub fn exec(&self, args: &[String], io_helper: &InputOutputHelper,
-        dck_helper: &ContainerHelper) -> CommandExitCode {
+        dck_helper: &ContainerHelper, run_command_helper: &RunCommandHelper) -> CommandExitCode {
         let exit_code;
 
         // Check parameter
@@ -89,7 +91,7 @@ impl Command {
                     Some(config_file) => {
                         if io_helper.file_exits(&config_file) {
                             match get_config(io_helper) {
-                                Ok(config) => exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, Some(&config)),
+                                Ok(config) => exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, run_command_helper, Some(&config)),
                                 Err(_) => {
                                     io_helper.eprintln("Cannot read config file, please check rigts and format!");
                                     exit_code = CommandExitCode::ConfigFileFormatWrong;
@@ -106,7 +108,7 @@ impl Command {
                     }
                 };
             } else {
-                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, None);
+                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, run_command_helper, None);
             }
 
         } else {
@@ -128,9 +130,12 @@ mod tests {
     use super::{Command, CommandExitCode};
     use docker::ContainerHelper;
     use docker::tests::TestContainerHelper;
+    use process::RunCommandHelper;
+    use process::tests::TestRunCommandHelper;
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-        _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {
+        _dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+        _config: Option<&Config>) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::Ok
     }
@@ -139,6 +144,7 @@ mod tests {
     fn check_if_need_argument_but_not_provide() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -155,7 +161,7 @@ mod tests {
 
         let args = [];
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
@@ -164,6 +170,7 @@ mod tests {
     fn check_if_too_many_argument() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -180,7 +187,7 @@ mod tests {
 
         let args = [String::from("eeee"), String::from("eeee")];
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
@@ -189,6 +196,7 @@ mod tests {
     fn check_if_not_enough_many_argument() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -205,7 +213,7 @@ mod tests {
 
         let args = [String::from("eeee")];
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::BadArgument);
     }
@@ -214,6 +222,7 @@ mod tests {
     fn check_if_need_config_file_and_not_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -230,7 +239,7 @@ mod tests {
 
         let args = [];
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::ConfigFileNotFound);
     }
@@ -239,6 +248,7 @@ mod tests {
     fn check_if_need_config_file_and_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -263,7 +273,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::Ok);
     }
@@ -272,6 +282,7 @@ mod tests {
     fn check_if_need_config_file_and_found_but_wrong_format() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let one_cmd = Command {
             name: "test",
@@ -296,7 +307,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper);
+        let exit_code = commands[0].exec(&args, io_helper, dck_helper, run_command_helper);
 
         assert_eq!(exit_code, CommandExitCode::ConfigFileFormatWrong);
     }

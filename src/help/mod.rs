@@ -49,6 +49,7 @@ mod tests {
     use docker::ContainerHelper;
     use config::Config;
     use command::CommandExitCode;
+    use process::RunCommandHelper;
 
     #[test]
     fn display_version() {
@@ -62,7 +63,8 @@ mod tests {
     }
 
     fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-        _dck_helper: &ContainerHelper, _config: Option<&Config>) -> CommandExitCode {
+        _dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+        _config: Option<&Config>) -> CommandExitCode {
         io_helper.println(&format!("Coucou !"));
         CommandExitCode::Ok
     }

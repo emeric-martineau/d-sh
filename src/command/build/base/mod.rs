@@ -3,17 +3,19 @@
 ///
 /// Release under MIT License.
 ///
+use std::error::Error;
 use command::CommandExitCode;
-use handlebars::Handlebars;
+use handlebars::TemplateRenderError;
 use io::InputOutputHelper;
 use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
 use config::{Config, create_config_filename_path, get_config_application};
+use template::Template;
 
 ///
 /// Generate template of dockerfile.
 ///
 pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &String, dependencies: &str) -> Result<(), CommandExitCode> {
-    let handlebars = Handlebars::new();
+    let handlebars = Template::new();
 
     let data = json!({
         "dockerfile_from": config.dockerfile.from.to_owned(),
@@ -40,7 +42,13 @@ pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, outpu
                                 }
                             }
                         },
-                        Err(_) => {
+                        Err(err) => {
+                            match err {
+                                TemplateRenderError::TemplateError(err) => io_helper.eprintln(err.description()),
+                                TemplateRenderError::RenderError(err) => io_helper.eprintln(err.description()),
+                                TemplateRenderError::IOError(_, msg) => io_helper.eprintln(&msg)
+                            }
+
                             io_helper.eprintln("Something is wrong in Dockerfile template!");
                             Err(CommandExitCode::DockerfileTemplateInvalid)
                         }

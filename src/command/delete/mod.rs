@@ -9,6 +9,7 @@ use command::CommandExitCode;
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::{Config, get_config_application};
+use process::RunCommandHelper;
 
 ///
 /// Function to delete one image.
@@ -80,7 +81,8 @@ fn delete_all(config: &Config, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn delete(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
+    dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
 
@@ -131,11 +133,13 @@ mod tests {
     use config::{Config, ConfigDocker};
     use super::{DELETE, delete};
     use command::CommandExitCode;
+    use process::tests::TestRunCommandHelper;
 
     #[test]
     fn delete_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-h")];
 
@@ -150,7 +154,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -163,6 +167,7 @@ mod tests {
     fn delete_one_application_ok() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("titi")];
 
@@ -178,16 +183,16 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -206,6 +211,7 @@ mod tests {
     fn delete_one_application_ko() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("titi")];
 
@@ -221,15 +227,15 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
     }
@@ -238,6 +244,7 @@ mod tests {
     fn delete_one_application_all() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-a")];
 
@@ -253,16 +260,16 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

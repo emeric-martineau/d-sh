@@ -12,6 +12,7 @@ use docker::ContainerHelper;
 use config::{Config};
 use rand::Rng;
 use self::base::{generate_dockerfile, generate_entrypoint, get_dependencies};
+use process::RunCommandHelper;
 
 pub mod base;
 
@@ -146,7 +147,8 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
 /// returning exit code of D-SH.
 ///
 fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
+    dck_helper: &ContainerHelper, run_command_helper: &RunCommandHelper,
+    config: Option<&Config>) -> CommandExitCode {
     let mut options: BuildOptions = BuildOptions {
         all: false,
         base: false,
@@ -257,11 +259,14 @@ mod tests {
     use docker::tests::TestContainerHelper;
     use config::{create_config_filename_path, Config, ConfigDocker};
     use command::CommandExitCode;
+    use process::RunCommandHelper;
+    use process::tests::TestRunCommandHelper;
 
     #[test]
     fn build_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-h")];
 
@@ -276,7 +281,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -289,6 +294,7 @@ mod tests {
     fn build_unknow_option() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("--dghhfhdgfhdgf")];
 
@@ -303,7 +309,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::UnknowOption);
 
@@ -312,8 +318,9 @@ mod tests {
         assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
     }
 
-    fn build_base_short_option_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
+    fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
         let io_helper = &TestInputOutputHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         // Create dockerfile
         match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -334,10 +341,10 @@ mod tests {
         };
 
         // Add application with dependencies
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -393,7 +400,7 @@ mod tests {
             tmp_dir: None
         };
 
-        build_base_short_option_args(&[String::from("-b")], dck_helper, config);
+        build_base_with_args(&[String::from("-b")], dck_helper, config);
     }
 
     #[test]
@@ -410,7 +417,7 @@ mod tests {
             tmp_dir: None
         };
 
-        build_base_short_option_args(&[String::from("-b"), String::from("-f")], dck_helper, config);
+        build_base_with_args(&[String::from("-b"), String::from("-f")], dck_helper, config);
 
         let builds = dck_helper.builds.borrow();
         let base_build = builds.get(0).unwrap();
@@ -422,6 +429,7 @@ mod tests {
     fn build_base_short_option_dockerfile_template_not_found() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-b")];
 
@@ -456,10 +464,10 @@ mod tests {
         };
 
         // Add application with dependencies
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
@@ -472,6 +480,7 @@ mod tests {
     fn build_base_short_option_entrypoint_template_not_found() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-b")];
 
@@ -506,10 +515,10 @@ mod tests {
         };
 
         // Add application with dependencies
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
@@ -522,6 +531,7 @@ mod tests {
     fn build_base_short_option_application_file_format_bad() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
         let args = [String::from("-b")];
 
         // Create configuration file
@@ -554,10 +564,10 @@ mod tests {
         };
 
         // Add application with dependencies
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -607,6 +617,7 @@ mod tests {
     fn build_base_short_option_dockerfile_template_format_bad() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [String::from("-b")];
 
@@ -640,14 +651,15 @@ mod tests {
         };
 
         // Add application with dependencies
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndependencies:\n  - d1\n  - d2"));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndependencies:\n  - d3"));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
-        assert_eq!(stderr.get(0).unwrap(), "Something is wrong in Dockerfile template!");
+        assert_eq!(stderr.get(0).unwrap(), "wrong name of closing helper");
+        assert_eq!(stderr.get(1).unwrap(), "Something is wrong in Dockerfile template!");
 
         assert_eq!(result, CommandExitCode::DockerfileTemplateInvalid);
     }
@@ -666,11 +678,101 @@ mod tests {
             tmp_dir: Some(String::from("~/.tmp/"))
         };
 
-        build_base_short_option_args(&[String::from("-b")], dck_helper, config);
+        build_base_with_args(&[String::from("-b")], dck_helper, config);
+    }
+
+    fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
+        dck_helper: &TestContainerHelper, download_helper: &TestRunCommandHelper, config: Config) {
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}} bisous {{#each applications_filename}} {{this}} {{/each}} {{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        let result = build(&BUILD, &args, io_helper, dck_helper, download_helper, Some(&config));
+
+        // Check if temporary folder was created and remove
+        let f = io_helper.files_delete.borrow();
+
+        let mut not_found_dockerfile = true;
+        let mut generate_dockerfile = String::new();
+
+        for filename in f.keys() {
+            if filename.ends_with("/Dockerfile") {
+                not_found_dockerfile = false;
+                generate_dockerfile = filename.to_string();
+                assert_eq!(f.get(filename).unwrap(), "tata bisous atom.deb");
+            }
+        }
+
+        if not_found_dockerfile {
+            panic!("The temporary Dockerfile in '/tmp/xxx/' folder not found!");
+        }
+
+        // TODO check download files
+
+        let builds = dck_helper.builds.borrow();
+        let base_build = builds.get(0).unwrap();
+
+        assert_eq!(base_build.tag, "tutu");
+        assert_eq!(generate_dockerfile, base_build.dockerfile_name);
+        assert!(generate_dockerfile.starts_with(&base_build.base_dir));
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building base image...");
+
+        assert_eq!(result, CommandExitCode::Ok);
+    }
+
+    #[test]
+    fn build_application() {
+        let dck_helper = &TestContainerHelper::new();
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        let io_helper = &TestInputOutputHelper::new();
+        // Add application with dependencies
+
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
+
+        let run_command_helper = &TestRunCommandHelper::new();
+
+        build_with_args(&[String::from("atom")], io_helper, dck_helper, run_command_helper, config);
+
+        let commands = run_command_helper.cmds.borrow();
+        let cmd = commands.get(0).unwrap();
+
+        assert_eq!(cmd.cmd, "curl");
+        assert_eq!(cmd.args.get(0).unwrap(), "dwn/atom.deb");
+        assert_eq!(cmd.args.get(1).unwrap(), "-z");
+        assert_eq!(cmd.args.get(2).unwrap(), "dwn/atom.deb");
+        assert_eq!(cmd.args.get(3).unwrap(), "-L");
+        assert_eq!(cmd.args.get(4).unwrap(), "toto");
     }
 
     // These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete
     // TODO test: build test with generate Dockerfile/entry.sh error caused by folder error
     // TODO test: build test with delete folder error caused by folder error
+
+    // TODO build check if file is already download
+    // TODO only one parameter in command (use struct)
+    // TODO build application with Force
+    // TODO build many applications
+    // TODO build all
+    // TODO build missing application
+    // TODO build application with skip redownload
 }

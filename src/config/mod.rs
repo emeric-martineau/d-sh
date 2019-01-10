@@ -36,7 +36,9 @@ pub struct ConfigApplication {
     pub cmd_line_args: Option<Vec<String>>,
     pub interactive: Option<bool>,
     pub ipc_host: Option<bool>,
-    pub dependencies: Option<Vec<String>>
+    pub dependencies: Option<Vec<String>>,
+    pub download_filename: String,
+    pub url: String
 }
 
 /// Default config filename.

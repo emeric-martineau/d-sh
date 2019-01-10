@@ -9,6 +9,7 @@ use command::CommandExitCode;
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::{get_config_application, Config};
+use process::RunCommandHelper;
 
 ///
 /// Function to implement check D-SH command.
@@ -18,7 +19,8 @@ use config::{get_config_application, Config};
 /// returning exit code of D-SH.
 ///
 fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, config: Option<&Config>) -> CommandExitCode {
+    dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
 
@@ -101,11 +103,13 @@ mod tests {
     use config::{Config, ConfigDocker};
     use super::{CHECK, check};
     use command::CommandExitCode;
+    use process::tests::TestRunCommandHelper;
 
     #[test]
     fn check_if_image_found_and_not_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [];
 
@@ -126,11 +130,11 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\""));
-        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = check(&CHECK, &args, io_helper, dck_helper, Some(&config));
+        let result = check(&CHECK, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -145,6 +149,7 @@ mod tests {
     fn check_if_application_format_has_an_error() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [];
 
@@ -163,9 +168,9 @@ mod tests {
         };
 
         // Create application file atom
-        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\"\ncmd_line: \"\""));
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = check(&CHECK, &args, io_helper, dck_helper, Some(&config));
+        let result = check(&CHECK, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::BadApplicationFormat);
     }
@@ -174,6 +179,7 @@ mod tests {
     fn check_if_cannot_read_application_dir() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
+        let run_command_helper = &TestRunCommandHelper::new();
 
         let args = [];
 
@@ -190,7 +196,7 @@ mod tests {
 
         io_helper.files_error.borrow_mut().insert(String::from("app"), true);
 
-        let result = check(&CHECK, &args, io_helper, dck_helper, Some(&config));
+        let result = check(&CHECK, &args, io_helper, dck_helper, run_command_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::CannotReadApplicationsFolder);
     }
