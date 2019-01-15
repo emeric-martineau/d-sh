@@ -9,17 +9,20 @@ use command::Command;
 use command::CommandExitCode;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
-use config::{Config};
+use config::Config;
 use rand::Rng;
-use self::base::{generate_dockerfile, generate_entrypoint, get_dependencies};
-use process::RunCommandHelper;
+use download::DownloadHelper;
+use self::base::build_base;
+use self::one::build_one_application;
 
 pub mod base;
+pub mod one;
+pub mod dockerfile;
 
 ///
 /// Option for build command.
 ///
-struct BuildOptions {
+pub struct BuildOptions {
     /// Build all image
     all: bool,
     /// Build base image
@@ -48,7 +51,7 @@ fn random_string () -> String {
 ///
 /// Remove folder.
 ///
-fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandExitCode {
+fn remove_tmp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandExitCode {
     match io_helper.remove_dir_all(tmp_dir.to_str().unwrap()) {
         Ok(_) => CommandExitCode::Ok,
         Err(_) => CommandExitCode::CannotDeleteTemporaryFolder
@@ -56,80 +59,25 @@ fn remove_temp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandE
 }
 
 ///
-/// Build base image.
-///
-fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config) -> CommandExitCode {
-
-    let mut docker_filename = tmp_dir.to_owned();
-    docker_filename.push("Dockerfile");
-
-    let docker_filename = docker_filename.to_str().unwrap().to_string();
-    let docker_context_path = tmp_dir.to_str().unwrap().to_string();
-
-    match generate_entrypoint(io_helper, &docker_context_path) {
-        Ok(_) => {
-            let mut dependencies = String::new();
-
-            //  Get all dependencies from applications files
-            if let Ok(d) = get_dependencies(io_helper, config) {
-                dependencies = d
-            }
-
-            // Generate Dockerfile
-            match generate_dockerfile(&config, io_helper, &docker_filename, &dependencies) {
-                Ok(_) => {
-                    // Build
-                    let mut build_args = Vec::new();
-
-                    if options.force {
-                        build_args.push(String::from("--no-cache"));
-                    }
-
-                    dck_helper.build_image(&docker_filename, &docker_context_path,
-                        &config.dockerfile.tag, Some(&build_args));
-                },
-                Err(err) => return err
-            }
-
-            CommandExitCode::Ok
-        },
-        Err(err) => err
-    }
-
-}
-
-///
-/// Build one application.
-///
-/// Return false if application build fail.
-///
-fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config) -> bool {
-        // TODO helper
-        // TODO download file
-        false
-}
-
-///
 /// Build one application.
 ///
 ///
 fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config, applications: &Vec<&String>) -> CommandExitCode {
+    options: &BuildOptions, config: &Config, applications: &Vec<&String>,
+    dl_helper: &DownloadHelper) -> CommandExitCode {
     let mut app_build_fail = Vec::new();
 
     for app in applications {
         io_helper.println(&format!("Building {}...", app));
 
-        if ! build_one_application(io_helper, dck_helper, &tmp_dir, &options, config) {
+        if ! build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
+            dl_helper) {
             app_build_fail.push(app);
         }
     }
 
     if app_build_fail.is_empty() {
-        // TODO
-        CommandExitCode::Todo
+        CommandExitCode::Ok
     } else {
         for app in app_build_fail {
             io_helper.eprintln(&format!("Build {} failed!", app));
@@ -147,7 +95,7 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
 /// returning exit code of D-SH.
 ///
 fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, run_command_helper: &RunCommandHelper,
+    dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
     config: Option<&Config>) -> CommandExitCode {
     let mut options: BuildOptions = BuildOptions {
         all: false,
@@ -207,11 +155,11 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
                 result = CommandExitCode::Todo;
             } else {
                 result = build_some_application(io_helper, dck_helper, &tmp_dir, &options, config,
-                    &applications);
+                    &applications, dl_helper);
             }
 
             // Remove tmp folder
-            remove_temp_dir(io_helper, &tmp_dir);
+            remove_tmp_dir(io_helper, &tmp_dir);
 
             result
         },
@@ -259,14 +207,13 @@ mod tests {
     use docker::tests::TestContainerHelper;
     use config::{create_config_filename_path, Config, ConfigDocker};
     use command::CommandExitCode;
-    use process::RunCommandHelper;
-    use process::tests::TestRunCommandHelper;
+    use download::tests::TestDownloadHelper;
 
     #[test]
     fn build_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-h")];
 
@@ -281,7 +228,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -294,7 +241,7 @@ mod tests {
     fn build_unknow_option() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("--dghhfhdgfhdgf")];
 
@@ -309,7 +256,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::UnknowOption);
 
@@ -320,7 +267,7 @@ mod tests {
 
     fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
         let io_helper = &TestInputOutputHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         // Create dockerfile
         match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -344,7 +291,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -429,7 +376,7 @@ mod tests {
     fn build_base_short_option_dockerfile_template_not_found() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-b")];
 
@@ -467,7 +414,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
@@ -480,7 +427,7 @@ mod tests {
     fn build_base_short_option_entrypoint_template_not_found() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-b")];
 
@@ -518,7 +465,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
@@ -531,7 +478,7 @@ mod tests {
     fn build_base_short_option_application_file_format_bad() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
         let args = [String::from("-b")];
 
         // Create configuration file
@@ -567,7 +514,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -617,7 +564,7 @@ mod tests {
     fn build_base_short_option_dockerfile_template_format_bad() {
         let dck_helper = &TestContainerHelper::new();
         let io_helper = &TestInputOutputHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-b")];
 
@@ -654,7 +601,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         let stderr = io_helper.stderr.borrow();
 
@@ -682,13 +629,13 @@ mod tests {
     }
 
     fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
-        dck_helper: &TestContainerHelper, download_helper: &TestRunCommandHelper, config: Config) {
+        dck_helper: &TestContainerHelper, download_helper: &TestDownloadHelper, config: Config) -> String {
 
         // Create dockerfile
         match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
             Some(cfg_file) => {
                 // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}} bisous {{#each applications_filename}} {{this}} {{/each}} {{/if}}"))
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
             },
             None => panic!("Unable to create dockerfile for test")
         };
@@ -705,7 +652,7 @@ mod tests {
             if filename.ends_with("/Dockerfile") {
                 not_found_dockerfile = false;
                 generate_dockerfile = filename.to_string();
-                assert_eq!(f.get(filename).unwrap(), "tata bisous atom.deb");
+                assert_eq!(f.get(filename).unwrap(), "tutu bisous atom.deb");
             }
         }
 
@@ -713,20 +660,9 @@ mod tests {
             panic!("The temporary Dockerfile in '/tmp/xxx/' folder not found!");
         }
 
-        // TODO check download files
-
-        let builds = dck_helper.builds.borrow();
-        let base_build = builds.get(0).unwrap();
-
-        assert_eq!(base_build.tag, "tutu");
-        assert_eq!(generate_dockerfile, base_build.dockerfile_name);
-        assert!(generate_dockerfile.starts_with(&base_build.base_dir));
-
-        let stdout = io_helper.stdout.borrow();
-
-        assert_eq!(stdout.get(0).unwrap(), "Building base image...");
-
         assert_eq!(result, CommandExitCode::Ok);
+
+        generate_dockerfile
     }
 
     #[test]
@@ -748,31 +684,51 @@ mod tests {
 
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
 
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
-        build_with_args(&[String::from("atom")], io_helper, dck_helper, run_command_helper, config);
+        let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
 
-        let commands = run_command_helper.cmds.borrow();
-        let cmd = commands.get(0).unwrap();
+        let downloads = dl_helper.cmds.borrow();
+        let dl = downloads.get(0).unwrap();
 
-        assert_eq!(cmd.cmd, "curl");
-        assert_eq!(cmd.args.get(0).unwrap(), "dwn/atom.deb");
-        assert_eq!(cmd.args.get(1).unwrap(), "-z");
-        assert_eq!(cmd.args.get(2).unwrap(), "dwn/atom.deb");
-        assert_eq!(cmd.args.get(3).unwrap(), "-L");
-        assert_eq!(cmd.args.get(4).unwrap(), "toto");
+        assert_eq!(dl.output_filename, "dwn/atom.deb");
+        assert_eq!(dl.url, "toto");
+
+        let builds = dck_helper.builds.borrow();
+        let atom_build = builds.get(0).unwrap();
+
+        assert_eq!(atom_build.tag, "run-atom:latest");
+        assert_eq!(generate_dockerfile, atom_build.dockerfile_name);
+        assert!(generate_dockerfile.starts_with(&atom_build.base_dir));
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building atom...");
     }
 
-    // These test need more better implementation of folder/file in test.
+    // TODO These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete
-    // TODO test: build test with generate Dockerfile/entry.sh error caused by folder error
-    // TODO test: build test with delete folder error caused by folder error
+    //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
+    //  - test: build test with delete folder error caused by folder error
+
+    // TODO template for deb build
+
+    // TODO common generate_dockerfile
+    // TODO build_base use DockerfileParameter
 
     // TODO build check if file is already download
+    // TODO build download fail
+    // TODO docker build fail
     // TODO only one parameter in command (use struct)
     // TODO build application with Force
     // TODO build many applications
     // TODO build all
     // TODO build missing application
     // TODO build application with skip redownload
+
+    // TODO check if ctrl+c on curl
+
+    // TODO rework to don't return true/false but Ok/Err
+    // TODO rework error with macro to clear code
+    // TODO get_config_application() display error
 }

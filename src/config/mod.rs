@@ -11,6 +11,7 @@ use dirs::home_dir;
 use std::io::{Error, ErrorKind};
 use io::convert_path;
 use io::InputOutputHelper;
+use std::path::Path;
 
 /// Config structure of D-SH
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -113,4 +114,24 @@ pub fn get_config_application(io_helper: &InputOutputHelper, filename: &str) -> 
         Ok(deserialized_config) => Ok(deserialized_config),
         Err(_) => Err(Error::new(ErrorKind::Other, "File format of config application file is wrong !"))
     }
+}
+
+///
+/// Return file with dir.
+///
+pub fn get_filename(dir: &str, app: &str, ext: Option<&str>) -> String {
+    let mut application_filename = String::from(app);
+
+    if ext.is_some() {
+        application_filename.push_str(ext.unwrap());
+    }
+
+    let application_filename_path = Path::new(dir)
+        .join(&application_filename);
+
+    let application_filename_full_path = application_filename_path
+        .to_str()
+        .unwrap();
+
+    String::from(application_filename_full_path)
 }

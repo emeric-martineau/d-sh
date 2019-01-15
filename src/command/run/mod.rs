@@ -10,7 +10,7 @@ use command::CommandExitCode;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
 use config::{Config, ConfigApplication, get_config_application};
-use process::RunCommandHelper;
+use download::DownloadHelper;
 
 ///
 /// Construct extra args of run
@@ -165,7 +165,7 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
     config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
@@ -227,13 +227,13 @@ mod tests {
     use super::{RUN, run};
     use command::CommandExitCode;
     use users::{get_current_uid, get_current_gid, get_current_username};
-    use process::tests::TestRunCommandHelper;
+    use download::tests::TestDownloadHelper;
 
     #[test]
     fn run_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-h")];
 
@@ -248,7 +248,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -261,7 +261,7 @@ mod tests {
     fn run_image_application_not_found() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("atom")];
 
@@ -276,7 +276,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
 
@@ -293,7 +293,7 @@ mod tests {
     fn run_image_not_found_not_interactive() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("atom")];
 
@@ -311,7 +311,7 @@ mod tests {
         // Create application file atom
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ContainerImageNotFound);
 
@@ -330,7 +330,7 @@ mod tests {
     fn run_image_found_not_interactive() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("atom")];
 
@@ -351,7 +351,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -392,7 +392,7 @@ mod tests {
     fn run_image_found_not_interactive_with_args() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("atom"), String::from("arg1"), String::from("arg2")];
 
@@ -413,7 +413,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -429,7 +429,7 @@ mod tests {
     fn run_image_found_interactive(opt: &str, application_config_content: &str, args_len: usize) -> TestRunContainer {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args;
 
@@ -456,7 +456,7 @@ mod tests {
         // Create list of images returned by docker
         dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-        let result = run(&RUN, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

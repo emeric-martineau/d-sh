@@ -12,7 +12,7 @@ use config::{get_config_filename, create_config_filename_path, Config};
 use config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
     ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
 use docker::ContainerHelper;
-use process::RunCommandHelper;
+use download::DownloadHelper;
 
 /// Default directory of downloading applictions.
 const DOWNLOAD_DIR: &str = "~/.d-sh/download";
@@ -71,7 +71,7 @@ fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, def
 /// returning exit code of D-SH.
 ///
 fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
     _config: Option<&Config>) -> CommandExitCode {
     let exit_code;
 
@@ -145,13 +145,13 @@ mod tests {
     use std::path::Path;
     use std::collections::HashMap;
     use command::CommandExitCode;
-    use process::tests::TestRunCommandHelper;
+    use download::tests::TestDownloadHelper;
 
     #[test]
     fn unable_to_create_configfile_if_exists() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [];
 
@@ -163,7 +163,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper, run_command_helper, None);
+        let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
 
         assert_eq!(result, CommandExitCode::ConfigFileExits);
     }
@@ -172,7 +172,7 @@ mod tests {
     fn create_configfile_if_not_exists() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         io_helper.stdin.borrow_mut().push(String::from("toto"));
         io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -181,7 +181,7 @@ mod tests {
 
         let args = [];
 
-        let result = init(&INIT, &args, io_helper, dck_helper, run_command_helper, None);
+        let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -226,7 +226,7 @@ mod tests {
     fn create_configfile_but_cannot_write() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         io_helper.stdin.borrow_mut().push(String::from("toto"));
         io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -242,7 +242,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper, run_command_helper, None);
+        let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
 
         assert_eq!(result, CommandExitCode::CannotWriteConfigFile);
     }
@@ -251,7 +251,7 @@ mod tests {
     fn create_configfile_but_cannot_create_parent_folder() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         io_helper.stdin.borrow_mut().push(String::from("toto"));
         io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -271,7 +271,7 @@ mod tests {
             None => panic!("Unable to get config filename for test")
         };
 
-        let result = init(&INIT, &args, io_helper, dck_helper, run_command_helper, None);
+        let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
 
         assert_eq!(result, CommandExitCode::CannotCreateFolderForConfigFile);
     }

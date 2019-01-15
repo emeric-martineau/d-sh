@@ -19,9 +19,9 @@ extern crate rand;
 mod command;
 mod config;
 mod docker;
+mod download;
 mod help;
 mod io;
-mod process;
 mod template;
 
 use std::env;
@@ -38,7 +38,7 @@ use help::version;
 use io::InputOutputHelper;
 use io::DefaultInputOutputHelper;
 use docker::DefaultContainerHelper;
-use process::DefaultRunCommandHelper;
+use download::DefaultDownloadHelper;
 
 const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, INIT, LIST, RUN];
 
@@ -53,7 +53,7 @@ fn main() {
 
     let io_helper = &DefaultInputOutputHelper;
     let dck_help = &DefaultContainerHelper;
-    let run_helper = &DefaultRunCommandHelper;
+    let run_helper = &DefaultDownloadHelper;
 
     if args.len() == 1 {
         help(ALL_COMMANDS, io_helper);

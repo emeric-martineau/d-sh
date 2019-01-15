@@ -3,6 +3,9 @@
 ///
 /// Release under MIT License.
 ///
+use std::path::PathBuf;
+use command::build::BuildOptions;
+use docker::ContainerHelper;
 use std::error::Error;
 use command::CommandExitCode;
 use handlebars::TemplateRenderError;
@@ -14,7 +17,7 @@ use template::Template;
 ///
 /// Generate template of dockerfile.
 ///
-pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &String, dependencies: &str) -> Result<(), CommandExitCode> {
+fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &str, dependencies: &str) -> Result<(), CommandExitCode> {
     let handlebars = Template::new();
 
     let data = json!({
@@ -70,7 +73,7 @@ pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, outpu
 ///
 /// Generate template of entrypoint.
 ///
-pub fn generate_entrypoint(io_helper: &InputOutputHelper, output_dir: &String) -> Result<(), CommandExitCode> {
+fn generate_entrypoint(io_helper: &InputOutputHelper, output_dir: &String) -> Result<(), CommandExitCode> {
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(entrypoint_name) => {
             // Check if file exists
@@ -98,7 +101,7 @@ pub fn generate_entrypoint(io_helper: &InputOutputHelper, output_dir: &String) -
 ///
 /// Get list of dependencies.
 ///
-pub fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Result<String, CommandExitCode> {
+fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Result<String, CommandExitCode> {
     // 1 - We have got configuration
     match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
         Ok(mut list_applications_file) => {
@@ -124,4 +127,48 @@ pub fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Resul
         },
         Err(_) => Err(CommandExitCode::CannotReadApplicationsFolder)
     }
+}
+
+///
+/// Build base image.
+///
+pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
+    options: &BuildOptions, config: &Config) -> CommandExitCode {
+
+    let mut docker_filename = tmp_dir.to_owned();
+    docker_filename.push("Dockerfile");
+
+    let docker_filename = docker_filename.to_str().unwrap().to_string();
+    let docker_context_path = tmp_dir.to_str().unwrap().to_string();
+
+    match generate_entrypoint(io_helper, &docker_context_path) {
+        Ok(_) => {
+            let mut dependencies = String::new();
+
+            //  Get all dependencies from applications files
+            if let Ok(d) = get_dependencies(io_helper, config) {
+                dependencies = d
+            }
+
+            // Generate Dockerfile
+            match generate_dockerfile(&config, io_helper, &docker_filename, &dependencies) {
+                Ok(_) => {
+                    // Build
+                    let mut build_args = Vec::new();
+
+                    if options.force {
+                        build_args.push(String::from("--no-cache"));
+                    }
+
+                    dck_helper.build_image(&docker_filename, &docker_context_path,
+                        &config.dockerfile.tag, Some(&build_args));
+                },
+                Err(err) => return err
+            }
+
+            CommandExitCode::Ok
+        },
+        Err(err) => err
+    }
+
 }

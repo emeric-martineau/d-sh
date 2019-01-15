@@ -9,7 +9,7 @@ use command::CommandExitCode;
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::Config;
-use process::RunCommandHelper;
+use download::DownloadHelper;
 
 ///
 /// Function to implement list D-SH command.
@@ -19,7 +19,7 @@ use process::RunCommandHelper;
 /// returning exit code of D-SH.
 ///
 fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
     config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
@@ -73,13 +73,13 @@ mod tests {
     use config::{Config, ConfigDocker};
     use super::{LIST, list};
     use command::CommandExitCode;
-    use process::tests::TestRunCommandHelper;
+    use download::tests::TestDownloadHelper;
 
     #[test]
     fn list_all_applications() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [];
 
@@ -99,7 +99,7 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
         io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-        let result = list(&LIST, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = list(&LIST, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

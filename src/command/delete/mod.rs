@@ -8,8 +8,8 @@ use command::Command;
 use command::CommandExitCode;
 use io::InputOutputHelper;
 use docker::ContainerHelper;
-use config::{Config, get_config_application};
-use process::RunCommandHelper;
+use config::{Config, get_config_application, get_filename};
+use download::DownloadHelper;
 
 ///
 /// Function to delete one image.
@@ -21,15 +21,7 @@ use process::RunCommandHelper;
 fn delete_one(config: &Config, app: &str, io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper)  -> CommandExitCode {
 
-    let mut application_filename = String::from(app);
-    application_filename.push_str(".yml");
-
-    let application_filename_path = Path::new(&config.applications_dir)
-        .join(&application_filename);
-
-    let application_filename_full_path = application_filename_path
-        .to_str()
-        .unwrap();
+    let application_filename_full_path = get_filename(&config.applications_dir, app, Some(&".yml"));
 
     match get_config_application(io_helper, &application_filename_full_path) {
         Ok(config_application) => {
@@ -81,7 +73,7 @@ fn delete_all(config: &Config, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn delete(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, _run_command_helper: &RunCommandHelper,
+    dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
     config: Option<&Config>) -> CommandExitCode {
 
     let config = config.unwrap();
@@ -133,13 +125,13 @@ mod tests {
     use config::{Config, ConfigDocker};
     use super::{DELETE, delete};
     use command::CommandExitCode;
-    use process::tests::TestRunCommandHelper;
+    use download::tests::TestDownloadHelper;
 
     #[test]
     fn delete_display_help() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-h")];
 
@@ -154,7 +146,7 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -167,7 +159,7 @@ mod tests {
     fn delete_one_application_ok() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("titi")];
 
@@ -192,7 +184,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 
@@ -211,7 +203,7 @@ mod tests {
     fn delete_one_application_ko() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("titi")];
 
@@ -235,7 +227,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
     }
@@ -244,7 +236,7 @@ mod tests {
     fn delete_one_application_all() {
         let io_helper = &TestInputOutputHelper::new();
         let dck_helper = &TestContainerHelper::new();
-        let run_command_helper = &TestRunCommandHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
 
         let args = [String::from("-a")];
 
@@ -269,7 +261,7 @@ mod tests {
         dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
         dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-        let result = delete(&DELETE, &args, io_helper, dck_helper, run_command_helper, Some(&config));
+        let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
 
         assert_eq!(result, CommandExitCode::Ok);
 

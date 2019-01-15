@@ -22,6 +22,9 @@ COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 {{/if}}
+{{#if (ends_width application_filename  ".deb")}}
+ok
+{{/if}}
 "#;
 
 /// Default entrypoint
