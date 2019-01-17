@@ -13,6 +13,7 @@ use io::InputOutputHelper;
 use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
 use config::{Config, create_config_filename_path, get_config_application};
 use template::Template;
+use command::build::dockerfile::DockerfileParameter;
 
 ///
 /// Generate template of dockerfile.
@@ -135,13 +136,9 @@ fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Result<St
 pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
     options: &BuildOptions, config: &Config) -> CommandExitCode {
 
-    let mut docker_filename = tmp_dir.to_owned();
-    docker_filename.push("Dockerfile");
+    let dockerfile = DockerfileParameter::new(tmp_dir);
 
-    let docker_filename = docker_filename.to_str().unwrap().to_string();
-    let docker_context_path = tmp_dir.to_str().unwrap().to_string();
-
-    match generate_entrypoint(io_helper, &docker_context_path) {
+    match generate_entrypoint(io_helper, &dockerfile.docker_context_path) {
         Ok(_) => {
             let mut dependencies = String::new();
 
@@ -151,7 +148,7 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
             }
 
             // Generate Dockerfile
-            match generate_dockerfile(&config, io_helper, &docker_filename, &dependencies) {
+            match generate_dockerfile(&config, io_helper, &dockerfile.docker_filename, &dependencies) {
                 Ok(_) => {
                     // Build
                     let mut build_args = Vec::new();
@@ -160,7 +157,7 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
                         build_args.push(String::from("--no-cache"));
                     }
 
-                    dck_helper.build_image(&docker_filename, &docker_context_path,
+                    dck_helper.build_image(&dockerfile.docker_filename, &dockerfile.docker_context_path,
                         &config.dockerfile.tag, Some(&build_args));
                 },
                 Err(err) => return err

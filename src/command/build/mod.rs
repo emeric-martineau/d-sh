@@ -159,7 +159,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             }
 
             // Remove tmp folder
-//            remove_tmp_dir(io_helper, &tmp_dir);
+            remove_tmp_dir(io_helper, &tmp_dir);
 
             result
         },
