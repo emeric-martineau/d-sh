@@ -12,19 +12,56 @@ pub const DOCKERFILE_DEFAULT_TAG: &'static str = "d-base-image:v1.0.0";
 /// Default docker file for base image
 pub const DOCKERFILE_BASE_FILENAME: &str = "Dockerfile.hbs";
 pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
+
 {{#if dockerfile_base}}
+    RUN apt-get update && \
+        apt-get install -y \
+          {{dependencies}}
 
-RUN apt-get update && \
-    apt-get install -y \
-      {{dependencies}}
+    COPY entrypoint.sh /entrypoint.sh
 
-COPY entrypoint.sh /entrypoint.sh
-
-ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
+    ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 {{/if}}
+
 {{#if (ends_width application_filename  ".deb")}}
-ok
+    COPY {{application_filename}} /tmp/
+
+    RUN apt-get update && \
+        apt-get install -y \
+          /tmp/{{application_filename}} && \
+        rm -f /tmp/{{application_filename}} && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
 {{/if}}
+
+{{#if (ends_width application_filename  ".tar.bz2")}}
+    COPY {{application_filename}} /tmp/
+
+    RUN tar -xjf /tmp/{{application_filename}} -C /opt/ && \
+        rm -f /tmp/{{application_filename}}
+{{/if}}
+
+{{#if (ends_width application_filename  ".tar.xz")}}
+    COPY {{application_filename}} /tmp/
+
+    RUN tar -xJf /tmp/{{application_filename}} -C /opt/ && \
+        rm -f /tmp/{{application_filename}}
+{{/if}}
+
+{{#if (or (ends_width application_filename  ".tar.gz ") (ends_width application_filename  ".tgz "))}}
+    COPY {{application_filename}} /tmp/
+
+    RUN tar -xzf /tmp/{{application_filename}} -C /opt/ && \
+        rm -f /tmp/{{application_filename}}
+{{/if}}
+
+{{#if (ends_width application_filename  ".tar.xz")}}
+    RUN apt-get update && \
+        apt-get install -y $APPLICATION_DOWNLOADED_FILE_NAME && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
+{{/if}}
+
 "#;
 
 /// Default entrypoint

@@ -159,7 +159,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             }
 
             // Remove tmp folder
-            remove_tmp_dir(io_helper, &tmp_dir);
+//            remove_tmp_dir(io_helper, &tmp_dir);
 
             result
         },
@@ -711,7 +711,7 @@ mod tests {
     //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
     //  - test: build test with delete folder error caused by folder error
 
-    // TODO template for deb build
+    // TODO add switch helper to allow install package
 
     // TODO common generate_dockerfile
     // TODO build_base use DockerfileParameter
