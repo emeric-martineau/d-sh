@@ -95,7 +95,7 @@ pub fn get_config(io_helper: &InputOutputHelper) -> Result<Config, Error> {
 
             match serde_yaml::from_str(&data) {
                 Ok(deserialized_config) => Ok(deserialized_config),
-                Err(_) => Err(Error::new(ErrorKind::Other, "File format of config file is wrong !"))
+                Err(err) => Err(Error::new(ErrorKind::Other, "File format of config file is wrong !"))
             }
         },
         None => Err(Error::new(ErrorKind::PermissionDenied, "Cannot read config file !"))
@@ -112,7 +112,7 @@ pub fn get_config_application(io_helper: &InputOutputHelper, filename: &str) -> 
 
     match serde_yaml::from_str(&data) {
         Ok(deserialized_config) => Ok(deserialized_config),
-        Err(_) => Err(Error::new(ErrorKind::Other, "File format of config application file is wrong !"))
+        Err(err) => Err(Error::new(ErrorKind::Other, "File format of config application file is wrong !"))
     }
 }
 

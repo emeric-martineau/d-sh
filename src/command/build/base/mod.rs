@@ -106,8 +106,10 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
                         build_args.push(String::from("--no-cache"));
                     }
 
-                    dck_helper.build_image(&dockerfile.docker_filename, &dockerfile.docker_context_path,
-                        &config.dockerfile.tag, Some(&build_args));
+                    if ! dck_helper.build_image(&dockerfile.docker_filename, &dockerfile.docker_context_path,
+                        &config.dockerfile.tag, Some(&build_args)) {
+                        return CommandExitCode::DockerBuildFail
+                    }
                 },
                 Err(err) => return err
             }

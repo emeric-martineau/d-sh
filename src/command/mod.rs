@@ -45,7 +45,9 @@ pub enum CommandExitCode {
     CannotDeleteTemporaryFolder = 21,
     CannotCopyFile = 22,
     ConfigFileFormatWrong = 23,
-    TemplateNotFound = 24
+    TemplateNotFound = 24,
+    UnableDownloadApplication = 25,
+    DockerBuildFail = 26
 }
 
 ///

@@ -4,6 +4,7 @@
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
+use command::CommandExitCode;
 use command::build::BuildOptions;
 use command::build::generate_dockerfile;
 use command::build::dockerfile::DockerfileParameter;
@@ -16,7 +17,7 @@ use download::DownloadHelper;
 /// Download file with curl.
 ///
 fn download_file(app: &str, config_application: &ConfigApplication, config: &Config,
-    io_helper: &InputOutputHelper, dl_helper: &DownloadHelper) -> bool {
+    io_helper: &InputOutputHelper, dl_helper: &DownloadHelper) -> Result<(), CommandExitCode> {
     // Check if file already downloaded
     let app_dwn_filename = get_filename(&config.download_dir,
         &config_application.download_filename, None);
@@ -28,11 +29,11 @@ fn download_file(app: &str, config_application: &ConfigApplication, config: &Con
         // Download file with curl
         if ! dl_helper.download(&config_application.url, &app_dwn_filename) {
             io_helper.eprintln(&format!("Unable to download application '{}'!", app));
-            return false;
+            return Err(CommandExitCode::UnableDownloadApplication);
         }
     }
 
-    true
+    Ok(())
 }
 
 ///
@@ -41,7 +42,7 @@ fn download_file(app: &str, config_application: &ConfigApplication, config: &Con
 /// Return false if application build fail.
 ///
 pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config, app: &str, dl_helper: &DownloadHelper) -> bool {
+    options: &BuildOptions, config: &Config, app: &str, dl_helper: &DownloadHelper) -> Result<(), CommandExitCode> {
 
     let app_filename = convert_path(&get_filename(&config.applications_dir, app, Some(&".yml")));
 
@@ -49,49 +50,53 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
 
     match get_config_application(io_helper, &app_filename) {
         Ok(config_application) => {
-            if download_file(app, &config_application, config, io_helper, dl_helper) {
-                // Now build
-                let data = json!({
-                    "dockerfile_from": config.dockerfile.tag.to_owned(),
-                    "dockerfile_base": false,
-                    "application_filename": config_application.download_filename.to_owned()
-                });
+            match download_file(app, &config_application, config, io_helper, dl_helper) {
+                Ok(_) => {
+                    // Now build
+                    let data = json!({
+                        "dockerfile_from": config.dockerfile.tag.to_owned(),
+                        "dockerfile_base": false,
+                        "application_filename": config_application.download_filename.to_owned()
+                    });
 
-                match generate_dockerfile(config, io_helper, &dockerfile.docker_filename,
-                    &config_application.download_filename, &data) {
-                    Ok(_) => {
-                        // Copy file to temporary folder
-                        let app_dwn_filename = convert_path(&get_filename(&config.download_dir,
-                            &config_application.download_filename, None));
+                    match generate_dockerfile(config, io_helper, &dockerfile.docker_filename,
+                        &config_application.download_filename, &data) {
+                        Ok(_) => {
+                            // Copy file to temporary folder
+                            let app_dwn_filename = convert_path(&get_filename(&config.download_dir,
+                                &config_application.download_filename, None));
 
-                        if io_helper.hardlink_or_copy_file(&app_dwn_filename,
-                            &format!("{}/{}", &dockerfile.docker_context_path, &config_application.download_filename)).is_err() {
-                            io_helper.eprintln(&format!("Unable copy '{}' to '{}'!", &app_dwn_filename, &dockerfile.docker_context_path));
-                            return false;
-                        }
+                            if io_helper.hardlink_or_copy_file(&app_dwn_filename,
+                                &format!("{}/{}", &dockerfile.docker_context_path, &config_application.download_filename)).is_err() {
+                                io_helper.eprintln(&format!("Unable copy '{}' to '{}'!", &app_dwn_filename, &dockerfile.docker_context_path));
 
-                        // Build
-                        let mut build_args = Vec::new();
+                                return Err(CommandExitCode::CannotCopyFile);
+                            }
 
-                        if options.force {
-                            build_args.push(String::from("--no-cache"));
-                        }
+                            // Build
+                            let mut build_args = Vec::new();
 
-                        return dck_helper.build_image(&dockerfile.docker_filename,
-                            &dockerfile.docker_context_path, &config_application.image_name,
-                            Some(&build_args));
-                    },
-                    Err(_) => return false
-                }
+                            if options.force {
+                                build_args.push(String::from("--no-cache"));
+                            }
+
+                            if ! dck_helper.build_image(&dockerfile.docker_filename,
+                                &dockerfile.docker_context_path, &config_application.image_name,
+                                Some(&build_args)) {
+                                return Err(CommandExitCode::DockerBuildFail)    
+                            }
+                        },
+                        Err(err) => return Err(err)
+                    }
+                },
+                Err(err) => return Err(err)
             }
 
-            return false;
+            return Ok(());
         },
         Err(_) => {
-            // TODO return CommandExitCode::ApplicationFileNotFound
             io_helper.eprintln(&format!("Unable to find application '{}' or something is wrong in file!", app));
-            return false;
+            Err(CommandExitCode::ApplicationFileNotFound)
         }
     }
-
 }

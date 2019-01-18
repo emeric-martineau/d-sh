@@ -126,8 +126,8 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
     for app in applications {
         io_helper.println(&format!("Building {}...", app));
 
-        if ! build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
-            dl_helper) {
+        if build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
+            dl_helper).is_err() {
             app_build_fail.push(app);
         }
     }
@@ -767,9 +767,7 @@ mod tests {
     //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
     //  - test: build test with delete folder error caused by folder error
 
-    // TODO add switch helper to allow install package
-
-    // TODO common generate_dockerfile
+    // TODO add switch helper in handlebars to allow install package
 
     // TODO build check if file is already download
     // TODO build download fail
@@ -783,7 +781,6 @@ mod tests {
 
     // TODO check if ctrl+c on curl
 
-    // TODO rework to don't return true/false but Ok/Err
     // TODO rework error with macro to clear code
     // TODO get_config_application() display error
 }
