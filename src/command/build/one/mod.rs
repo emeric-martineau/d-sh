@@ -5,72 +5,12 @@
 ///
 use std::path::PathBuf;
 use command::build::BuildOptions;
+use command::build::generate_dockerfile;
+use command::build::dockerfile::DockerfileParameter;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
-use config::{Config, get_filename, get_config_application, ConfigApplication, create_config_filename_path};
+use config::{Config, get_filename, get_config_application, ConfigApplication};
 use download::DownloadHelper;
-use command::build::dockerfile::DockerfileParameter;
-use std::error::Error;
-use command::CommandExitCode;
-use handlebars::TemplateRenderError;
-use config::dockerfile::DOCKERFILE_BASE_FILENAME;
-use template::Template;
-///
-/// Generate template of dockerfile.
-///
-fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &str,
-    application_filename: &str) -> Result<(), CommandExitCode> {
-    let handlebars = Template::new();
-
-    let data = json!({
-        "dockerfile_from": config.dockerfile.tag.to_owned(),
-        "dockerfile_base": false,
-        "application_filename": application_filename
-    });
-
-    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
-        Some(dockerfile_name) => {
-            if ! io_helper.file_exits(&dockerfile_name) {
-                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
-                return Err(CommandExitCode::TemplateNotFound);
-            }
-
-            match io_helper.file_read_at_string(&dockerfile_name) {
-                Ok(mut source_template) => {
-                    match handlebars.render_template(&source_template, &data) {
-                        Ok(content) => {
-                            match io_helper.file_write(&output_filename, &content) {
-                                Ok(_) => Ok(()),
-                                Err(_) => {
-                                    io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
-                                    Err(CommandExitCode::CannotGenerateDockerfile)
-                                }
-                            }
-                        },
-                        Err(err) => {
-                            match err {
-                                TemplateRenderError::TemplateError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::RenderError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::IOError(_, msg) => io_helper.eprintln(&msg)
-                            }
-
-                            io_helper.eprintln("Something is wrong in Dockerfile template!");
-                            Err(CommandExitCode::DockerfileTemplateInvalid)
-                        }
-                    }
-                },
-                Err(_) => {
-                    io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
-                    Err(CommandExitCode::CannotGenerateDockerfile)
-                }
-            }
-        },
-        None => {
-            io_helper.eprintln("Unable to get your home dir!");
-            Err(CommandExitCode::CannotGetHomeFolder)
-        }
-    }
-}
 
 ///
 /// Download file with curl.
@@ -111,8 +51,14 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
         Ok(config_application) => {
             if download_file(app, &config_application, config, io_helper, dl_helper) {
                 // Now build
+                let data = json!({
+                    "dockerfile_from": config.dockerfile.tag.to_owned(),
+                    "dockerfile_base": false,
+                    "application_filename": config_application.download_filename.to_owned()
+                });
+
                 match generate_dockerfile(config, io_helper, &dockerfile.docker_filename,
-                    &config_application.download_filename) {
+                    &config_application.download_filename, &data) {
                     Ok(_) => {
                         // Copy file to temporary folder
                         let app_dwn_filename = convert_path(&get_filename(&config.download_dir,

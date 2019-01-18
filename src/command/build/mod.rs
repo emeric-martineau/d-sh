@@ -5,15 +5,20 @@
 ///
 use std::path::PathBuf;
 use std::env::temp_dir;
+use std::error::Error;
 use command::Command;
 use command::CommandExitCode;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
-use config::Config;
+use config::{Config, create_config_filename_path};
+use config::dockerfile::DOCKERFILE_BASE_FILENAME;
 use rand::Rng;
 use download::DownloadHelper;
 use self::base::build_base;
 use self::one::build_one_application;
+use template::Template;
+use handlebars::TemplateRenderError;
+use serde_json::Value;
 
 pub mod base;
 pub mod one;
@@ -55,6 +60,57 @@ fn remove_tmp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandEx
     match io_helper.remove_dir_all(tmp_dir.to_str().unwrap()) {
         Ok(_) => CommandExitCode::Ok,
         Err(_) => CommandExitCode::CannotDeleteTemporaryFolder
+    }
+}
+
+///
+/// Generate template of dockerfile.
+///
+pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &str,
+    dependencies: &str, data: &Value) -> Result<(), CommandExitCode> {
+    let handlebars = Template::new();
+
+    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+        Some(dockerfile_name) => {
+            if ! io_helper.file_exits(&dockerfile_name) {
+                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
+                return Err(CommandExitCode::TemplateNotFound);
+            }
+
+            match io_helper.file_read_at_string(&dockerfile_name) {
+                Ok(mut source_template) => {
+                    match handlebars.render_template(&source_template, &data) {
+                        Ok(content) => {
+                            match io_helper.file_write(&output_filename, &content) {
+                                Ok(_) => Ok(()),
+                                Err(_) => {
+                                    io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
+                                    Err(CommandExitCode::CannotGenerateDockerfile)
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            match err {
+                                TemplateRenderError::TemplateError(err) => io_helper.eprintln(err.description()),
+                                TemplateRenderError::RenderError(err) => io_helper.eprintln(err.description()),
+                                TemplateRenderError::IOError(_, msg) => io_helper.eprintln(&msg)
+                            }
+
+                            io_helper.eprintln("Something is wrong in Dockerfile template!");
+                            Err(CommandExitCode::DockerfileTemplateInvalid)
+                        }
+                    }
+                },
+                Err(_) => {
+                    io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
+                    Err(CommandExitCode::CannotGenerateDockerfile)
+                }
+            }
+        },
+        None => {
+            io_helper.eprintln("Unable to get your home dir!");
+            Err(CommandExitCode::CannotGetHomeFolder)
+        }
     }
 }
 
@@ -714,7 +770,6 @@ mod tests {
     // TODO add switch helper to allow install package
 
     // TODO common generate_dockerfile
-    // TODO build_base use DockerfileParameter
 
     // TODO build check if file is already download
     // TODO build download fail

@@ -4,72 +4,14 @@
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
-use command::build::BuildOptions;
-use docker::ContainerHelper;
-use std::error::Error;
 use command::CommandExitCode;
-use handlebars::TemplateRenderError;
-use io::InputOutputHelper;
-use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME};
-use config::{Config, create_config_filename_path, get_config_application};
-use template::Template;
+use command::build::BuildOptions;
+use command::build::generate_dockerfile;
 use command::build::dockerfile::DockerfileParameter;
-
-///
-/// Generate template of dockerfile.
-///
-fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &str, dependencies: &str) -> Result<(), CommandExitCode> {
-    let handlebars = Template::new();
-
-    let data = json!({
-        "dockerfile_from": config.dockerfile.from.to_owned(),
-        "dockerfile_base": true,
-        "dependencies": dependencies
-    });
-
-    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
-        Some(dockerfile_name) => {
-            if ! io_helper.file_exits(&dockerfile_name) {
-                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
-                return Err(CommandExitCode::TemplateNotFound);
-            }
-
-            match io_helper.file_read_at_string(&dockerfile_name) {
-                Ok(mut source_template) => {
-                    match handlebars.render_template(&source_template, &data) {
-                        Ok(content) => {
-                            match io_helper.file_write(&output_filename, &content) {
-                                Ok(_) => Ok(()),
-                                Err(_) => {
-                                    io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
-                                    Err(CommandExitCode::CannotGenerateDockerfile)
-                                }
-                            }
-                        },
-                        Err(err) => {
-                            match err {
-                                TemplateRenderError::TemplateError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::RenderError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::IOError(_, msg) => io_helper.eprintln(&msg)
-                            }
-
-                            io_helper.eprintln("Something is wrong in Dockerfile template!");
-                            Err(CommandExitCode::DockerfileTemplateInvalid)
-                        }
-                    }
-                },
-                Err(_) => {
-                    io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
-                    Err(CommandExitCode::CannotGenerateDockerfile)
-                }
-            }
-        },
-        None => {
-            io_helper.eprintln("Unable to get your home dir!");
-            Err(CommandExitCode::CannotGetHomeFolder)
-        }
-    }
-}
+use docker::ContainerHelper;
+use io::InputOutputHelper;
+use config::dockerfile::ENTRYPOINT_FILENAME;
+use config::{Config, create_config_filename_path, get_config_application};
 
 ///
 /// Generate template of entrypoint.
@@ -147,8 +89,15 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
                 dependencies = d
             }
 
+            let data = json!({
+                "dockerfile_from": config.dockerfile.from.to_owned(),
+                "dockerfile_base": true,
+                "dependencies": dependencies
+            });
+
             // Generate Dockerfile
-            match generate_dockerfile(&config, io_helper, &dockerfile.docker_filename, &dependencies) {
+            match generate_dockerfile(&config, io_helper, &dockerfile.docker_filename,
+                &dependencies, &data) {
                 Ok(_) => {
                     // Build
                     let mut build_args = Vec::new();
