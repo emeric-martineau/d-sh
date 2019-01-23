@@ -51,6 +51,14 @@ pub enum CommandExitCode {
 }
 
 ///
+/// Return of command with error number and error message to display.
+///
+pub struct CommandError {
+    msg: Vec<String>,
+    code: CommandExitCode
+}
+
+///
 /// Command structure
 ///
 pub struct Command {

@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::env::temp_dir;
 use std::error::Error;
 use command::Command;
+use command::CommandError;
 use command::CommandExitCode;
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
@@ -67,51 +68,74 @@ fn remove_tmp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandEx
 /// Generate template of dockerfile.
 ///
 pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, output_filename: &str,
-    dependencies: &str, data: &Value) -> Result<(), CommandExitCode> {
+    dependencies: &str, data: &Value) -> Result<(), CommandError> {
     let handlebars = Template::new();
 
+    let dockerfile_name;
+
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
-        Some(dockerfile_name) => {
-            if ! io_helper.file_exits(&dockerfile_name) {
-                io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
-                return Err(CommandExitCode::TemplateNotFound);
+        Some(r) => dockerfile_name = r,
+        None => return Err(CommandError {
+            msg: vec![String::from("Unable to get your home dir!")],
+            code: CommandExitCode::CannotGetHomeFolder
+        })
+    }
+
+    if ! io_helper.file_exits(&dockerfile_name) {
+        return Err(CommandError {
+            msg: vec![format!("The file '{}' doesn't exits. Please run 'init' command first.",
+                dockerfile_name)],
+            code: CommandExitCode::TemplateNotFound
+        });
+    }
+
+    let source_template;
+
+    match io_helper.file_read_at_string(&dockerfile_name) {
+        Ok(r) => source_template = r,
+        Err(err) => return Err(CommandError {
+            msg: vec![
+                String::from("Unable to read Dockerfile template. Please check right!"),
+                format!("{}", err)
+                ],
+            code: CommandExitCode::CannotGenerateDockerfile
+        })
+    }
+
+    let content;
+
+    match handlebars.render_template(&source_template, &data) {
+        Ok(r) => content = r,
+        Err(err) => {
+            let err_msg;
+
+            match err {
+                TemplateRenderError::TemplateError(err) => err_msg = String::from(err.description()),
+                TemplateRenderError::RenderError(err) => err_msg = String::from(err.description()),
+                TemplateRenderError::IOError(_, msg) => err_msg = msg
             }
 
-            match io_helper.file_read_at_string(&dockerfile_name) {
-                Ok(mut source_template) => {
-                    match handlebars.render_template(&source_template, &data) {
-                        Ok(content) => {
-                            match io_helper.file_write(&output_filename, &content) {
-                                Ok(_) => Ok(()),
-                                Err(_) => {
-                                    io_helper.eprintln("Unable to generate Dockerfile for build. Please check right!");
-                                    Err(CommandExitCode::CannotGenerateDockerfile)
-                                }
-                            }
-                        },
-                        Err(err) => {
-                            match err {
-                                TemplateRenderError::TemplateError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::RenderError(err) => io_helper.eprintln(err.description()),
-                                TemplateRenderError::IOError(_, msg) => io_helper.eprintln(&msg)
-                            }
-
-                            io_helper.eprintln("Something is wrong in Dockerfile template!");
-                            Err(CommandExitCode::DockerfileTemplateInvalid)
-                        }
-                    }
-                },
-                Err(_) => {
-                    io_helper.eprintln("Unable to read Dockerfile template. Please check right!");
-                    Err(CommandExitCode::CannotGenerateDockerfile)
-                }
-            }
-        },
-        None => {
-            io_helper.eprintln("Unable to get your home dir!");
-            Err(CommandExitCode::CannotGetHomeFolder)
+            return Err(CommandError {
+                msg: vec![
+                    String::from("Something is wrong in Dockerfile template!"),
+                    err_msg
+                    ],
+                code: CommandExitCode::DockerfileTemplateInvalid
+            });
         }
     }
+
+    if let Err(err) = io_helper.file_write(&output_filename, &content) {
+        return Err(CommandError {
+            msg: vec![
+                String::from("Unable to generate Dockerfile for build. Please check right!"),
+                format!("{}", err)
+                ],
+            code: CommandExitCode::CannotGenerateDockerfile
+        });
+    }
+
+    Ok(())
 }
 
 ///
@@ -120,26 +144,32 @@ pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, outpu
 ///
 fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
     options: &BuildOptions, config: &Config, applications: &Vec<&String>,
-    dl_helper: &DownloadHelper) -> CommandExitCode {
+    dl_helper: &DownloadHelper) -> Result<(), CommandError> {
     let mut app_build_fail = Vec::new();
 
     for app in applications {
         io_helper.println(&format!("Building {}...", app));
 
-        if build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
-            dl_helper).is_err() {
+        if let Err(_) = build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
+            dl_helper) {
             app_build_fail.push(app);
         }
     }
 
     if app_build_fail.is_empty() {
-        CommandExitCode::Ok
+        Ok(())
     } else {
+        let mut err_msg = Vec::new();
+
         for app in app_build_fail {
-            io_helper.eprintln(&format!("Build {} failed!", app));
+            err_msg.push(format!("Build {} failed!", &app));
         }
-        // TODO
-        CommandExitCode::Todo
+
+        // TODO test error mesage
+        return Err(CommandError {
+            msg: err_msg,
+            code: CommandExitCode::Todo
+        });
     }
 }
 
@@ -152,7 +182,7 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
 ///
 fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> CommandExitCode {
+    config: Option<&Config>) -> Result<(), CommandError> {
     let mut options: BuildOptions = BuildOptions {
         all: false,
         base: false,
@@ -170,7 +200,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         match argument.as_ref() {
             "-h" | "--help" => {
                 io_helper.println(command.usage);
-                return CommandExitCode::Ok;
+                return Ok(());
             },
             "-a" | "--all" => options.all = true,
             "-b" | "--base" => options.base = true,
@@ -178,8 +208,10 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             "-m" | "--missing" => options.missing = true,
             "-s" | "--skip-redownload" => options.skip_redownload = true,
             other => {
-                io_helper.eprintln(&UNKOWN_OPTIONS_MESSAGE.replace("{}", other));
-                return CommandExitCode::UnknowOption;
+                return Err(CommandError {
+                    msg: vec![UNKOWN_OPTIONS_MESSAGE.replace("{}", other)],
+                    code: CommandExitCode::UnknowOption
+                })
             }
         }
     }
@@ -205,10 +237,16 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
                 result = build_base(io_helper, dck_helper, &tmp_dir, &options, config);
             } else if options.all {
                 // TODO
-                result = CommandExitCode::Todo;
+                result = Err(CommandError {
+                    msg: vec![String::new()],
+                    code: CommandExitCode::Todo
+                });
             } else if options.missing {
                 // TODO
-                result = CommandExitCode::Todo;
+                result = Err(CommandError {
+                    msg: vec![String::new()],
+                    code: CommandExitCode::Todo
+                });
             } else {
                 result = build_some_application(io_helper, dck_helper, &tmp_dir, &options, config,
                     &applications, dl_helper);
@@ -220,8 +258,28 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             result
         },
         Err(_) => {
-            io_helper.eprintln(&format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()));
-            CommandExitCode::CannotCreateFolder
+            Err(CommandError {
+                msg: vec![format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap())],
+                code: CommandExitCode::CannotCreateFolder
+            })
+        }
+    }
+}
+
+fn build_tmp(command: &Command, args: &[String], io_helper: &InputOutputHelper,
+    dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
+    config: Option<&Config>) -> CommandExitCode {
+
+    let result = build(command, args, io_helper, dck_helper, dl_helper, config);
+
+    match result {
+        Ok(_) => CommandExitCode::Ok,
+        Err(err) => {
+            for err_msg in &err.msg {
+                io_helper.eprintln(err_msg);
+            }
+
+            err.code
         }
     }
 }
@@ -252,7 +310,7 @@ pub const BUILD: Command = Command {
       -m, --missing            Build only missing image
       -s, --skip-redownload    If binary is present, don't check if new version is available",
     need_config_file: true,
-    exec_cmd: build
+    exec_cmd: build_tmp
 };
 
 #[cfg(test)]
@@ -262,8 +320,26 @@ mod tests {
     use io::tests::TestInputOutputHelper;
     use docker::tests::TestContainerHelper;
     use config::{create_config_filename_path, Config, ConfigDocker};
-    use command::CommandExitCode;
+    use command::{CommandError, CommandExitCode};
     use download::tests::TestDownloadHelper;
+
+    fn test_result_ok(result: Result<(), CommandError>) {
+        if let Err(err) = result {
+            panic!(format!("Command return fail with code {:?} and error message {:?}.",
+                err.code, err.msg));
+        }
+    }
+
+    fn test_result_err(result: Result<(), CommandError>, err_code: CommandExitCode) -> Vec<String> {
+        match result {
+            Ok(_) => panic!("Command should be fail but not!"),
+            Err(err) => {
+                assert_eq!(err.code, err_code);
+
+                return err.msg;
+            }
+        }
+    }
 
     #[test]
     fn build_display_help() {
@@ -284,9 +360,8 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-        assert_eq!(result, CommandExitCode::Ok);
+        test_result_ok(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
         let stdout = io_helper.stdout.borrow();
 
@@ -312,11 +387,9 @@ mod tests {
             tmp_dir: None
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-        assert_eq!(result, CommandExitCode::UnknowOption);
-
-        let stderr = io_helper.stderr.borrow();
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::UnknowOption);
 
         assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
     }
@@ -347,7 +420,8 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
+        test_result_ok(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -385,8 +459,6 @@ mod tests {
         let stdout = io_helper.stdout.borrow();
 
         assert_eq!(stdout.get(0).unwrap(), "Building base image...");
-
-        assert_eq!(result, CommandExitCode::Ok);
     }
 
     #[test]
@@ -470,13 +542,11 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-        let stderr = io_helper.stderr.borrow();
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::TemplateNotFound);
 
         assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
-
-        assert_eq!(result, CommandExitCode::TemplateNotFound);
     }
 
     #[test]
@@ -521,13 +591,11 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-        let stderr = io_helper.stderr.borrow();
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::TemplateNotFound);
 
         assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", entrypoint_name));
-
-        assert_eq!(result, CommandExitCode::TemplateNotFound);
     }
 
     #[test]
@@ -570,7 +638,8 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
+        test_result_ok(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -612,8 +681,6 @@ mod tests {
         let stderr = io_helper.stderr.borrow();
 
         assert_eq!(stderr.get(0).unwrap(), "Cannot read list of dependencies of 'app/filezilla.yml' application, please check right or file format!");
-
-        assert_eq!(result, CommandExitCode::Ok);
     }
 
     #[test]
@@ -657,14 +724,12 @@ mod tests {
         io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
         io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config));
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::DockerfileTemplateInvalid);
 
-        let stderr = io_helper.stderr.borrow();
-
-        assert_eq!(stderr.get(0).unwrap(), "wrong name of closing helper");
-        assert_eq!(stderr.get(1).unwrap(), "Something is wrong in Dockerfile template!");
-
-        assert_eq!(result, CommandExitCode::DockerfileTemplateInvalid);
+        assert_eq!(stderr.get(0).unwrap(), "Something is wrong in Dockerfile template!");
+        assert_eq!(stderr.get(1).unwrap(), "wrong name of closing helper");
     }
 
     #[test]
@@ -696,7 +761,8 @@ mod tests {
             None => panic!("Unable to create dockerfile for test")
         };
 
-        let result = build(&BUILD, &args, io_helper, dck_helper, download_helper, Some(&config));
+        test_result_ok(
+            build(&BUILD, &args, io_helper, dck_helper, download_helper, Some(&config)));
 
         // Check if temporary folder was created and remove
         let f = io_helper.files_delete.borrow();
@@ -715,8 +781,6 @@ mod tests {
         if not_found_dockerfile {
             panic!("The temporary Dockerfile in '/tmp/xxx/' folder not found!");
         }
-
-        assert_eq!(result, CommandExitCode::Ok);
 
         generate_dockerfile
     }
@@ -781,6 +845,5 @@ mod tests {
 
     // TODO check if ctrl+c on curl
 
-    // TODO rework error with macro to clear code
     // TODO get_config_application() display error
 }
