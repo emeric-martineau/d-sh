@@ -137,6 +137,7 @@ pub mod tests {
     use super::ContainerHelper;
     use std::clone::Clone;
     use std::cell::RefCell;
+    use std::collections::HashMap;
     use std::fmt::{Display, Formatter, Result};
 
     /// When build image
@@ -186,7 +187,8 @@ pub mod tests {
     pub struct TestContainerHelper {
         pub images: RefCell<Vec<String>>,
         pub containers: RefCell<Vec<TestRunContainer>>,
-        pub builds: RefCell<Vec<TestBuildImage>>
+        pub builds: RefCell<Vec<TestBuildImage>>,
+        pub builds_error: RefCell<HashMap<String, bool>>
     }
 
     impl ContainerHelper for TestContainerHelper {
@@ -257,6 +259,10 @@ pub mod tests {
         fn build_image(&self, docker_filename: &str, docker_context_path: &str, docker_tag: &str,
             build_options: Option<&Vec<String>>) -> bool {
 
+            if self.builds_error.borrow().contains_key(docker_tag) {
+                return false;
+            }
+
             self.images.borrow_mut().push(String::from(docker_tag));
 
             let b_opts = match build_options {
@@ -282,7 +288,8 @@ pub mod tests {
             TestContainerHelper {
                 images: RefCell::new(Vec::new()),
                 containers: RefCell::new(Vec::new()),
-                builds: RefCell::new(Vec::new())
+                builds: RefCell::new(Vec::new()),
+                builds_error: RefCell::new(HashMap::new()),
             }
         }
     }

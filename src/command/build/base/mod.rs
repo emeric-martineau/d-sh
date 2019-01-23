@@ -132,7 +132,6 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
     if ! dck_helper.build_image(&dockerfile.docker_filename, &dockerfile.docker_context_path,
         &config.dockerfile.tag, Some(&build_args)) {
         return Err(CommandError {
-            // TODO test message
             msg: vec![String::from("Fail to build base image!")],
             code: CommandExitCode::DockerBuildFail
         });

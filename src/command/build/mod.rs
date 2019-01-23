@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 use std::env::temp_dir;
 use std::error::Error;
+use std::collections::HashMap;
 use command::Command;
 use command::CommandError;
 use command::CommandExitCode;
@@ -145,14 +146,14 @@ pub fn generate_dockerfile(config: &Config, io_helper: &InputOutputHelper, outpu
 fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
     options: &BuildOptions, config: &Config, applications: &Vec<&String>,
     dl_helper: &DownloadHelper) -> Result<(), CommandError> {
-    let mut app_build_fail = Vec::new();
+    let mut app_build_fail = HashMap::new();
 
     for app in applications {
         io_helper.println(&format!("Building {}...", app));
 
-        if let Err(_) = build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
+        if let Err(err) = build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
             dl_helper) {
-            app_build_fail.push(app);
+            app_build_fail.insert(app, err);
         }
     }
 
@@ -161,14 +162,14 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
     } else {
         let mut err_msg = Vec::new();
 
-        for app in app_build_fail {
+        for (app, err) in app_build_fail {
             err_msg.push(format!("Build {} failed!", &app));
+            err_msg.extend(err.msg);
         }
 
-        // TODO test error mesage
         return Err(CommandError {
             msg: err_msg,
-            code: CommandExitCode::Todo
+            code: CommandExitCode::DockerBuildFail
         });
     }
 }
@@ -733,6 +734,56 @@ mod tests {
     }
 
     #[test]
+    fn build_base_short_option_docker_build_fail() {
+        let dck_helper = &TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
+
+        let args = [String::from("-b")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Create entrypoint
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
+
+        dck_helper.builds_error.borrow_mut().insert(config.dockerfile.tag.clone(), true);
+
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::DockerBuildFail);
+
+        assert_eq!(stderr.get(0).unwrap(), "Fail to build base image!");
+    }
+
+    #[test]
     fn build_base_short_option_with_specified_tmp_dir() {
         let dck_helper = &TestContainerHelper::new();
         // Create configuration file
@@ -824,6 +875,57 @@ mod tests {
         let stdout = io_helper.stdout.borrow();
 
         assert_eq!(stdout.get(0).unwrap(), "Building atom...");
+    }
+
+    #[test]
+    fn build_application_docker_build_fail() {
+        let dck_helper = &TestContainerHelper::new();
+        let io_helper = &TestInputOutputHelper::new();
+        let dl_helper = &TestDownloadHelper::new(io_helper);
+
+        let args = [String::from("atom")];
+
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        // Create entrypoint
+        match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
+            },
+            None => panic!("Unable to create entrypoint for test")
+        };
+
+        // Add application with dependencies
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
+
+        dck_helper.builds_error.borrow_mut().insert(String::from("run-atom:latest"), true);
+
+        let stderr = test_result_err(
+            build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::DockerBuildFail);
+
+        assert_eq!(stderr.get(0).unwrap(), "Build atom failed!");
+        assert_eq!(stderr.get(1).unwrap(), "Cannot build application atom!");
     }
 
     // TODO These test need more better implementation of folder/file in test.
