@@ -26,7 +26,13 @@ fn download_file(app: &str, config_application: &ConfigApplication, config: &Con
     let app_dwn_filename = convert_path(&app_dwn_filename);
 
     if io_helper.file_exits(&app_dwn_filename) {
-        // TODO
+        // Download file with curl
+        if ! dl_helper.download_if_update(&config_application.url, &app_dwn_filename) {
+            return Err(CommandError {
+                msg: vec![format!("Unable to download application '{}'!", app)],
+                code: CommandExitCode::UnableDownloadApplication
+            });
+        }
     } else {
         // Download file with curl
         if ! dl_helper.download(&config_application.url, &app_dwn_filename) {

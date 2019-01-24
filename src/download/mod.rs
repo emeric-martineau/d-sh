@@ -6,8 +6,10 @@
 use std::process::Command;
 
 pub trait DownloadHelper {
-    /// Run command and return true if success.
+    /// Download a file.
     fn download(&self, url: &str, output_filename: &str) -> bool;
+    /// Download file if updated. Check date of file.
+    fn download_if_update(&self, url: &str, output_filename: &str) -> bool;
 }
 
 /// Default run process
@@ -22,6 +24,15 @@ impl DownloadHelper for DefaultDownloadHelper {
            Err(_) => false
         }
     }
+
+    fn download_if_update(&self, url: &str, output_filename: &str) -> bool {
+        match Command::new("curl")
+            .args(&["-o", output_filename, "-z", output_filename, "-L", url])
+            .status() {
+           Ok(_) => true,
+           Err(_) => false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -30,15 +41,17 @@ pub mod tests {
     use std::cell::RefCell;
     use std::collections::HashMap;
     use io::InputOutputHelper;
+    use io::tests::TestInputOutputHelper;
 
     /// When run a container
     pub struct TestDownload {
         pub url: String,
         pub output_filename: String,
+        pub update: bool
     }
 
     pub struct TestDownloadHelper<'a> {
-        io_helper: &'a InputOutputHelper,
+        io_helper: &'a TestInputOutputHelper,
         pub dl:  RefCell<Vec<TestDownload>>,
         pub urls_error: RefCell<HashMap<String, bool>>
     }
@@ -51,7 +64,8 @@ pub mod tests {
 
             let c = TestDownload {
               url: String::from(url),
-              output_filename: String::from(output_filename)
+              output_filename: String::from(output_filename),
+              update: true
             };
 
             self.dl.borrow_mut().push(c);
@@ -61,10 +75,26 @@ pub mod tests {
                 Err(_) => false
             }
         }
+
+        fn download_if_update(&self, url: &str, output_filename: &str) -> bool {
+            if self.io_helper.files.borrow().contains_key(output_filename) {
+                let c = TestDownload {
+                  url: String::from(url),
+                  output_filename: String::from(output_filename),
+                  update: false
+                };
+
+                self.dl.borrow_mut().push(c);
+
+                return true;
+            }
+
+            self.download(url, output_filename)
+        }
     }
 
     impl<'a> TestDownloadHelper<'a> {
-        pub fn new(io_helper: &InputOutputHelper) -> TestDownloadHelper {
+        pub fn new(io_helper: &TestInputOutputHelper) -> TestDownloadHelper {
             TestDownloadHelper {
                 io_helper: io_helper,
                 dl: RefCell::new(Vec::new()),
