@@ -859,7 +859,7 @@ mod tests {
 
         let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
 
-        let downloads = dl_helper.cmds.borrow();
+        let downloads = dl_helper.dl.borrow();
         let dl = downloads.get(0).unwrap();
 
         assert_eq!(dl.output_filename, "dwn/atom.deb");
@@ -928,6 +928,46 @@ mod tests {
         assert_eq!(stderr.get(1).unwrap(), "Cannot build application atom!");
     }
 
+    #[test]
+    fn build_application_download_fail() {
+        let dck_helper = &TestContainerHelper::new();
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        let io_helper = &TestInputOutputHelper::new();
+        // Add application with dependencies
+
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
+
+        let dl_helper = &TestDownloadHelper::new(io_helper);
+
+        dl_helper.urls_error.borrow_mut().insert(String::from("toto"), true);
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        let stderr = test_result_err(
+            build(&BUILD, &[String::from("atom")], io_helper, dck_helper, dl_helper, Some(&config)),
+            CommandExitCode::DockerBuildFail);
+
+        assert_eq!(stderr.get(0).unwrap(), "Build atom failed!");
+        assert_eq!(stderr.get(1).unwrap(), "Unable to download application 'atom'!");
+    }
+
     // TODO These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete
     //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
@@ -936,9 +976,6 @@ mod tests {
     // TODO add switch helper in handlebars to allow install package
 
     // TODO build check if file is already download
-    // TODO build download fail
-    // TODO docker build fail
-    // TODO only one parameter in command (use struct)
     // TODO build application with Force
     // TODO build many applications
     // TODO build all
@@ -947,5 +984,7 @@ mod tests {
 
     // TODO check if ctrl+c on curl
 
+    // TODO only one parameter in command (use struct)
     // TODO get_config_application() display error
+    // TODO use CommandError
 }
