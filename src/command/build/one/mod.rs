@@ -18,8 +18,8 @@ use std::error::Error;
 ///
 /// Download file with curl.
 ///
-fn download_file(app: &str, config_application: &ConfigApplication, config: &Config,
-    io_helper: &InputOutputHelper, dl_helper: &DownloadHelper) -> Result<(), CommandError> {
+fn download_file(app: &str, config_application: &ConfigApplication, options: &BuildOptions,
+    config: &Config, io_helper: &InputOutputHelper, dl_helper: &DownloadHelper) -> Result<(), CommandError> {
     // Check if file already downloaded
     let app_dwn_filename = get_filename(&config.download_dir,
         &config_application.download_filename, None);
@@ -27,7 +27,8 @@ fn download_file(app: &str, config_application: &ConfigApplication, config: &Con
 
     if io_helper.file_exits(&app_dwn_filename) {
         // Download file with curl
-        if ! dl_helper.download_if_update(&config_application.url, &app_dwn_filename) {
+        if ! options.skip_redownload && ! dl_helper.download_if_update(&config_application.url,
+            &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],
                 code: CommandExitCode::UnableDownloadApplication
@@ -71,7 +72,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
             })
     }
 
-    if let Err(err) = download_file(app, &config_application, config, io_helper, dl_helper) {
+    if let Err(err) = download_file(app, &config_application, options, config, io_helper, dl_helper) {
         return Err(err);
     }
 

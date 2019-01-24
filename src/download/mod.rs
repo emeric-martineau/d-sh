@@ -53,6 +53,7 @@ pub mod tests {
     pub struct TestDownloadHelper<'a> {
         io_helper: &'a TestInputOutputHelper,
         pub dl:  RefCell<Vec<TestDownload>>,
+        pub update_dl_files: RefCell<HashMap<String, bool>>,
         pub urls_error: RefCell<HashMap<String, bool>>
     }
 
@@ -77,7 +78,8 @@ pub mod tests {
         }
 
         fn download_if_update(&self, url: &str, output_filename: &str) -> bool {
-            if self.io_helper.files.borrow().contains_key(output_filename) {
+            if ! self.update_dl_files.borrow().contains_key(output_filename) &&
+                self.io_helper.files.borrow().contains_key(output_filename) {
                 let c = TestDownload {
                   url: String::from(url),
                   output_filename: String::from(output_filename),
@@ -98,6 +100,7 @@ pub mod tests {
             TestDownloadHelper {
                 io_helper: io_helper,
                 dl: RefCell::new(Vec::new()),
+                update_dl_files: RefCell::new(HashMap::new()),
                 urls_error: RefCell::new(HashMap::new())
             }
         }

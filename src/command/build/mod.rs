@@ -1013,6 +1013,50 @@ mod tests {
         assert_eq!(stdout.get(0).unwrap(), "Building atom...");
     }
 
+    #[test]
+    fn build_application_skip_download() {
+        let dck_helper = &TestContainerHelper::new();
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        let io_helper = &TestInputOutputHelper::new();
+        // Add application with dependencies
+
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
+
+        let dl_helper = &TestDownloadHelper::new(io_helper);
+
+        let downloads = dl_helper.update_dl_files.borrow_mut().insert(String::from("dwn/atom.deb"), true);
+
+        let generate_dockerfile = build_with_args(&[String::from("-s"), String::from("atom")], io_helper, dck_helper, dl_helper, config);
+
+        let downloads = dl_helper.dl.borrow();
+
+        assert_eq!(downloads.len(), 0);
+
+        assert_eq!(io_helper.files.borrow().get("dwn/atom.deb").unwrap(), "Go, go, go !");
+
+        let builds = dck_helper.builds.borrow();
+        let atom_build = builds.get(0).unwrap();
+
+        assert_eq!(atom_build.tag, "run-atom:latest");
+        assert_eq!(generate_dockerfile, atom_build.dockerfile_name);
+        assert!(generate_dockerfile.starts_with(&atom_build.base_dir));
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building atom...");
+    }
+
     // TODO These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete
     //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
@@ -1024,7 +1068,6 @@ mod tests {
     // TODO build many applications
     // TODO build all
     // TODO build missing application
-    // TODO build application with skip redownload
 
     // TODO check if ctrl+c on curl
 
