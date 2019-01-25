@@ -115,7 +115,6 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
         &dockerfile.docker_context_path, &config_application.image_name,
         Some(&build_args)) {
         return Err(CommandError {
-            // TODO test error message
             msg: vec![format!("Cannot build application {}!", app)],
             code: CommandExitCode::DockerBuildFail
         });
