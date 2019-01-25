@@ -1103,6 +1103,67 @@ mod tests {
         assert_eq!(app_build.build_options.get(0).unwrap(), "--no-cache");
     }
 
+    #[test]
+    fn build_application_many_application() {
+        let dck_helper = &TestContainerHelper::new();
+        // Create configuration file
+        let config = Config {
+            download_dir: String::from("dwn"),
+            applications_dir: String::from("app"),
+            dockerfile: ConfigDocker {
+                from: String::from("tata"),
+                tag: String::from("tutu")
+            },
+            tmp_dir: None
+        };
+
+        let io_helper = &TestInputOutputHelper::new();
+        // Add application with dependencies
+
+        io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
+        io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"filezilla.deb\"\nurl: \"titi\"\ndependencies:\n  - d1\n  - d2"));
+
+        let dl_helper = &TestDownloadHelper::new(io_helper);
+
+        // Create dockerfile
+        match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+            Some(cfg_file) => {
+                // Create file
+                io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
+            },
+            None => panic!("Unable to create dockerfile for test")
+        };
+
+        test_result_ok(
+            build(&BUILD, &[String::from("atom"), String::from("filezilla")], io_helper, dck_helper, dl_helper, Some(&config)));
+
+        let downloads = dl_helper.dl.borrow();
+        let dl = downloads.get(0).unwrap();
+
+        assert_eq!(dl.output_filename, "dwn/atom.deb");
+        assert_eq!(dl.url, "toto");
+
+        let dl = downloads.get(1).unwrap();
+
+        assert_eq!(dl.output_filename, "dwn/filezilla.deb");
+        assert_eq!(dl.url, "titi");
+
+        let builds = dck_helper.builds.borrow();
+        let atom_build = builds.get(0).unwrap();
+
+        assert_eq!(atom_build.tag, "run-atom:latest");
+
+        let filezilla_build = builds.get(1).unwrap();
+
+        assert_eq!(filezilla_build.tag, "run-filezilla:latest");
+
+        let stdout = io_helper.stdout.borrow();
+
+        assert_eq!(stdout.get(0).unwrap(), "Building atom...");
+        assert_eq!(stdout.get(1).unwrap(), "Building filezilla...");
+
+    }
+
     // TODO These test need more better implementation of folder/file in test.
     // Create a real tree with hook when create, read, update, delete
     //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
@@ -1110,7 +1171,6 @@ mod tests {
 
     // TODO add switch helper in handlebars to allow install package
 
-    // TODO build many applications
     // TODO build all
     // TODO build missing application
 
