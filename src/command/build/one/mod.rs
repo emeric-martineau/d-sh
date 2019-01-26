@@ -83,8 +83,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
         "application_filename": config_application.download_filename.to_owned()
     });
 
-    if let Err(err) = generate_dockerfile(config, io_helper, &dockerfile.docker_filename,
-        &config_application.download_filename, &data) {
+    if let Err(err) = generate_dockerfile(io_helper, &dockerfile.docker_filename, &data) {
         return Err(err);
     }
 

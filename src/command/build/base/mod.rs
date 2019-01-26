@@ -117,8 +117,7 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
     });
 
     // Generate Dockerfile
-    if let Err(err) = generate_dockerfile(&config, io_helper, &dockerfile.docker_filename,
-        &dependencies, &data) {
+    if let Err(err) = generate_dockerfile(io_helper, &dockerfile.docker_filename, &data) {
         return Err(err);
     }
 
