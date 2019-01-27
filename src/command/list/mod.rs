@@ -4,12 +4,45 @@
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::Command;
-use command::CommandExitCode;
+use command::{Command, CommandExitCode, CommandError};
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::Config;
 use download::DownloadHelper;
+
+///
+/// Function to get all applications list.
+///
+/// returning list of application or CommandError.
+///
+pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<String>, CommandError> {
+    let mut list_applications_file;
+
+    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+        Ok(r) => list_applications_file = r,
+        Err(err) => return Err(CommandError {
+            msg: vec![format!("{}", err)],
+            code: CommandExitCode::DockerBuildFail
+        })
+    };
+
+    list_applications_file.sort();
+
+    let mut app_list = Vec::new();
+
+    // 2 - We have list of application
+    for filename in list_applications_file  {
+        let application_name = Path::new(&filename)
+            .file_stem()
+            .unwrap()   // get OsStr
+            .to_str()
+            .unwrap();
+
+        app_list.push(String::from(application_name));
+    };
+
+    Ok(app_list)
+}
 
 ///
 /// Function to implement list D-SH command.
@@ -24,20 +57,11 @@ fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
 
     let config = config.unwrap();
 
-    // 1 - We have got configuration
-    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
-        Ok(mut list_applications_file) => {
-            list_applications_file.sort();
-
+    match get_all(io_helper, config) {
+        Ok(list_applications_file) => {
             // 2 - We have list of application
-            for filename in list_applications_file  {
-                let application_name = Path::new(&filename)
-                    .file_stem()
-                    .unwrap()   // get OsStr
-                    .to_str()
-                    .unwrap();
-
-                io_helper.println(&application_name);
+            for app in list_applications_file {
+                io_helper.println(&app);
             };
 
             CommandExitCode::Ok
