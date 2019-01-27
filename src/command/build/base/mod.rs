@@ -4,10 +4,8 @@
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
-use command::CommandError;
-use command::CommandExitCode;
-use command::build::BuildOptions;
-use command::build::generate_dockerfile;
+use command::{CommandError, CommandExitCode};
+use command::build::{BuildOptions, generate_dockerfile};
 use command::build::dockerfile::DockerfileParameter;
 use docker::ContainerHelper;
 use io::InputOutputHelper;

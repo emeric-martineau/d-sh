@@ -5,8 +5,7 @@
 ///
 use std::path::Path;
 use users::{get_current_uid, get_current_gid, get_current_username};
-use command::Command;
-use command::CommandExitCode;
+use command::{Command, CommandExitCode};
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
 use config::{Config, ConfigApplication, get_config_application};

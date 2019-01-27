@@ -3,9 +3,8 @@
 ///
 /// Release under MIT License.
 ///
-use std::io::{Error, ErrorKind, Write, stdin, stdout};
+use std::io::{Error, ErrorKind, Write, stdin, stdout, Read};
 use std::path::Path;
-use std::io::prelude::*;
 use std::fs::{File, remove_dir_all, create_dir_all, write, hard_link, copy};
 use glob::glob;
 use dirs::home_dir;

@@ -3,8 +3,7 @@
 ///
 /// Release under MIT License.
 ///
-use command::Command;
-use command::CommandExitCode;
+use command::{Command, CommandExitCode};
 use std::path::Path;
 use std::collections::HashMap;
 use io::InputOutputHelper;

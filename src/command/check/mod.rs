@@ -4,8 +4,7 @@
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::Command;
-use command::CommandExitCode;
+use command::{Command, CommandExitCode};
 use io::InputOutputHelper;
 use docker::ContainerHelper;
 use config::{get_config_application, Config};
