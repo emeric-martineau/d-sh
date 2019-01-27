@@ -912,14 +912,56 @@ fn build_all_applications() {
 
 }
 
+#[test]
+fn build_missings_applications() {
+    let dck_helper = &TestContainerHelper::new();
+
+    // Create list of images returned by docker
+    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+
+    // Create configuration file
+    let config = Config {
+        download_dir: String::from("dwn"),
+        applications_dir: String::from("app"),
+        dockerfile: ConfigDocker {
+            from: String::from("tata"),
+            tag: String::from("tutu")
+        },
+        tmp_dir: None
+    };
+
+    let io_helper = &TestInputOutputHelper::new();
+    // Add application with dependencies
+
+    io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
+    io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"filezilla.deb\"\nurl: \"titi\"\ndependencies:\n  - d1\n  - d2"));
+
+    let dl_helper = &TestDownloadHelper::new(io_helper);
+
+    // Create dockerfile
+    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+        Some(cfg_file) => {
+            // Create file
+            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
+        },
+        None => panic!("Unable to create dockerfile for test")
+    };
+
+    test_result_ok(
+        build(&BUILD, &[String::from("-m")], io_helper, dck_helper, dl_helper, Some(&config)));
+
+    let stdout = io_helper.stdout.borrow();
+
+    assert_eq!(stdout.get(0).unwrap(), "Building filezilla...");
+
+}
+
 // TODO These test need more better implementation of folder/file in test.
 // Create a real tree with hook when create, read, update, delete
 //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
 //  - test: build test with delete folder error caused by folder error
 
 // TODO add switch helper in handlebars to allow install package
-
-// TODO build missing application
 
 // TODO check if ctrl+c on curl
 

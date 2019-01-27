@@ -17,6 +17,7 @@ use download::DownloadHelper;
 use self::all::build_all;
 use self::base::build_base;
 use self::one::build_one_application;
+use self::missing::get_missing_application;
 use template::Template;
 use handlebars::TemplateRenderError;
 use serde_json::Value;
@@ -257,11 +258,11 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     } else if options.all {
         result = build_all(io_helper, dck_helper, &options, config, dl_helper, &tmp_dir);
     } else if options.missing {
-        // TODO
-        result = Err(CommandError {
-            msg: vec![String::new()],
-            code: CommandExitCode::Todo
-        });
+        match get_missing_application(io_helper, dck_helper, config) {
+            Ok(list_applications) => result = build_some_application(io_helper, dck_helper,
+                &tmp_dir, &options, config, &list_applications, dl_helper),
+            Err(err) => result = Err(err)
+        }
     } else {
         result = build_some_application(io_helper, dck_helper, &tmp_dir, &options, config,
             &applications, dl_helper);
