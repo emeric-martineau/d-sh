@@ -28,7 +28,7 @@ mod dockerfile;
 mod missing;
 mod one;
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 ///
 /// Option for build command.

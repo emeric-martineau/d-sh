@@ -31,9 +31,9 @@ fn test_result_err(result: Result<(), CommandError>, err_code: CommandExitCode) 
 
 #[test]
 fn build_display_help() {
-    let io_helper = &TestInputOutputHelper::new();
-    let dck_helper = &TestContainerHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("-h")];
 
@@ -58,9 +58,9 @@ fn build_display_help() {
 
 #[test]
 fn build_unknow_option() {
-    let io_helper = &TestInputOutputHelper::new();
-    let dck_helper = &TestContainerHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("--dghhfhdgfhdgf")];
 
@@ -83,8 +83,8 @@ fn build_unknow_option() {
 }
 
 fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -151,7 +151,7 @@ fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, confi
 
 #[test]
 fn build_base_short_option() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -168,7 +168,7 @@ fn build_base_short_option() {
 
 #[test]
 fn build_base_short_option_with_force() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -190,9 +190,9 @@ fn build_base_short_option_with_force() {
 
 #[test]
 fn build_base_short_option_dockerfile_template_not_found() {
-    let dck_helper = &TestContainerHelper::new();
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("-b")];
 
@@ -239,9 +239,9 @@ fn build_base_short_option_dockerfile_template_not_found() {
 
 #[test]
 fn build_base_short_option_entrypoint_template_not_found() {
-    let dck_helper = &TestContainerHelper::new();
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("-b")];
 
@@ -288,9 +288,9 @@ fn build_base_short_option_entrypoint_template_not_found() {
 
 #[test]
 fn build_base_short_option_application_file_format_bad() {
-    let io_helper = &TestInputOutputHelper::new();
-    let dck_helper = &TestContainerHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
     let args = [String::from("-b")];
 
     // Create configuration file
@@ -373,9 +373,9 @@ fn build_base_short_option_application_file_format_bad() {
 
 #[test]
 fn build_base_short_option_dockerfile_template_format_bad() {
-    let dck_helper = &TestContainerHelper::new();
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("-b")];
 
@@ -422,9 +422,9 @@ fn build_base_short_option_dockerfile_template_format_bad() {
 
 #[test]
 fn build_base_short_option_docker_build_fail() {
-    let dck_helper = &TestContainerHelper::new();
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("-b")];
 
@@ -472,7 +472,7 @@ fn build_base_short_option_docker_build_fail() {
 
 #[test]
 fn build_base_short_option_with_specified_tmp_dir() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -525,7 +525,7 @@ fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
 
 #[test]
 fn build_application() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -537,12 +537,12 @@ fn build_application() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
 
@@ -566,9 +566,9 @@ fn build_application() {
 
 #[test]
 fn build_application_docker_build_fail() {
-    let dck_helper = &TestContainerHelper::new();
-    let io_helper = &TestInputOutputHelper::new();
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let args = [String::from("atom")];
 
@@ -617,7 +617,7 @@ fn build_application_docker_build_fail() {
 
 #[test]
 fn build_application_download_fail() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -629,12 +629,12 @@ fn build_application_download_fail() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     dl_helper.urls_error.borrow_mut().insert(String::from("toto"), true);
 
@@ -657,7 +657,7 @@ fn build_application_download_fail() {
 
 #[test]
 fn build_application_download_already_done() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -669,13 +669,13 @@ fn build_application_download_already_done() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
 
@@ -702,7 +702,7 @@ fn build_application_download_already_done() {
 
 #[test]
 fn build_application_skip_download() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -714,13 +714,13 @@ fn build_application_skip_download() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     dl_helper.update_dl_files.borrow_mut().insert(String::from("dwn/atom.deb"), true);
 
@@ -746,7 +746,7 @@ fn build_application_skip_download() {
 
 #[test]
 fn build_application_with_force() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -758,12 +758,12 @@ fn build_application_with_force() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     let generate_dockerfile = build_with_args(&[String::from("-f"), String::from("atom")], io_helper, dck_helper, dl_helper, config);
 
@@ -792,7 +792,7 @@ fn build_application_with_force() {
 
 #[test]
 fn build_many_applications() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -804,13 +804,13 @@ fn build_many_applications() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"filezilla.deb\"\nurl: \"titi\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -853,7 +853,7 @@ fn build_many_applications() {
 
 #[test]
 fn build_all_applications() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     // Create configuration file
     let config = Config {
         download_dir: String::from("dwn"),
@@ -865,13 +865,13 @@ fn build_all_applications() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"filezilla.deb\"\nurl: \"titi\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -914,7 +914,7 @@ fn build_all_applications() {
 
 #[test]
 fn build_missings_applications() {
-    let dck_helper = &TestContainerHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
 
     // Create list of images returned by docker
     dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
@@ -930,13 +930,13 @@ fn build_missings_applications() {
         tmp_dir: None
     };
 
-    let io_helper = &TestInputOutputHelper::new();
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"filezilla.deb\"\nurl: \"titi\"\ndependencies:\n  - d1\n  - d2"));
 
-    let dl_helper = &TestDownloadHelper::new(io_helper);
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
