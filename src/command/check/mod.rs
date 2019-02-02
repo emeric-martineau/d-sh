@@ -87,7 +87,7 @@ pub fn get_check_application(io_helper: &InputOutputHelper, dck_helper: &Contain
 ///
 fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> CommandExitCode {
+    config: Option<&Config>) -> Result<(), CommandError> {
 
     let config = config.unwrap();
     let list_applications;
@@ -95,7 +95,7 @@ fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     // 1 - We have got configuration
     match get_check_application(io_helper, dck_helper, config) {
         Ok(r) => list_applications = r,
-        Err(err) => return err.code
+        Err(err) => return Err(err)
     }
 
     let error_filename: Vec<String> = list_applications
@@ -129,13 +129,18 @@ fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     };
 
     if error_filename.len() == 0 {
-        CommandExitCode::Ok
+        Ok(())
     } else {
+        let mut msg_error = Vec::new();
+
         for filename in error_filename {
-             io_helper.eprintln(&format!("The file {} have bad format!", &filename));
+             msg_error.push(format!("The file {} have bad format!", &filename));
         }
 
-        CommandExitCode::BadApplicationFormat
+        Err(CommandError {
+            msg: msg_error,
+            code: CommandExitCode::BadApplicationFormat
+        })
     }
 }
 

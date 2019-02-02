@@ -8,6 +8,7 @@ use docker::tests::TestContainerHelper;
 use config::{Config, ConfigDocker};
 use super::{DELETE, delete};
 use command::CommandExitCode;
+use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
 
 #[test]
@@ -29,9 +30,8 @@ fn delete_display_help() {
         tmp_dir: None
     };
 
-    let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
     let stdout = io_helper.stdout.borrow();
 
@@ -67,9 +67,8 @@ fn delete_one_application_ok() {
     dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
     dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-    let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
     let dck_images = dck_helper.images.borrow();
 
@@ -110,9 +109,11 @@ fn delete_one_application_ko() {
     dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
     dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-    let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
+    let stderr = test_result_err(
+        delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+        CommandExitCode::ApplicationFileNotFound);
 
-    assert_eq!(result, CommandExitCode::ApplicationFileNotFound);
+    assert_eq!("Not found", stderr.get(0).unwrap());
 }
 
 #[test]
@@ -144,9 +145,8 @@ fn delete_one_application_all() {
     dck_helper.images.borrow_mut().push(String::from("run-titi:latest"));
     dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
 
-    let result = delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        delete(&DELETE, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
     let dck_images = dck_helper.images.borrow();
 

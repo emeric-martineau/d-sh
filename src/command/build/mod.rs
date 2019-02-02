@@ -274,24 +274,6 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     result
 }
 
-fn build_tmp(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> CommandExitCode {
-
-    let result = build(command, args, io_helper, dck_helper, dl_helper, config);
-
-    match result {
-        Ok(_) => CommandExitCode::Ok,
-        Err(err) => {
-            for err_msg in &err.msg {
-                io_helper.eprintln(err_msg);
-            }
-
-            err.code
-        }
-    }
-}
-
 ///
 /// The `list` command.
 ///
@@ -318,5 +300,5 @@ pub const BUILD: Command = Command {
       -m, --missing            Build only missing image
       -s, --skip-redownload    If binary is present, don't check if new version is available",
     need_config_file: true,
-    exec_cmd: build_tmp
+    exec_cmd: build
 };

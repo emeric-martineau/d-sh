@@ -3,7 +3,7 @@
 ///
 /// Release under MIT License.
 ///
-use command::{Command, CommandExitCode};
+use command::{Command, CommandExitCode, CommandError};
 use std::path::Path;
 use std::collections::HashMap;
 use io::InputOutputHelper;
@@ -21,7 +21,7 @@ const DOWNLOAD_DIR: &str = "~/.d-sh/download";
 /// Default directory to store applications.
 const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 
-fn create_dockerfile(io_helper: &InputOutputHelper)  -> CommandExitCode {
+fn create_dockerfile(io_helper: &InputOutputHelper)  -> Result<(), CommandError> {
     let dockerfile_list: HashMap<&str, &str> = [
         (DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE),
         (ENTRYPOINT_FILENAME, ENTRYPOINT)]
@@ -31,22 +31,29 @@ fn create_dockerfile(io_helper: &InputOutputHelper)  -> CommandExitCode {
     for (k, v) in &dockerfile_list {
         match create_config_filename_path(&k) {
             Some(dockerfile_name) => {
-                if io_helper.file_write(&dockerfile_name, &v).is_err() {
-                    io_helper.eprintln(&format!("Unable to write file '{}'", k));
-                    return CommandExitCode::CannotWriteConfigFile;
+                if let Err(err) = io_helper.file_write(&dockerfile_name, &v) {
+                    return Err(CommandError {
+                        msg: vec![
+                            format!("Unable to write file '{}'", k),
+                            format!("{}", err)
+                            ],
+                        code: CommandExitCode::CannotWriteConfigFile
+                    });
                 }
             },
-            None => {
-                io_helper.eprintln("Unable to get your home dir!");
-                return CommandExitCode::CannotGetHomeFolder;
-            }
+            None => return Err(CommandError {
+                msg: vec![String::from("Unable to get your home dir!")],
+                code: CommandExitCode::CannotGetHomeFolder
+            })
         }
     }
 
-    CommandExitCode::Ok
+    Ok(())
 }
 
-
+///
+/// Read a line from stdin.
+///
 fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, default_value: &str) -> String {
     let mut new_prompt = String::from(prompt);
 
@@ -74,49 +81,61 @@ fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, def
 ///
 fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    _config: Option<&Config>) -> CommandExitCode {
-    let exit_code;
+    _config: Option<&Config>) -> Result<(), CommandError> {
+    let config_file;
 
     match get_config_filename() {
-        Some(config_file) => {
-            if io_helper.file_exits(&config_file) {
-                io_helper.eprintln(&format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file));
-                exit_code = CommandExitCode::ConfigFileExits;
-            } else {
-                let download_dir = read_line_with_default_value(io_helper, "Enter the path of download directory",  DOWNLOAD_DIR);
-                let applications_dir = read_line_with_default_value(io_helper, "Enter the path of applications directory",  APPLICATIONS_DIR);
-                let docker_image_from = read_line_with_default_value(io_helper, "Enter the default docker image from",  DOCKERFILE_DEFAULT_FROM);
-                let docker_image_tag = read_line_with_default_value(io_helper, "Enter the base image docker tag",  DOCKERFILE_DEFAULT_TAG);
+        Some(r) => config_file = r,
+        None => return Err(CommandError {
+            msg: vec![String::from("Unable to get your home dir!")],
+            code: CommandExitCode::CannotGetHomeFolder
+        })
+    }
 
-                let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\ndockerfile:\n  from: \"{}\"\n  tag: \"{}\"\n",
-                    download_dir, applications_dir, docker_image_from, docker_image_tag);
+    if io_helper.file_exits(&config_file) {
+        return Err(CommandError {
+            msg: vec![
+                format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file)
+                ],
+            code: CommandExitCode::ConfigFileExits
+        })
+    }
 
-                // Create folder
-                let path = Path::new(&config_file);
+    let download_dir = read_line_with_default_value(io_helper, "Enter the path of download directory",  DOWNLOAD_DIR);
+    let applications_dir = read_line_with_default_value(io_helper, "Enter the path of applications directory",  APPLICATIONS_DIR);
+    let docker_image_from = read_line_with_default_value(io_helper, "Enter the default docker image from",  DOCKERFILE_DEFAULT_FROM);
+    let docker_image_tag = read_line_with_default_value(io_helper, "Enter the base image docker tag",  DOCKERFILE_DEFAULT_TAG);
 
-                if let Some(parent) = path.parent() {
-                    // No parent ? Not a error.
-                    if io_helper.create_dir_all(parent.to_str().unwrap()).is_err() {
-                        io_helper.eprintln(&format!("Cannot create folder '{}'!", parent.display()));
-                        return CommandExitCode::CannotCreateFolderForConfigFile;
-                    }
-                }
+    let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\ndockerfile:\n  from: \"{}\"\n  tag: \"{}\"\n",
+        download_dir, applications_dir, docker_image_from, docker_image_tag);
 
-                if io_helper.file_write(&config_file, &data).is_err() {
-                    io_helper.eprintln(&format!("Unable to write file '{}'", config_file));
-                    exit_code = CommandExitCode::CannotWriteConfigFile;
-                } else {
-                    exit_code = create_dockerfile(io_helper);
-                }
-            }
-        },
-        None => {
-            io_helper.eprintln("Unable to get your home dir!");
-            exit_code = CommandExitCode::CannotGetHomeFolder;
+    // Create folder
+    let path = Path::new(&config_file);
+
+    if let Some(parent) = path.parent() {
+        // No parent ? Not a error.
+        if let Err(err) = io_helper.create_dir_all(parent.to_str().unwrap()) {
+            return Err(CommandError {
+                msg: vec![
+                    format!("Cannot create folder '{}'!", parent.display()),
+                    format!("{}", err)
+                    ],
+                code: CommandExitCode::CannotCreateFolderForConfigFile
+            })
         }
     }
 
-    exit_code
+    if let Err(err) = io_helper.file_write(&config_file, &data) {
+        return Err(CommandError {
+            msg: vec![
+                format!("Unable to write file '{}'", config_file),
+                format!("{}", err)
+                ],
+            code: CommandExitCode::CannotWriteConfigFile
+        });
+    }
+
+    create_dockerfile(io_helper)
 }
 
 ///

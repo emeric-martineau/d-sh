@@ -9,6 +9,7 @@ use docker::tests::TestContainerHelper;
 use config::{Config, ConfigDocker};
 use super::{CHECK, check};
 use command::CommandExitCode;
+use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
 
 #[test]
@@ -40,9 +41,8 @@ fn check_if_image_found_and_not_found() {
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
     io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-    let result = check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
     let stdout = io_helper.stdout.borrow();
 
@@ -76,9 +76,11 @@ fn check_if_application_format_has_an_error() {
     // Create application file atom
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name2: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-    let result = check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config));
+    let stderr = test_result_err(
+        check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+        CommandExitCode::BadApplicationFormat);
 
-    assert_eq!(result, CommandExitCode::BadApplicationFormat);
+    assert_eq!("The file  have bad format!", stderr.get(0).unwrap());
 }
 
 #[test]
@@ -102,7 +104,9 @@ fn check_if_cannot_read_application_dir() {
 
     io_helper.files_error.borrow_mut().insert(String::from("app"), true);
 
-    let result = check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config));
+    let stderr = test_result_err(
+        check(&CHECK, &args, io_helper, dck_helper, dl_helper, Some(&config)),
+        CommandExitCode::CannotReadApplicationsFolder);
 
-    assert_eq!(result, CommandExitCode::CannotReadApplicationsFolder);
+    assert_eq!("Cannot read", stderr.get(0).unwrap())
 }

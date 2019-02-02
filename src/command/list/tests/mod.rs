@@ -8,7 +8,7 @@ use io::tests::found_item;
 use docker::tests::TestContainerHelper;
 use config::{Config, ConfigDocker};
 use super::{LIST, list};
-use command::CommandExitCode;
+use command::tests::test_result_ok;
 use download::tests::TestDownloadHelper;
 
 #[test]
@@ -35,9 +35,8 @@ fn list_all_applications() {
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
     io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-    let result = list(&LIST, &args, io_helper, dck_helper, dl_helper, Some(&config));
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        list(&LIST, &args, io_helper, dck_helper, dl_helper, Some(&config)));
 
     let stdout = io_helper.stdout.borrow();
 

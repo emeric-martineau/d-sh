@@ -9,7 +9,7 @@ use super::{version, help};
 use command::Command;
 use docker::ContainerHelper;
 use config::Config;
-use command::CommandExitCode;
+use command::CommandError;
 use download::DownloadHelper;
 
 #[test]
@@ -25,9 +25,9 @@ fn display_version() {
 
 fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    _config: Option<&Config>) -> CommandExitCode {
+    _config: Option<&Config>) -> Result<(), CommandError> {
     io_helper.println(&format!("Coucou !"));
-    CommandExitCode::Ok
+    Ok(())
 }
 
 #[test]

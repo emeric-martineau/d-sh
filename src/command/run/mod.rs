@@ -5,7 +5,7 @@
 ///
 use std::path::Path;
 use users::{get_current_uid, get_current_gid, get_current_username};
-use command::{Command, CommandExitCode};
+use command::{Command, CommandExitCode, CommandError};
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
 use config::{Config, ConfigApplication, get_config_application};
@@ -102,7 +102,7 @@ fn get_cmd_args(cmd_line_args: &Option<Vec<String>>, args: &[String]) -> Vec<Str
 /// returning exit code of D-SH.
 ///
 fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, args: &[String], interactive: bool)  -> CommandExitCode {
+    dck_helper: &ContainerHelper, args: &[String], interactive: bool) -> Result<(), CommandError> {
 
     io_helper.println(&format!("Running {}...", app));
 
@@ -116,46 +116,59 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
         .to_str()
         .unwrap();
 
+    let config_application;
+
     match get_config_application(io_helper, &application_filename_full_path) {
-        Ok(config_application) => {
-            // Check if image exists
-            let images = dck_helper.list_image(&config_application.image_name);
+        Ok(r) => config_application = r,
+        Err(err) => return Err(CommandError {
+            msg: vec![
+                format!("Application '{}' not found.", app),
+                format!("{}", err)
+                ],
+            code: CommandExitCode::ApplicationFileNotFound
+        })
+    }
 
-            if images.len() > 0 {
-                io_helper.println("Create container");
+    // Check if image exists
+    let images = dck_helper.list_image(&config_application.image_name);
 
-                match get_current_username() {
-                    Some(username) => {
-                        let mut extra_args = get_extra_args(interactive, &config_application);
-                        let run_opts = get_run_args(&mut extra_args, username);
+    if images.len() > 0 {
+        io_helper.println("Create container");
 
-                        let cmd_args = get_cmd_args(&config_application.cmd_line_args, args);
+        let username;
 
-                        if dck_helper.run_container(&config_application.image_name, Some(&run_opts),
-                            Some(&config_application.cmd_line), Some(&cmd_args)) {
-                            CommandExitCode::Ok
-                        } else {
-                            CommandExitCode::ContainerRunError
-                        }
-                    },
-                    None => {
-                        io_helper.eprintln("Cannot get current user !");
-                        CommandExitCode::CannotGetCurrentUser
-                    }
-                }
-            } else {
-                io_helper.eprintln(&format!("Image for program {} not found.", app));
-                io_helper.eprintln("");
-                io_helper.eprintln("Build it before with:");
-                io_helper.eprintln(&format!("  d-sh build {}", app));
-
-                CommandExitCode::ContainerImageNotFound
-            }
-        },
-        Err(_) => {
-            io_helper.eprintln(&format!("Application '{}' not found.", app));
-            CommandExitCode::ApplicationFileNotFound
+        match get_current_username() {
+            Some(r) => username = r,
+            None => return Err(CommandError {
+                msg: vec![String::from("Cannot get current user !")],
+                code: CommandExitCode::CannotGetCurrentUser
+            })
         }
+
+        let mut extra_args = get_extra_args(interactive, &config_application);
+        let run_opts = get_run_args(&mut extra_args, username);
+
+        let cmd_args = get_cmd_args(&config_application.cmd_line_args, args);
+
+        if dck_helper.run_container(&config_application.image_name, Some(&run_opts),
+            Some(&config_application.cmd_line), Some(&cmd_args)) {
+            Ok(())
+        } else {
+            return Err(CommandError {
+                msg: vec![String::from("Error when running container")],
+                code: CommandExitCode::ContainerRunError
+            })
+        }
+    } else {
+        Err(CommandError {
+            msg: vec![
+                format!("Image for program {} not found.", app),
+                String::from(""),
+                String::from("Build it before with:"),
+                format!("  d-sh build {}", app)
+                ],
+            code: CommandExitCode::ContainerImageNotFound
+        })
     }
 }
 
@@ -168,22 +181,23 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 ///
 fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> CommandExitCode {
+    config: Option<&Config>) -> Result<(), CommandError> {
 
     let config = config.unwrap();
 
     match args[0].as_ref() {
         "-h" | "--help" => {
             io_helper.println(command.usage);
-            CommandExitCode::Ok
+            Ok(())
         },
         "-i" | "--interactive" => {
             if args.len() > 1 {
                 run_application(&config, &args[1], io_helper, dck_helper, &args[2..], true)
             } else {
-                io_helper.eprintln("You must specify an application !");
-
-                CommandExitCode::ApplicationNameMissing
+                Err(CommandError {
+                    msg: vec![String::from("You must specify an application !")],
+                    code: CommandExitCode::ApplicationNameMissing
+                })
             }
         },
         app => {

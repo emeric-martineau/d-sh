@@ -8,26 +8,9 @@ use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME, ENTRYPOI
 use io::tests::TestInputOutputHelper;
 use docker::tests::TestContainerHelper;
 use config::{create_config_filename_path, Config, ConfigDocker};
-use command::{CommandError, CommandExitCode};
+use command::CommandExitCode;
+use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
-
-fn test_result_ok(result: Result<(), CommandError>) {
-    if let Err(err) = result {
-        panic!(format!("Command return fail with code {:?} and error message {:?}.",
-            err.code, err.msg));
-    }
-}
-
-fn test_result_err(result: Result<(), CommandError>, err_code: CommandExitCode) -> Vec<String> {
-    match result {
-        Ok(_) => panic!("Command should be fail but not!"),
-        Err(err) => {
-            assert_eq!(err.code, err_code);
-
-            return err.msg;
-        }
-    }
-}
 
 #[test]
 fn build_display_help() {
@@ -966,5 +949,3 @@ fn build_missings_applications() {
 // TODO check if ctrl+c on curl
 
 // TODO only one parameter in command (use struct)
-// TODO get_config_application() display error
-// TODO use CommandError

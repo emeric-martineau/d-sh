@@ -56,7 +56,7 @@ pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<Str
 ///
 fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
     _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> CommandExitCode {
+    config: Option<&Config>) -> Result<(), CommandError> {
 
     let config = config.unwrap();
 
@@ -67,9 +67,14 @@ fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
                 io_helper.println(&app);
             };
 
-            CommandExitCode::Ok
+            Ok(())
         },
-        Err(_) => CommandExitCode::CannotReadApplicationsFolder
+        Err(_) => Err(CommandError {
+            msg: vec![
+                format!("Cannot read application folder {}!", config.applications_dir)
+                ],
+            code: CommandExitCode::CannotReadApplicationsFolder
+        })
     }
 }
 

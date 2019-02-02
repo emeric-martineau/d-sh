@@ -10,6 +10,7 @@ use docker::tests::TestContainerHelper;
 use std::path::Path;
 use std::collections::HashMap;
 use command::CommandExitCode;
+use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
 
 #[test]
@@ -28,9 +29,11 @@ fn unable_to_create_configfile_if_exists() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
+    let stderr = test_result_err(
+        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
+        CommandExitCode::ConfigFileExits);
 
-    assert_eq!(result, CommandExitCode::ConfigFileExits);
+    assert_eq!("The file '/home/emeric/.d-sh/config.yml' exits. Please remove it (or rename) and rerun this command.", stderr.get(0).unwrap());
 }
 
 #[test]
@@ -46,9 +49,8 @@ fn create_configfile_if_not_exists() {
 
     let args = [];
 
-    let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
-
-    assert_eq!(result, CommandExitCode::Ok);
+    test_result_ok(
+        init(&INIT, &args, io_helper, dck_helper, dl_helper, None));
 
     match get_config_filename() {
         Some(cfg_file) => {
@@ -107,9 +109,12 @@ fn create_configfile_but_cannot_write() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
+    let stderr = test_result_err(
+        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
+        CommandExitCode::CannotWriteConfigFile);
 
-    assert_eq!(result, CommandExitCode::CannotWriteConfigFile);
+    assert!(stderr.get(0).unwrap().starts_with("Unable to write file '"));
+    assert_eq!("Cannot write", stderr.get(1).unwrap())
 }
 
 #[test]
@@ -136,7 +141,10 @@ fn create_configfile_but_cannot_create_parent_folder() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let result = init(&INIT, &args, io_helper, dck_helper, dl_helper, None);
+    let stderr = test_result_err(
+        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
+        CommandExitCode::CannotCreateFolderForConfigFile);
 
-    assert_eq!(result, CommandExitCode::CannotCreateFolderForConfigFile);
+    assert!(stderr.get(0).unwrap().starts_with("Cannot create folder '"));
+    assert_eq!("Cannot write", stderr.get(1).unwrap())
 }

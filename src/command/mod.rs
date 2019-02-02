@@ -3,12 +3,14 @@
 ///
 /// Release under MIT License.
 ///
+pub mod build;
 pub mod check;
 pub mod delete;
 pub mod init;
 pub mod list;
 pub mod run;
-pub mod build;
+#[cfg(test)]
+pub mod tests;
 
 use io::InputOutputHelper;
 use config::{get_config_filename, Config, get_config};
@@ -79,7 +81,7 @@ pub struct Command {
     /// Execute Command.
     pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
-        config: Option<&Config>) -> CommandExitCode
+        config: Option<&Config>) -> Result<(), CommandError>
 }
 
 impl Command {
@@ -92,233 +94,60 @@ impl Command {
     ///
     pub fn exec(&self, args: &[String], io_helper: &InputOutputHelper,
         dck_helper: &ContainerHelper, dl_helper: &DownloadHelper) -> CommandExitCode {
-        let exit_code;
 
         // Check parameter
-        if args.len() >= self.min_args && args.len() <= self.max_args {
-            if self.need_config_file {
-                match get_config_filename() {
-                    Some(config_file) => {
-                        if io_helper.file_exits(&config_file) {
-                            match get_config(io_helper) {
-                                Ok(config) => exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-                                Err(_) => {
-                                    io_helper.eprintln("Cannot read config file, please check rigts and format!");
-                                    exit_code = CommandExitCode::ConfigFileFormatWrong;
-                                }
-                            }
-                        } else {
-                            io_helper.eprintln(&format!("The file '{}' doesn't exits. Please run 'init' command first.", config_file));
-                            exit_code = CommandExitCode::ConfigFileNotFound;
-                        }
-                    },
-                    None => {
-                        io_helper.eprintln("Cannot access to folder where config must be.");
-                        exit_code = CommandExitCode::CannotAccessToFolderOfConfigFile;
-                    }
-                };
-            } else {
-                exit_code = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, None);
-            }
-
-        } else {
+        if args.len() < self.min_args || args.len() > self.max_args {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
             io_helper.eprintln(&format!("See 'd-sh {} --help'.", self.name));
 
-            exit_code = CommandExitCode::BadArgument;
+            return CommandExitCode::BadArgument;
         }
 
-        exit_code
-    }
-}
+        if self.need_config_file {
+            let config_file;
 
-#[cfg(test)]
-mod tests {
-    use io::InputOutputHelper;
-    use io::tests::TestInputOutputHelper;
-    use config::{get_config_filename, Config};
-    use super::{Command, CommandExitCode};
-    use docker::ContainerHelper;
-    use docker::tests::TestContainerHelper;
-    use download::DownloadHelper;
-    use download::tests::TestDownloadHelper;
+            match get_config_filename() {
+                Some(r) => config_file = r,
+                None => {
+                    io_helper.eprintln("Cannot access to folder where config must be.");
+                    return CommandExitCode::CannotAccessToFolderOfConfigFile;
+                }
+            }
 
-    fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-        _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-        _config: Option<&Config>) -> CommandExitCode {
-        io_helper.println(&format!("Coucou !"));
+            if ! io_helper.file_exits(&config_file) {
+                io_helper.eprintln(
+                    &format!("The file '{}' doesn't exits. Please run 'init' command first.",
+                    config_file));
+                return CommandExitCode::ConfigFileNotFound;
+            }
+
+            let config;
+
+            match get_config(io_helper) {
+                Ok(r) => config = r,
+                Err(_) => {
+                    io_helper.eprintln("Cannot read config file, please check rigts and format!");
+                    return CommandExitCode::ConfigFileFormatWrong;
+                }
+            }
+
+            if let Err(err) = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, Some(&config)) {
+                for err_msg in &err.msg {
+                    io_helper.eprintln(err_msg);
+                }
+
+                return err.code;
+            }
+        } else {
+            if let Err(err) = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, None) {
+                for err_msg in &err.msg {
+                    io_helper.eprintln(err_msg);
+                }
+
+                return err.code;
+            }
+        }
+
         CommandExitCode::Ok
-    }
-
-    #[test]
-    fn check_if_need_argument_but_not_provide() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 1,
-            max_args: 1,
-            usage: "",
-            need_config_file: false,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [];
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::BadArgument);
-    }
-
-    #[test]
-    fn check_if_too_many_argument() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 1,
-            max_args: 1,
-            usage: "",
-            need_config_file: false,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [String::from("eeee"), String::from("eeee")];
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::BadArgument);
-    }
-
-    #[test]
-    fn check_if_not_enough_many_argument() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 2,
-            max_args: 2,
-            usage: "",
-            need_config_file: false,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [String::from("eeee")];
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::BadArgument);
-    }
-
-    #[test]
-    fn check_if_need_config_file_and_not_found() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 0,
-            max_args: 0,
-            usage: "",
-            need_config_file: true,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [];
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::ConfigFileNotFound);
-    }
-
-    #[test]
-    fn check_if_need_config_file_and_found() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 0,
-            max_args: 0,
-            usage: "",
-            need_config_file: true,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [];
-
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-            },
-            None => panic!("Unable to get config filename for test")
-        };
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::Ok);
-    }
-
-    #[test]
-    fn check_if_need_config_file_and_found_but_wrong_format() {
-        let io_helper = &TestInputOutputHelper::new();
-        let dck_helper = &TestContainerHelper::new();
-        let dl_helper = &TestDownloadHelper::new(io_helper);
-
-        let one_cmd = Command {
-            name: "test",
-            description: "It's a test",
-            short_name: "tst",
-            min_args: 0,
-            max_args: 0,
-            usage: "",
-            need_config_file: true,
-            exec_cmd: test_help
-        };
-
-        let commands = &[one_cmd];
-
-        let args = [];
-
-        match get_config_filename() {
-            Some(cfg_file) => {
-                // Create file
-                io_helper.files.borrow_mut().insert(cfg_file, String::from("tutu"))
-            },
-            None => panic!("Unable to get config filename for test")
-        };
-
-        let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
-
-        assert_eq!(exit_code, CommandExitCode::ConfigFileFormatWrong);
     }
 }
