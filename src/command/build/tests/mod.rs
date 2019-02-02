@@ -8,7 +8,7 @@ use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME, ENTRYPOI
 use io::tests::TestInputOutputHelper;
 use docker::tests::TestContainerHelper;
 use config::{create_config_filename_path, Config, ConfigDocker};
-use command::CommandExitCode;
+use command::{CommandExitCode, CommandParameter};
 use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
 
@@ -31,8 +31,16 @@ fn build_display_help() {
         tmp_dir: None
     };
 
-    test_result_ok(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     let stdout = io_helper.stdout.borrow();
 
@@ -58,9 +66,16 @@ fn build_unknow_option() {
         tmp_dir: None
     };
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::UnknowOption);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::UnknowOption);
 
     assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
 }
@@ -91,8 +106,16 @@ fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, confi
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    test_result_ok(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     // Check if temporary folder was created and remove
     let f = io_helper.files_delete.borrow();
@@ -213,9 +236,16 @@ fn build_base_short_option_dockerfile_template_not_found() {
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::TemplateNotFound);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::TemplateNotFound);
 
     assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
 }
@@ -262,9 +292,16 @@ fn build_base_short_option_entrypoint_template_not_found() {
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::TemplateNotFound);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::TemplateNotFound);
 
     assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", entrypoint_name));
 }
@@ -309,8 +346,16 @@ fn build_base_short_option_application_file_format_bad() {
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
 
-    test_result_ok(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     // Check if temporary folder was created and remove
     let f = io_helper.files_delete.borrow();
@@ -395,9 +440,16 @@ fn build_base_short_option_dockerfile_template_format_bad() {
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::DockerfileTemplateInvalid);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerfileTemplateInvalid);
 
     assert_eq!(stderr.get(0).unwrap(), "Something is wrong in Dockerfile template!");
     assert_eq!(stderr.get(1).unwrap(), "wrong name of closing helper");
@@ -446,9 +498,16 @@ fn build_base_short_option_docker_build_fail() {
 
     dck_helper.builds_error.borrow_mut().insert(config.dockerfile.tag.clone(), true);
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::DockerBuildFail);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
 
     assert_eq!(stderr.get(0).unwrap(), "Fail to build base image!");
 }
@@ -471,7 +530,7 @@ fn build_base_short_option_with_specified_tmp_dir() {
 }
 
 fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
-    dck_helper: &TestContainerHelper, download_helper: &TestDownloadHelper, config: Config) -> String {
+    dck_helper: &TestContainerHelper, dl_helper: &TestDownloadHelper, config: Config) -> String {
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -482,8 +541,16 @@ fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
         None => panic!("Unable to create dockerfile for test")
     };
 
-    test_result_ok(
-        build(&BUILD, &args, io_helper, dck_helper, download_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     // Check if temporary folder was created and remove
     let f = io_helper.files_delete.borrow();
@@ -590,9 +657,16 @@ fn build_application_docker_build_fail() {
 
     dck_helper.builds_error.borrow_mut().insert(String::from("run-atom:latest"), true);
 
-    let stderr = test_result_err(
-        build(&BUILD, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::DockerBuildFail);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
 
     assert_eq!(stderr.get(0).unwrap(), "Build atom failed!");
     assert_eq!(stderr.get(1).unwrap(), "Cannot build application atom!");
@@ -630,9 +704,16 @@ fn build_application_download_fail() {
         None => panic!("Unable to create dockerfile for test")
     };
 
-    let stderr = test_result_err(
-        build(&BUILD, &[String::from("atom")], io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::DockerBuildFail);
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &[String::from("atom")],
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
 
     assert_eq!(stderr.get(0).unwrap(), "Build atom failed!");
     assert_eq!(stderr.get(1).unwrap(), "Unable to download application 'atom'!");
@@ -804,8 +885,16 @@ fn build_many_applications() {
         None => panic!("Unable to create dockerfile for test")
     };
 
-    test_result_ok(
-        build(&BUILD, &[String::from("atom"), String::from("filezilla")], io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &[String::from("atom"), String::from("filezilla")],
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();
@@ -865,8 +954,16 @@ fn build_all_applications() {
         None => panic!("Unable to create dockerfile for test")
     };
 
-    test_result_ok(
-        build(&BUILD, &[String::from("-a")], io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &[String::from("-a")],
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();
@@ -930,8 +1027,16 @@ fn build_missings_applications() {
         None => panic!("Unable to create dockerfile for test")
     };
 
-    test_result_ok(
-        build(&BUILD, &[String::from("-m")], io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &BUILD,
+        args: &[String::from("-m")],
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(build(cmd_param));
 
     let stdout = io_helper.stdout.borrow();
 
@@ -947,5 +1052,3 @@ fn build_missings_applications() {
 // TODO add switch helper in handlebars to allow install package
 
 // TODO check if ctrl+c on curl
-
-// TODO only one parameter in command (use struct)

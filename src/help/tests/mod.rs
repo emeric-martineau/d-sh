@@ -3,14 +3,9 @@
 ///
 /// Release under MIT License.
 ///
-use io::InputOutputHelper;
 use io::tests::TestInputOutputHelper;
 use super::{version, help};
-use command::Command;
-use docker::ContainerHelper;
-use config::Config;
-use command::CommandError;
-use download::DownloadHelper;
+use command::{Command, CommandError, CommandParameter};
 
 #[test]
 fn display_version() {
@@ -23,10 +18,8 @@ fn display_version() {
     assert_eq!(io_helper.stdout.borrow().len(), 2);
 }
 
-fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    _config: Option<&Config>) -> Result<(), CommandError> {
-    io_helper.println(&format!("Coucou !"));
+fn test_help(cmd_param: CommandParameter) -> Result<(), CommandError> {
+    cmd_param.io_helper.println(&format!("Coucou !"));
     Ok(())
 }
 

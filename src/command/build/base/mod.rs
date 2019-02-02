@@ -4,10 +4,9 @@
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
-use command::{CommandError, CommandExitCode};
+use command::{CommandError, CommandExitCode, CommandParameter};
 use command::build::{BuildOptions, generate_dockerfile};
 use command::build::dockerfile::DockerfileParameter;
-use docker::ContainerHelper;
 use io::InputOutputHelper;
 use config::dockerfile::ENTRYPOINT_FILENAME;
 use config::{Config, create_config_filename_path, get_config_application};
@@ -92,19 +91,20 @@ fn get_dependencies(io_helper: &InputOutputHelper, config: &Config) -> Result<St
 ///
 /// Build base image.
 ///
-pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
+pub fn build_base(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
     options: &BuildOptions, config: &Config) -> Result<(), CommandError> {
 
     let dockerfile = DockerfileParameter::new(tmp_dir);
 
-    if let Err(err) = generate_entrypoint(io_helper, &dockerfile.docker_context_path) {
+    if let Err(err) = generate_entrypoint(cmd_param.io_helper,
+        &dockerfile.docker_context_path) {
         return Err(err);
     }
 
     let mut dependencies = String::new();
 
     //  Get all dependencies from applications files
-    if let Ok(d) = get_dependencies(io_helper, config) {
+    if let Ok(d) = get_dependencies(cmd_param.io_helper, config) {
         dependencies = d
     }
 
@@ -115,7 +115,8 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
     });
 
     // Generate Dockerfile
-    if let Err(err) = generate_dockerfile(io_helper, &dockerfile.docker_filename, &data) {
+    if let Err(err) = generate_dockerfile(cmd_param.io_helper, &dockerfile.docker_filename,
+        &data) {
         return Err(err);
     }
 
@@ -126,8 +127,8 @@ pub fn build_base(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, t
         build_args.push(String::from("--no-cache"));
     }
 
-    if ! dck_helper.build_image(&dockerfile.docker_filename, &dockerfile.docker_context_path,
-        &config.dockerfile.tag, Some(&build_args)) {
+    if ! cmd_param.dck_helper.build_image(&dockerfile.docker_filename,
+        &dockerfile.docker_context_path, &config.dockerfile.tag, Some(&build_args)) {
         return Err(CommandError {
             msg: vec![String::from("Fail to build base image!")],
             code: CommandExitCode::DockerBuildFail

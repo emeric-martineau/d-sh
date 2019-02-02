@@ -4,11 +4,8 @@
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::{Command, CommandExitCode, CommandError};
-use io::InputOutputHelper;
-use docker::ContainerHelper;
+use command::{Command, CommandExitCode, CommandError, CommandParameter};
 use config::{get_config_application, Config};
-use download::DownloadHelper;
 
 #[cfg(test)]
 mod tests;
@@ -32,12 +29,12 @@ pub struct CheckApplication {
 ///
 /// Return list of applications and their status.
 ///
-pub fn get_check_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper,
+pub fn get_check_application(cmd_param: &CommandParameter,
     config: &Config) -> Result<Vec<CheckApplication>, CommandError> {
     let list_applications_file;
 
     // 1 - We have got configuration
-    match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+    match cmd_param.io_helper.dir_list_file(&config.applications_dir, "*.yml") {
         Ok(r) => list_applications_file = r,
         Err(err) => return Err(CommandError {
             msg: vec![format!("{}", err)],
@@ -63,8 +60,8 @@ pub fn get_check_application(io_helper: &InputOutputHelper, dck_helper: &Contain
             config_filename: String::new()
         };
 
-        if let Ok(config_application) = get_config_application(io_helper, &filename) {
-            let images = dck_helper.list_image(&config_application.image_name);
+        if let Ok(config_application) = get_config_application(cmd_param.io_helper, &filename) {
+            let images = cmd_param.dck_helper.list_image(&config_application.image_name);
 
             app.is_build = images.len() > 0;
             app.image_name = config_application.image_name.clone();
@@ -85,15 +82,13 @@ pub fn get_check_application(io_helper: &InputOutputHelper, dck_helper: &Contain
 ///
 /// returning exit code of D-SH.
 ///
-fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> Result<(), CommandError> {
+fn check(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
-    let config = config.unwrap();
+    let config = cmd_param.config.unwrap();
     let list_applications;
 
     // 1 - We have got configuration
-    match get_check_application(io_helper, dck_helper, config) {
+    match get_check_application(&cmd_param, &config) {
         Ok(r) => list_applications = r,
         Err(err) => return Err(err)
     }
@@ -119,7 +114,7 @@ fn check(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
             status = "Build need";
         }
 
-        io_helper.println(&format!(
+        cmd_param.io_helper.println(&format!(
             "{:<with_first$}{:<with_first$}{:<width_second$}",
             app.name,
             app.image_name,

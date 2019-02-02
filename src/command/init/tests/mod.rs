@@ -9,7 +9,7 @@ use super::{init, INIT};
 use docker::tests::TestContainerHelper;
 use std::path::Path;
 use std::collections::HashMap;
-use command::CommandExitCode;
+use command::{CommandExitCode, CommandParameter};
 use command::tests::{test_result_ok, test_result_err};
 use download::tests::TestDownloadHelper;
 
@@ -29,9 +29,16 @@ fn unable_to_create_configfile_if_exists() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let stderr = test_result_err(
-        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
-        CommandExitCode::ConfigFileExits);
+    let cmd_param = CommandParameter {
+        command: &INIT,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: None
+    };
+
+    let stderr = test_result_err(init(cmd_param), CommandExitCode::ConfigFileExits);
 
     assert_eq!("The file '/home/emeric/.d-sh/config.yml' exits. Please remove it (or rename) and rerun this command.", stderr.get(0).unwrap());
 }
@@ -49,8 +56,16 @@ fn create_configfile_if_not_exists() {
 
     let args = [];
 
-    test_result_ok(
-        init(&INIT, &args, io_helper, dck_helper, dl_helper, None));
+    let cmd_param = CommandParameter {
+        command: &INIT,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: None
+    };
+
+    test_result_ok(init(cmd_param));
 
     match get_config_filename() {
         Some(cfg_file) => {
@@ -109,9 +124,16 @@ fn create_configfile_but_cannot_write() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let stderr = test_result_err(
-        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
-        CommandExitCode::CannotWriteConfigFile);
+    let cmd_param = CommandParameter {
+        command: &INIT,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: None
+    };
+
+    let stderr = test_result_err(init(cmd_param), CommandExitCode::CannotWriteConfigFile);
 
     assert!(stderr.get(0).unwrap().starts_with("Unable to write file '"));
     assert_eq!("Cannot write", stderr.get(1).unwrap())
@@ -141,8 +163,16 @@ fn create_configfile_but_cannot_create_parent_folder() {
         None => panic!("Unable to get config filename for test")
     };
 
-    let stderr = test_result_err(
-        init(&INIT, &args, io_helper, dck_helper, dl_helper, None),
+    let cmd_param = CommandParameter {
+        command: &INIT,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: None
+    };
+
+    let stderr = test_result_err(init(cmd_param),
         CommandExitCode::CannotCreateFolderForConfigFile);
 
     assert!(stderr.get(0).unwrap().starts_with("Cannot create folder '"));

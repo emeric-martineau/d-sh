@@ -4,20 +4,18 @@
 /// Release under MIT License.
 ///
 use command::check::get_check_application;
-use command::CommandError;
-use io::InputOutputHelper;
-use docker::ContainerHelper;
+use command::{CommandError, CommandParameter};
 use config::Config;
 
 ///
 /// Return missing applications (applications not build).
 ///
-pub fn get_missing_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper,
+pub fn get_missing_application(cmd_param: &CommandParameter,
     config: &Config) -> Result<Vec<String>, CommandError> {
     let list_applications;
 
     // 1 - We have got configuration
-    match get_check_application(io_helper, dck_helper, config) {
+    match get_check_application(cmd_param, config) {
         Ok(r) => list_applications = r,
         Err(err) => return Err(err)
     }

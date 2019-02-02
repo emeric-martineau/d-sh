@@ -3,15 +3,13 @@
 ///
 /// Release under MIT License.
 ///
-use command::{Command, CommandExitCode, CommandError};
+use command::{Command, CommandExitCode, CommandError, CommandParameter};
 use std::path::Path;
 use std::collections::HashMap;
 use io::InputOutputHelper;
-use config::{get_config_filename, create_config_filename_path, Config};
+use config::{get_config_filename, create_config_filename_path};
 use config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
     ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
-use docker::ContainerHelper;
-use download::DownloadHelper;
 
 #[cfg(test)]
 mod tests;
@@ -79,9 +77,7 @@ fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, def
 ///
 /// returning exit code of D-SH.
 ///
-fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    _config: Option<&Config>) -> Result<(), CommandError> {
+fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
     let config_file;
 
     match get_config_filename() {
@@ -92,7 +88,7 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         })
     }
 
-    if io_helper.file_exits(&config_file) {
+    if cmd_param.io_helper.file_exits(&config_file) {
         return Err(CommandError {
             msg: vec![
                 format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file)
@@ -101,10 +97,14 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         })
     }
 
-    let download_dir = read_line_with_default_value(io_helper, "Enter the path of download directory",  DOWNLOAD_DIR);
-    let applications_dir = read_line_with_default_value(io_helper, "Enter the path of applications directory",  APPLICATIONS_DIR);
-    let docker_image_from = read_line_with_default_value(io_helper, "Enter the default docker image from",  DOCKERFILE_DEFAULT_FROM);
-    let docker_image_tag = read_line_with_default_value(io_helper, "Enter the base image docker tag",  DOCKERFILE_DEFAULT_TAG);
+    let download_dir = read_line_with_default_value(cmd_param.io_helper,
+        "Enter the path of download directory",  DOWNLOAD_DIR);
+    let applications_dir = read_line_with_default_value(cmd_param.io_helper,
+        "Enter the path of applications directory",  APPLICATIONS_DIR);
+    let docker_image_from = read_line_with_default_value(cmd_param.io_helper,
+        "Enter the default docker image from",  DOCKERFILE_DEFAULT_FROM);
+    let docker_image_tag = read_line_with_default_value(cmd_param.io_helper,
+        "Enter the base image docker tag",  DOCKERFILE_DEFAULT_TAG);
 
     let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\ndockerfile:\n  from: \"{}\"\n  tag: \"{}\"\n",
         download_dir, applications_dir, docker_image_from, docker_image_tag);
@@ -114,7 +114,7 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
 
     if let Some(parent) = path.parent() {
         // No parent ? Not a error.
-        if let Err(err) = io_helper.create_dir_all(parent.to_str().unwrap()) {
+        if let Err(err) = cmd_param.io_helper.create_dir_all(parent.to_str().unwrap()) {
             return Err(CommandError {
                 msg: vec![
                     format!("Cannot create folder '{}'!", parent.display()),
@@ -125,7 +125,7 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         }
     }
 
-    if let Err(err) = io_helper.file_write(&config_file, &data) {
+    if let Err(err) = cmd_param.io_helper.file_write(&config_file, &data) {
         return Err(CommandError {
             msg: vec![
                 format!("Unable to write file '{}'", config_file),
@@ -135,7 +135,7 @@ fn init(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
         });
     }
 
-    create_dockerfile(io_helper)
+    create_dockerfile(cmd_param.io_helper)
 }
 
 ///

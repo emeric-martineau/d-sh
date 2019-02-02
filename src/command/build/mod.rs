@@ -7,13 +7,11 @@ use std::path::PathBuf;
 use std::env::temp_dir;
 use std::error::Error;
 use std::collections::HashMap;
-use command::{Command, CommandError, CommandExitCode};
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
 use io::{InputOutputHelper, convert_path};
-use docker::ContainerHelper;
 use config::{Config, create_config_filename_path};
 use config::dockerfile::DOCKERFILE_BASE_FILENAME;
 use rand::Rng;
-use download::DownloadHelper;
 use self::all::build_all;
 use self::base::build_base;
 use self::one::build_one_application;
@@ -147,16 +145,15 @@ fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
 /// Build one application.
 ///
 ///
-fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config, applications: &Vec<String>,
-    dl_helper: &DownloadHelper) -> Result<(), CommandError> {
+fn build_some_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
+    options: &BuildOptions, config: &Config,
+    applications: &Vec<String>) -> Result<(), CommandError> {
     let mut app_build_fail = HashMap::new();
 
     for app in applications {
-        io_helper.println(&format!("Building {}...", app));
+        cmd_param.io_helper.println(&format!("Building {}...", app));
 
-        if let Err(err) = build_one_application(io_helper, dck_helper, &tmp_dir, &options, config, app,
-            dl_helper) {
+        if let Err(err) = build_one_application(cmd_param, &tmp_dir, &options, config, app) {
             app_build_fail.insert(app, err);
         }
     }
@@ -185,9 +182,7 @@ fn build_some_application(io_helper: &InputOutputHelper, dck_helper: &ContainerH
 ///
 /// returning exit code of D-SH.
 ///
-fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> Result<(), CommandError> {
+fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
     let mut options: BuildOptions = BuildOptions {
         all: false,
         base: false,
@@ -197,12 +192,12 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     };
 
     // Just get options form command line
-    let opts: Vec<&String> = args
+    let opts: Vec<&String> = cmd_param.args
         .iter()
         .filter(|a| a.starts_with("-"))
         .collect();
     // Get applications list from command line
-    let applications: Vec<String> = args
+    let applications: Vec<String> = cmd_param.args
         .iter()
         .filter(|a| !a.starts_with("-"))
         .map(|a| a.clone())
@@ -211,7 +206,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     for argument in opts {
         match argument.as_ref() {
             "-h" | "--help" => {
-                io_helper.println(command.usage);
+                cmd_param.io_helper.println(cmd_param.command.usage);
                 return Ok(());
             },
             "-a" | "--all" => options.all = true,
@@ -228,7 +223,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
         }
     }
 
-    let config = config.unwrap();
+    let config = cmd_param.config.unwrap();
 
     // 1 - Create tmp folder for build
     let mut tmp_dir;
@@ -240,7 +235,7 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
 
     tmp_dir.push(random_string());
 
-    if let Err(err) = io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
+    if let Err(err) = cmd_param.io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
         return Err(CommandError {
             msg: vec![
                 format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()),
@@ -253,23 +248,23 @@ fn build(command: &Command, args: &[String], io_helper: &InputOutputHelper,
     let result;
 
     if options.base {
-        io_helper.println("Building base image...");
-        result = build_base(io_helper, dck_helper, &tmp_dir, &options, config);
+        cmd_param.io_helper.println("Building base image...");
+        result = build_base(&cmd_param, &tmp_dir, &options, &config);
     } else if options.all {
-        result = build_all(io_helper, dck_helper, &options, config, dl_helper, &tmp_dir);
+        result = build_all(&cmd_param, &options, &config, &tmp_dir);
     } else if options.missing {
-        match get_missing_application(io_helper, dck_helper, config) {
-            Ok(list_applications) => result = build_some_application(io_helper, dck_helper,
-                &tmp_dir, &options, config, &list_applications, dl_helper),
+        match get_missing_application(&cmd_param, &config) {
+            Ok(list_applications) => result = build_some_application(&cmd_param,
+                &tmp_dir, &options, &config, &list_applications),
             Err(err) => result = Err(err)
         }
     } else {
-        result = build_some_application(io_helper, dck_helper, &tmp_dir, &options, config,
-            &applications, dl_helper);
+        result = build_some_application(&cmd_param, &tmp_dir, &options, &config,
+            &applications);
     }
 
     // Remove tmp folder
-    remove_tmp_dir(io_helper, &tmp_dir);
+    remove_tmp_dir(cmd_param.io_helper, &tmp_dir);
 
     result
 }

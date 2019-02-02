@@ -4,29 +4,29 @@
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
-use command::{CommandError, CommandExitCode};
+use command::{CommandError, CommandExitCode, CommandParameter};
 use command::build::{BuildOptions, generate_dockerfile};
 use command::build::dockerfile::DockerfileParameter;
-use io::{InputOutputHelper, convert_path};
-use docker::ContainerHelper;
+use io::convert_path;
 use config::{Config, get_filename, get_config_application, ConfigApplication};
-use download::DownloadHelper;
 use std::error::Error;
 
 ///
 /// Download file with curl.
 ///
-fn download_file(app: &str, config_application: &ConfigApplication, options: &BuildOptions,
-    config: &Config, io_helper: &InputOutputHelper, dl_helper: &DownloadHelper) -> Result<(), CommandError> {
+fn download_file(cmd_param: &CommandParameter, app: &str,
+    config_application: &ConfigApplication, options: &BuildOptions,
+    config: &Config) -> Result<(), CommandError> {
     // Check if file already downloaded
     let app_dwn_filename = get_filename(&config.download_dir,
         &config_application.download_filename, None);
     let app_dwn_filename = convert_path(&app_dwn_filename);
 
-    if io_helper.file_exits(&app_dwn_filename) {
+    if cmd_param.io_helper.file_exits(&app_dwn_filename) {
         // Download file with curl
-        if ! options.skip_redownload && ! dl_helper.download_if_update(&config_application.url,
-            &app_dwn_filename) {
+        if ! options.skip_redownload
+            && ! cmd_param.dl_helper.download_if_update(&config_application.url,
+                &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],
                 code: CommandExitCode::UnableDownloadApplication
@@ -34,7 +34,7 @@ fn download_file(app: &str, config_application: &ConfigApplication, options: &Bu
         }
     } else {
         // Download file with curl
-        if ! dl_helper.download(&config_application.url, &app_dwn_filename) {
+        if ! cmd_param.dl_helper.download(&config_application.url, &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],
                 code: CommandExitCode::UnableDownloadApplication
@@ -50,8 +50,8 @@ fn download_file(app: &str, config_application: &ConfigApplication, options: &Bu
 ///
 /// Return false if application build fail.
 ///
-pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &ContainerHelper, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config, app: &str, dl_helper: &DownloadHelper) -> Result<(), CommandError> {
+pub fn build_one_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
+    options: &BuildOptions, config: &Config, app: &str) -> Result<(), CommandError> {
 
     let app_filename = convert_path(&get_filename(&config.applications_dir, app, Some(&".yml")));
 
@@ -59,7 +59,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
 
     let config_application;
 
-    match get_config_application(io_helper, &app_filename) {
+    match get_config_application(cmd_param.io_helper, &app_filename) {
         Ok(r) => config_application = r,
         Err(err) => return Err(CommandError {
                 msg: vec![
@@ -70,7 +70,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
             })
     }
 
-    if let Err(err) = download_file(app, &config_application, options, config, io_helper, dl_helper) {
+    if let Err(err) = download_file(cmd_param, app, &config_application, options, config) {
         return Err(err);
     }
 
@@ -81,7 +81,8 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
         "application_filename": config_application.download_filename.to_owned()
     });
 
-    if let Err(err) = generate_dockerfile(io_helper, &dockerfile.docker_filename, &data) {
+    if let Err(err) = generate_dockerfile(cmd_param.io_helper, &dockerfile.docker_filename,
+        &data) {
         return Err(err);
     }
 
@@ -89,7 +90,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
     let app_dwn_filename = convert_path(&get_filename(&config.download_dir,
         &config_application.download_filename, None));
 
-    if let Err(err) = io_helper.hardlink_or_copy_file(&app_dwn_filename,
+    if let Err(err) = cmd_param.io_helper.hardlink_or_copy_file(&app_dwn_filename,
         &format!("{}/{}", &dockerfile.docker_context_path, &config_application.download_filename)) {
         return Err(CommandError {
             msg: vec![
@@ -108,7 +109,7 @@ pub fn build_one_application(io_helper: &InputOutputHelper, dck_helper: &Contain
         build_args.push(String::from("--no-cache"));
     }
 
-    if ! dck_helper.build_image(&dockerfile.docker_filename,
+    if ! cmd_param.dck_helper.build_image(&dockerfile.docker_filename,
         &dockerfile.docker_context_path, &config_application.image_name,
         Some(&build_args)) {
         return Err(CommandError {

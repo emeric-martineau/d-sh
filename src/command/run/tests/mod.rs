@@ -10,7 +10,7 @@ use docker::tests::TestRunContainer;
 use config::{Config, ConfigDocker};
 use io::tests::found_item;
 use super::{RUN, run};
-use command::CommandExitCode;
+use command::{CommandExitCode, CommandParameter};
 use command::tests::{test_result_ok, test_result_err};
 use users::{get_current_uid, get_current_gid, get_current_username};
 use download::tests::TestDownloadHelper;
@@ -34,8 +34,16 @@ fn run_display_help() {
         tmp_dir: None
     };
 
-    test_result_ok(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(run(cmd_param));
 
     let stdout = io_helper.stdout.borrow();
 
@@ -61,9 +69,16 @@ fn run_image_application_not_found() {
         tmp_dir: None
     };
 
-    let stderr = test_result_err(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::ApplicationFileNotFound);
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(run(cmd_param), CommandExitCode::ApplicationFileNotFound);
 
     let stdout = io_helper.stdout.borrow();
 
@@ -94,9 +109,16 @@ fn run_image_not_found_not_interactive() {
     // Create application file atom
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-    let stderr = test_result_err(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)),
-        CommandExitCode::ContainerImageNotFound);
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    let stderr = test_result_err(run(cmd_param), CommandExitCode::ContainerImageNotFound);
 
     let stdout = io_helper.stdout.borrow();
 
@@ -132,8 +154,16 @@ fn run_image_found_not_interactive() {
     // Create list of images returned by docker
     dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-    test_result_ok(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(run(cmd_param));
 
     let containers = dck_helper.containers.borrow();
     let atom_container = containers.get(0).unwrap();
@@ -193,8 +223,16 @@ fn run_image_found_not_interactive_with_args() {
     // Create list of images returned by docker
     dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-    test_result_ok(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(run(cmd_param));
 
     let containers = dck_helper.containers.borrow();
     let atom_container = containers.get(0).unwrap();
@@ -235,8 +273,16 @@ fn run_image_found_interactive(opt: &str, application_config_content: &str, args
     // Create list of images returned by docker
     dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
 
-    test_result_ok(
-        run(&RUN, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &RUN,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(run(cmd_param));
 
     let containers = dck_helper.containers.borrow();
     let atom_container = containers.get(0).unwrap();

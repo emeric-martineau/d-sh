@@ -4,11 +4,9 @@
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::{Command, CommandExitCode, CommandError};
+use command::{Command, CommandExitCode, CommandError, CommandParameter};
 use io::InputOutputHelper;
-use docker::ContainerHelper;
 use config::Config;
-use download::DownloadHelper;
 
 #[cfg(test)]
 mod tests;
@@ -54,17 +52,15 @@ pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<Str
 ///
 /// returning exit code of D-SH.
 ///
-fn list(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> Result<(), CommandError> {
+fn list(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
-    let config = config.unwrap();
+    let config = cmd_param.config.unwrap();
 
-    match get_all(io_helper, config) {
+    match get_all(cmd_param.io_helper, &config) {
         Ok(list_applications_file) => {
             // 2 - We have list of application
             for app in list_applications_file {
-                io_helper.println(&app);
+                cmd_param.io_helper.println(&app);
             };
 
             Ok(())

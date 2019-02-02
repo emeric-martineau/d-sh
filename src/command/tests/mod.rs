@@ -3,13 +3,10 @@
 ///
 /// Release under MIT License.
 ///
-use io::InputOutputHelper;
 use io::tests::TestInputOutputHelper;
-use config::{get_config_filename, Config};
-use super::{Command, CommandExitCode, CommandError};
-use docker::ContainerHelper;
+use config::get_config_filename;
+use super::{Command, CommandExitCode, CommandError, CommandParameter};
 use docker::tests::TestContainerHelper;
-use download::DownloadHelper;
 use download::tests::TestDownloadHelper;
 
 pub fn test_result_ok(result: Result<(), CommandError>) {
@@ -30,10 +27,8 @@ pub fn test_result_err(result: Result<(), CommandError>, err_code: CommandExitCo
     }
 }
 
-fn test_help(_command: &Command, _args: &[String], io_helper: &InputOutputHelper,
-    _dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    _config: Option<&Config>) -> Result<(), CommandError> {
-    io_helper.println(&format!("Coucou !"));
+fn test_help(cmd_param: CommandParameter) -> Result<(), CommandError> {
+    cmd_param.io_helper.println(&format!("Coucou !"));
     Ok(())
 }
 

@@ -5,11 +5,10 @@
 ///
 use std::path::Path;
 use users::{get_current_uid, get_current_gid, get_current_username};
-use command::{Command, CommandExitCode, CommandError};
+use command::{Command, CommandExitCode, CommandError, CommandParameter};
 use io::{InputOutputHelper, convert_path};
 use docker::ContainerHelper;
 use config::{Config, ConfigApplication, get_config_application};
-use download::DownloadHelper;
 
 #[cfg(test)]
 mod tests;
@@ -179,20 +178,19 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 ///
 /// returning exit code of D-SH.
 ///
-fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, _dl_helper: &DownloadHelper,
-    config: Option<&Config>) -> Result<(), CommandError> {
+fn run(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
-    let config = config.unwrap();
+    let config = cmd_param.config.unwrap();
 
-    match args[0].as_ref() {
+    match cmd_param.args[0].as_ref() {
         "-h" | "--help" => {
-            io_helper.println(command.usage);
+            cmd_param.io_helper.println(cmd_param.command.usage);
             Ok(())
         },
         "-i" | "--interactive" => {
-            if args.len() > 1 {
-                run_application(&config, &args[1], io_helper, dck_helper, &args[2..], true)
+            if cmd_param.args.len() > 1 {
+                run_application(&config, &cmd_param.args[1], cmd_param.io_helper,
+                    cmd_param.dck_helper, &cmd_param.args[2..], true)
             } else {
                 Err(CommandError {
                     msg: vec![String::from("You must specify an application !")],
@@ -201,7 +199,8 @@ fn run(command: &Command, args: &[String], io_helper: &InputOutputHelper,
             }
         },
         app => {
-            run_application(&config, &app, io_helper, dck_helper, &args[1..], false)
+            run_application(&config, &app, cmd_param.io_helper, cmd_param.dck_helper,
+                &cmd_param.args[1..], false)
         }
     }
 }

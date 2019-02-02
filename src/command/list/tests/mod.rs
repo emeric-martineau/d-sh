@@ -9,6 +9,7 @@ use docker::tests::TestContainerHelper;
 use config::{Config, ConfigDocker};
 use super::{LIST, list};
 use command::tests::test_result_ok;
+use command::CommandParameter;
 use download::tests::TestDownloadHelper;
 
 #[test]
@@ -35,8 +36,16 @@ fn list_all_applications() {
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
     io_helper.files.borrow_mut().insert(String::from("app/titi.yml"), String::from("---\nimage_name: \"run-titi:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\""));
 
-    test_result_ok(
-        list(&LIST, &args, io_helper, dck_helper, dl_helper, Some(&config)));
+    let cmd_param = CommandParameter {
+        command: &LIST,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(list(cmd_param));
 
     let stdout = io_helper.stdout.borrow();
 

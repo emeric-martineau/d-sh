@@ -61,6 +61,24 @@ pub struct CommandError {
 }
 
 ///
+/// Struct with input parameters.
+///
+pub struct CommandParameter<'a> {
+    /// Current command struct.
+    pub command: &'a Command,
+    /// Args of command.
+    pub args: &'a [String],
+    /// IO Helper.
+    pub io_helper: &'a InputOutputHelper,
+    /// Docker Helper.
+    pub dck_helper: &'a ContainerHelper,
+    /// Download Helper.
+    pub dl_helper: &'a DownloadHelper,
+    /// Config of D-SH.
+    pub config: Option<&'a Config>
+}
+
+///
 /// Command structure
 ///
 pub struct Command {
@@ -79,9 +97,7 @@ pub struct Command {
     /// If command need config file exists.
     pub need_config_file: bool,
     /// Execute Command.
-    pub exec_cmd: fn(command: &Command, args: &[String], io_helper: &InputOutputHelper,
-        dck_helper: &ContainerHelper, dl_helper: &DownloadHelper,
-        config: Option<&Config>) -> Result<(), CommandError>
+    pub exec_cmd: fn(cmd_param: CommandParameter) -> Result<(), CommandError>
 }
 
 impl Command {
@@ -131,7 +147,16 @@ impl Command {
                 }
             }
 
-            if let Err(err) = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, Some(&config)) {
+            let cmd_param = CommandParameter {
+                command: self,
+                args: args,
+                io_helper: io_helper,
+                dck_helper: dck_helper,
+                dl_helper: dl_helper,
+                config: Some(&config)
+            };
+
+            if let Err(err) = (self.exec_cmd)(cmd_param) {
                 for err_msg in &err.msg {
                     io_helper.eprintln(err_msg);
                 }
@@ -139,7 +164,16 @@ impl Command {
                 return err.code;
             }
         } else {
-            if let Err(err) = (self.exec_cmd)(self, &args, io_helper, dck_helper, dl_helper, None) {
+            let cmd_param = CommandParameter {
+                command: self,
+                args: args,
+                io_helper: io_helper,
+                dck_helper: dck_helper,
+                dl_helper: dl_helper,
+                config: None
+            };
+
+            if let Err(err) = (self.exec_cmd)(cmd_param) {
                 for err_msg in &err.msg {
                     io_helper.eprintln(err_msg);
                 }
