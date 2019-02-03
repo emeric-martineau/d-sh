@@ -22,11 +22,12 @@ fn download_file(cmd_param: &CommandParameter, app: &str,
         &config_application.download_filename, None);
     let app_dwn_filename = convert_path(&app_dwn_filename);
 
+    let url = config_application.url.as_ref().unwrap();
+
     if cmd_param.io_helper.file_exits(&app_dwn_filename) {
         // Download file with curl
         if ! options.skip_redownload
-            && ! cmd_param.dl_helper.download_if_update(&config_application.url,
-                &app_dwn_filename) {
+            && ! cmd_param.dl_helper.download_if_update(url, &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],
                 code: CommandExitCode::UnableDownloadApplication
@@ -34,7 +35,7 @@ fn download_file(cmd_param: &CommandParameter, app: &str,
         }
     } else {
         // Download file with curl
-        if ! cmd_param.dl_helper.download(&config_application.url, &app_dwn_filename) {
+        if ! cmd_param.dl_helper.download(url, &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],
                 code: CommandExitCode::UnableDownloadApplication
@@ -70,8 +71,10 @@ pub fn build_one_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
             })
     }
 
-    if let Err(err) = download_file(cmd_param, app, &config_application, options, config) {
-        return Err(err);
+    if config_application.url.is_some() {
+        if let Err(err) = download_file(cmd_param, app, &config_application, options, config) {
+            return Err(err);
+        }
     }
 
     // Now build
@@ -90,16 +93,20 @@ pub fn build_one_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
     let app_dwn_filename = convert_path(&get_filename(&config.download_dir,
         &config_application.download_filename, None));
 
-    if let Err(err) = cmd_param.io_helper.hardlink_or_copy_file(&app_dwn_filename,
-        &format!("{}/{}", &dockerfile.docker_context_path, &config_application.download_filename)) {
-        return Err(CommandError {
-            msg: vec![
-                format!("Unable copy '{}' to '{}'!", &app_dwn_filename,
-                    &dockerfile.docker_context_path),
-                format!("{}", err)
-                ],
-            code: CommandExitCode::CannotCopyFile
-        });
+    // In case of package, we don't copy anything
+    if config_application.url.is_some() {
+        if let Err(err) = cmd_param.io_helper.hardlink_or_copy_file(&app_dwn_filename,
+            &format!("{}/{}", &dockerfile.docker_context_path,
+            &config_application.download_filename)) {
+            return Err(CommandError {
+                msg: vec![
+                    format!("Unable copy '{}' to '{}'!", &app_dwn_filename,
+                        &dockerfile.docker_context_path),
+                    format!("{}", err)
+                    ],
+                code: CommandExitCode::CannotCopyFile
+            });
+        }
     }
 
     // Build

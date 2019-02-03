@@ -1049,6 +1049,4 @@ fn build_missings_applications() {
 //  - test: build test with generate Dockerfile/entry.sh error caused by folder error
 //  - test: build test with delete folder error caused by folder error
 
-// TODO add switch helper in handlebars to allow install package
-
 // TODO check if ctrl+c on curl

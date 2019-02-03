@@ -23,6 +23,8 @@ pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
     ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
 {{/if}}
 
+{{#if (not dockerfile_base)}}
+
 {{#if (ends_width application_filename  ".deb")}}
     COPY {{application_filename}} /tmp/
 
@@ -32,36 +34,43 @@ pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
         rm -f /tmp/{{application_filename}} && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*
-{{/if}}
+{{else}}
 
 {{#if (ends_width application_filename  ".tar.bz2")}}
     COPY {{application_filename}} /tmp/
 
     RUN tar -xjf /tmp/{{application_filename}} -C /opt/ && \
         rm -f /tmp/{{application_filename}}
-{{/if}}
+{{else}}
 
 {{#if (ends_width application_filename  ".tar.xz")}}
     COPY {{application_filename}} /tmp/
 
     RUN tar -xJf /tmp/{{application_filename}} -C /opt/ && \
         rm -f /tmp/{{application_filename}}
-{{/if}}
+{{else}}
 
 {{#if (or (ends_width application_filename  ".tar.gz ") (ends_width application_filename  ".tgz "))}}
     COPY {{application_filename}} /tmp/
 
     RUN tar -xzf /tmp/{{application_filename}} -C /opt/ && \
         rm -f /tmp/{{application_filename}}
+{{else}}
+
+RUN apt-get update && \
+    apt-get install -y {{application_filename}} && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 {{/if}}
 
-{{#if (ends_width application_filename  ".tar.xz")}}
-    RUN apt-get update && \
-        apt-get install -y $APPLICATION_DOWNLOADED_FILE_NAME && \
-        apt-get clean && \
-        rm -rf /var/lib/apt/lists/*
 {{/if}}
 
+{{/if}}
+
+{{/if}}
+
+{{/if}}
 "#;
 
 /// Default entrypoint
