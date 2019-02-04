@@ -50,7 +50,7 @@ pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
         rm -f /tmp/{{application_filename}}
 {{else}}
 
-{{#if (or (ends_width application_filename  ".tar.gz ") (ends_width application_filename  ".tgz "))}}
+{{#if (or (ends_width application_filename  ".tar.gz") (ends_width application_filename  ".tgz"))}}
     COPY {{application_filename}} /tmp/
 
     RUN tar -xzf /tmp/{{application_filename}} -C /opt/ && \
