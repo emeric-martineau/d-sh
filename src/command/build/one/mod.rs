@@ -26,7 +26,7 @@ fn download_file(cmd_param: &CommandParameter, app: &str,
 
     if cmd_param.io_helper.file_exits(&app_dwn_filename) {
         // Download file with curl
-        if ! options.skip_redownload
+        if ! options.skip_redownload && ! config_application.skip_redownload.unwrap_or(false)
             && ! cmd_param.dl_helper.download_if_update(url, &app_dwn_filename) {
             return Err(CommandError {
                 msg: vec![format!("Unable to download application '{}'!", app)],

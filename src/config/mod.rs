@@ -39,7 +39,8 @@ pub struct ConfigApplication {
     pub ipc_host: Option<bool>,
     pub dependencies: Option<Vec<String>>,
     pub download_filename: String,
-    pub url: Option<String>
+    pub url: Option<String>,
+    pub skip_redownload: Option<bool>
 }
 
 /// Default config filename.
