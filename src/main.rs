@@ -68,8 +68,9 @@ fn main() {
                 let mut command_to_run = None;
 
                 for c in ALL_COMMANDS {
-                    if cmd == c.name {
+                    if cmd == c.name || cmd == c.short_name {
                         command_to_run = Some(c);
+                        break;
                     }
                 }
 

@@ -147,7 +147,7 @@ pub const INIT: Command = Command {
     /// description.
     description: "Initialize config file if not exists",
     /// Short name.
-    short_name: "it",
+    short_name: "i",
     /// `check` command have no parameter.
     min_args: 0,
     max_args: 0,

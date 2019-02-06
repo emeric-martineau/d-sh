@@ -47,7 +47,7 @@ fn display_help() {
     assert_eq!(stdout.len(), 11);
 
     match stdout.get(10) {
-        Some(s) => assert_eq!(s, "  test     It's a test"),
+        Some(s) => assert_eq!(s, "  test (tst)   It's a test"),
         None => panic!("Help is not valid")
     }
 }

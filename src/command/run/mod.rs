@@ -214,7 +214,7 @@ pub const RUN: Command = Command {
     /// description.
     description: "Run container",
     /// Short name.
-    short_name: "",
+    short_name: "r",
     /// `check` command have no parameter.
     min_args: 1,
     max_args: 2,

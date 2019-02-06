@@ -27,7 +27,8 @@ pub fn help(commands: &[Command], io_helper: &InputOutputHelper) {
     io_helper.println(&format!("Commands:"));
 
     for cmd in commands {
-        io_helper.println(&format!("  {:<width$}{}", cmd.name, cmd.description, width = 9));
+        let command = format!("{} ({})", cmd.name, cmd.short_name);
+        io_helper.println(&format!("  {:<width$}{}", command, cmd.description, width = 13));
     }
 }
 
