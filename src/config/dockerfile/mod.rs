@@ -21,9 +21,7 @@ pub const DOCKERFILE_BASE: &str = r#"FROM {{dockerfile_from}}
     COPY entrypoint.sh /entrypoint.sh
 
     ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
-{{/if}}
-
-{{#if (not dockerfile_base)}}
+{{else}}
 
 {{#if (ends_width application_filename  ".deb")}}
     COPY {{application_filename}} /tmp/
