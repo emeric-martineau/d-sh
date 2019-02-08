@@ -40,23 +40,24 @@ cmd_line_args:
  - ...
  - ...
 interactive: true | false
+skip_redownload: true | false
 ```
 
 # Hack D-SH
 
 ## Change Ubuntu version or image base
 
-By default, when you initialize D-SH, 4 Dockerfile are created.
+By default, when you initialize D-SH, the file `Dockerfile.hbs` is created.
 
-If you want change Ubuntu version, edit `scripts/Dockerfile.base` file and
-change line `FROM ubuntu:18.04`.
+If you want change Ubuntu version, edit `~/.d-sh/config.yml` file and
+change line `from: "ubuntu:18.04"`.
 
 A last file is entrypoint script `entrypoint.sh`.
 
 ## D-SH behind proxy
 
-To allow Ubuntu image to download dependencies, edit `Dockerfile.base`
-file and add juste after line `ARG DEPENDENCIES_ALL`:
+To allow Ubuntu image to download dependencies, edit `Dockerfile.hbs`
+file and add just:
 ```
 ENV ALL_PROXY socks://xx.xx.xx.xx:3128/
 ENV FTP_PROXY http://xx.xx.xx.xx:3128/
@@ -73,9 +74,17 @@ RUN echo 'Acquire::http::Proxy "http://xx.xx.xx.xx:3128";' >> /etc/apt/apt.conf 
 
 Rebuild base image and all applications images
 
+## Dockerfile template data
+
+ - `{{dependencies}}` list of dependencies of all applications,
+ - `{{dockerfile_from}}` value from config file,
+ - `{{#if dockerfile_base}}` if current build docker base image,
+ - `{{application_filename}}` filename of binary of application downloaded,
+ - `(ends_width application_filename  ".tar.bz2")` check if application filename end with.
+
 ## Add a new command
 
-TODO move into other file to explain how developp
+To add new command, you must know `rust`. After, create module in `src/command`.
 
 ## In nutshell
 
@@ -89,15 +98,6 @@ group ID.
 ### Home mapping
 
 Full home user that launch application are mount in container home user's folder.
-
-### Dockerfiles
-
-```
-Dockerfile.base           : Base image for all application
-Dockerfile.from-deb-file  : Use to build image of application if file is a *.deb
-Dockerfile.from-package   : Use to build image of application if file is a package in linux distribution
-Dockerfile.from-tgz-file  : Use to build image of application if file is a *.tar.gz, *.tgz, *.tar.bz2, *.tar.xz
-```
 
 ### Add tests
 
