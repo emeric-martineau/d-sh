@@ -40,6 +40,10 @@ Docker image.
 
 Each application inherit from this *base image*.
 
+## Download applications
+
+Applications are available in https://github.com/bubulemaster/d-sh-applications
+
 ## Install D-SH
 
 Download last release and change add executable bit `chmod u+x ....`.
