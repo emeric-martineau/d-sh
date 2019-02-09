@@ -63,7 +63,7 @@ fn read_line_with_default_value(
 ) -> String {
     let mut new_prompt = String::from(prompt);
 
-    new_prompt.push_str(&format!(" (default; {})", default_value));
+    new_prompt.push_str(&format!(" (default: {})", default_value));
 
     io_helper.print(&new_prompt);
 
