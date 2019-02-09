@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use command::{CommandError, CommandExitCode, CommandParameter};
 use command::build::{BuildOptions, generate_dockerfile};
 use command::build::dockerfile::DockerfileParameter;
+use command::build::base::build_base;
 use io::convert_path;
 use config::{Config, get_filename, get_config_application, ConfigApplication};
 use std::error::Error;
@@ -47,12 +48,30 @@ fn download_file(cmd_param: &CommandParameter, app: &str,
 }
 
 ///
+/// Check if base image is builded.
+///
+fn check_base_image_builded(cmd_param: &CommandParameter, config: &Config, tmp_dir: &PathBuf,
+    options: &BuildOptions) -> Result<(), CommandError> {
+    let images = cmd_param.dck_helper.list_image(&config.dockerfile.tag);
+
+    if images.len() == 0 {
+        return build_base(cmd_param, tmp_dir, options, config);
+    }
+
+    Ok(())
+}
+
+///
 /// Build one application.
 ///
 /// Return false if application build fail.
 ///
 pub fn build_one_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
     options: &BuildOptions, config: &Config, app: &str) -> Result<(), CommandError> {
+
+    if let Err(err) = check_base_image_builded(cmd_param, config, tmp_dir, options) {
+        return Err(err);
+    }
 
     let app_filename = convert_path(&get_filename(&config.applications_dir, app, Some(&".yml")));
 
