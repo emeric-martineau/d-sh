@@ -1,18 +1,20 @@
+use super::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::get_config_filename;
+use docker::tests::TestContainerHelper;
+use download::tests::TestDownloadHelper;
 ///
 /// Module to tests module command.
 ///
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
-use config::get_config_filename;
-use super::{Command, CommandExitCode, CommandError, CommandParameter};
-use docker::tests::TestContainerHelper;
-use download::tests::TestDownloadHelper;
 
 pub fn test_result_ok(result: Result<(), CommandError>) {
     if let Err(err) = result {
-        panic!(format!("Command return fail with code {:?} and error message {:?}.",
-            err.code, err.msg));
+        panic!(format!(
+            "Command return fail with code {:?} and error message {:?}.",
+            err.code, err.msg
+        ));
     }
 }
 
@@ -46,7 +48,7 @@ fn check_if_need_argument_but_not_provide() {
         max_args: 1,
         usage: "",
         need_config_file: false,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -72,7 +74,7 @@ fn check_if_too_many_argument() {
         max_args: 1,
         usage: "",
         need_config_file: false,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -98,7 +100,7 @@ fn check_if_not_enough_many_argument() {
         max_args: 2,
         usage: "",
         need_config_file: false,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -124,7 +126,7 @@ fn check_if_need_config_file_and_not_found() {
         max_args: 0,
         usage: "",
         need_config_file: true,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -150,7 +152,7 @@ fn check_if_need_config_file_and_found() {
         max_args: 0,
         usage: "",
         need_config_file: true,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -161,8 +163,8 @@ fn check_if_need_config_file_and_found() {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-        },
-        None => panic!("Unable to get config filename for test")
+        }
+        None => panic!("Unable to get config filename for test"),
     };
 
     let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
@@ -184,7 +186,7 @@ fn check_if_need_config_file_and_found_but_wrong_format() {
         max_args: 0,
         usage: "",
         need_config_file: true,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -194,9 +196,12 @@ fn check_if_need_config_file_and_found_but_wrong_format() {
     match get_config_filename() {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("tutu"))
-        },
-        None => panic!("Unable to get config filename for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from("tutu"))
+        }
+        None => panic!("Unable to get config filename for test"),
     };
 
     let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);

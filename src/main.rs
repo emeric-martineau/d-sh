@@ -10,11 +10,11 @@ extern crate serde_json;
 #[cfg(test)]
 extern crate regex;
 
-extern crate glob;
-extern crate users;
 extern crate dirs;
+extern crate glob;
 extern crate handlebars;
 extern crate rand;
+extern crate users;
 
 mod command;
 mod config;
@@ -24,21 +24,21 @@ mod help;
 mod io;
 mod template;
 
-use std::env;
-use command::Command;
-use command::CommandExitCode;
+use command::build::BUILD;
 use command::check::CHECK;
 use command::delete::DELETE;
 use command::init::INIT;
 use command::list::LIST;
 use command::run::RUN;
-use command::build::BUILD;
-use help::help;
-use help::version;
-use io::InputOutputHelper;
-use io::DefaultInputOutputHelper;
+use command::Command;
+use command::CommandExitCode;
 use docker::DefaultContainerHelper;
 use download::DefaultDownloadHelper;
+use help::help;
+use help::version;
+use io::DefaultInputOutputHelper;
+use io::InputOutputHelper;
+use std::env;
 
 const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, INIT, LIST, RUN];
 

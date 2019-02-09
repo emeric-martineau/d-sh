@@ -12,7 +12,7 @@ pub struct DockerfileParameter {
     /// Name of dockerfile.
     pub docker_filename: String,
     /// Context of docker file.
-    pub docker_context_path: String
+    pub docker_context_path: String,
 }
 
 impl DockerfileParameter {
@@ -28,7 +28,7 @@ impl DockerfileParameter {
 
         DockerfileParameter {
             docker_filename: docker_filename,
-            docker_context_path: docker_context_path
+            docker_context_path: docker_context_path,
         }
     }
 }

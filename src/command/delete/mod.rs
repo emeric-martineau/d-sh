@@ -1,11 +1,11 @@
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::{get_config_application, get_filename, Config};
 ///
 /// Module to delete image.
 ///
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::{Command, CommandExitCode, CommandError, CommandParameter};
-use config::{Config, get_config_application, get_filename};
 
 #[cfg(test)]
 mod tests;
@@ -17,26 +17,31 @@ mod tests;
 ///
 /// returning exit code of D-SH.
 ///
-fn delete_one(cmd_param: &CommandParameter, config: &Config,
-    app: &str)  -> Result<(), CommandError> {
-
+fn delete_one(
+    cmd_param: &CommandParameter,
+    config: &Config,
+    app: &str,
+) -> Result<(), CommandError> {
     let application_filename_full_path = get_filename(&config.applications_dir, app, Some(&".yml"));
 
     match get_config_application(cmd_param.io_helper, &application_filename_full_path) {
         Ok(config_application) => {
-            if cmd_param.dck_helper.remove_image(&config_application.image_name) {
+            if cmd_param
+                .dck_helper
+                .remove_image(&config_application.image_name)
+            {
                 Ok(())
             } else {
                 Err(CommandError {
                     msg: vec![String::from("Docker image not found")],
-                    code: CommandExitCode::ContainerImageNotFound
+                    code: CommandExitCode::ContainerImageNotFound,
                 })
             }
-        },
+        }
         Err(err) => Err(CommandError {
             msg: vec![format!("{}", err)],
-            code: CommandExitCode::ApplicationFileNotFound
-        })
+            code: CommandExitCode::ApplicationFileNotFound,
+        }),
     }
 }
 
@@ -50,21 +55,26 @@ fn delete_one(cmd_param: &CommandParameter, config: &Config,
 fn delete_all(cmd_param: &CommandParameter, config: &Config) -> Result<(), CommandError> {
     let mut list_applications_file;
 
-    match cmd_param.io_helper.dir_list_file(&config.applications_dir, "*.yml") {
+    match cmd_param
+        .io_helper
+        .dir_list_file(&config.applications_dir, "*.yml")
+    {
         Ok(r) => list_applications_file = r,
-        Err(err) => return Err(CommandError {
-            msg: vec![format!("{}", err)],
-            code: CommandExitCode::CannotReadApplicationsFolder
-        })
+        Err(err) => {
+            return Err(CommandError {
+                msg: vec![format!("{}", err)],
+                code: CommandExitCode::CannotReadApplicationsFolder,
+            });
+        }
     }
 
     list_applications_file.sort();
 
     // 2 - We have list of application
-    for filename in list_applications_file  {
+    for filename in list_applications_file {
         let application_name = Path::new(&filename)
             .file_stem()
-            .unwrap()   // get OsStr
+            .unwrap() // get OsStr
             .to_str()
             .unwrap();
 
@@ -73,7 +83,7 @@ fn delete_all(cmd_param: &CommandParameter, config: &Config) -> Result<(), Comma
                 cmd_param.io_helper.eprintln(err_msg);
             }
         }
-    };
+    }
 
     Ok(())
 }
@@ -85,20 +95,16 @@ fn delete_all(cmd_param: &CommandParameter, config: &Config) -> Result<(), Comma
 ///
 /// returning exit code of D-SH.
 ///
-fn delete(cmd_param: CommandParameter) -> Result<(), CommandError>  {
+fn delete(cmd_param: CommandParameter) -> Result<(), CommandError> {
     let config = cmd_param.config.unwrap();
 
     match cmd_param.args[0].as_ref() {
         "-h" | "--help" => {
             cmd_param.io_helper.println(cmd_param.command.usage);
             Ok(())
-        },
-        "-a" | "--all" => {
-            delete_all(&cmd_param, &config)
-        },
-        app => {
-            delete_one(&cmd_param, &config, app)
         }
+        "-a" | "--all" => delete_all(&cmd_param, &config),
+        app => delete_one(&cmd_param, &config, app),
     }
 }
 
@@ -125,5 +131,5 @@ pub const DELETE: Command = Command {
       -a, --all                Build all image of application
 ",
     need_config_file: true,
-    exec_cmd: delete
+    exec_cmd: delete,
 };

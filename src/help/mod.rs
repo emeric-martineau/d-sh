@@ -21,14 +21,23 @@ pub fn help(commands: &[Command], io_helper: &InputOutputHelper) {
     io_helper.println(&format!("A tool to container all your life"));
     io_helper.println(&format!(""));
     io_helper.println(&format!("Options:"));
-    io_helper.println(&format!("  -h, --help               Print this current help"));
-    io_helper.println(&format!("  -v, --version            Print version information and quit"));
+    io_helper.println(&format!(
+        "  -h, --help               Print this current help"
+    ));
+    io_helper.println(&format!(
+        "  -v, --version            Print version information and quit"
+    ));
     io_helper.println(&format!(""));
     io_helper.println(&format!("Commands:"));
 
     for cmd in commands {
         let command = format!("{} ({})", cmd.name, cmd.short_name);
-        io_helper.println(&format!("  {:<width$}{}", command, cmd.description, width = 13));
+        io_helper.println(&format!(
+            "  {:<width$}{}",
+            command,
+            cmd.description,
+            width = 13
+        ));
     }
 }
 

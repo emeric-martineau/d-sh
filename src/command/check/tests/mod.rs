@@ -1,16 +1,16 @@
+use super::{check, CHECK};
+use command::tests::{test_result_err, test_result_ok};
+use command::{CommandExitCode, CommandParameter};
+use config::{Config, ConfigDocker};
+use docker::tests::TestContainerHelper;
+use download::tests::TestDownloadHelper;
+use io::tests::found_item;
 ///
 /// Module to tests module check.
 ///
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
-use io::tests::found_item;
-use docker::tests::TestContainerHelper;
-use config::{Config, ConfigDocker};
-use super::{CHECK, check};
-use command::{CommandExitCode, CommandParameter};
-use command::tests::{test_result_ok, test_result_err};
-use download::tests::TestDownloadHelper;
 
 #[test]
 fn check_if_image_found_and_not_found() {
@@ -21,9 +21,18 @@ fn check_if_image_found_and_not_found() {
     let args = [];
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
-    dck_helper.images.borrow_mut().push(String::from("run-gitkraken:latest"));
-    dck_helper.images.borrow_mut().push(String::from("run-filezilla:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-gitkraken:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-filezilla:latest"));
 
     // Create configuration file
     let config = Config {
@@ -31,9 +40,9 @@ fn check_if_image_found_and_not_found() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
@@ -47,16 +56,25 @@ fn check_if_image_found_and_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(check(cmd_param));
 
     let stdout = io_helper.stdout.borrow();
 
-    found_item(&stdout, "atom                              run-atom:latest                   Build done   ");
-    found_item(&stdout, "filezilla                         run-filezilla:latest              Build done   ");
-    found_item(&stdout, "titi                              run-titi:latest                   Build need   ");
+    found_item(
+        &stdout,
+        "atom                              run-atom:latest                   Build done   ",
+    );
+    found_item(
+        &stdout,
+        "filezilla                         run-filezilla:latest              Build done   ",
+    );
+    found_item(
+        &stdout,
+        "titi                              run-titi:latest                   Build need   ",
+    );
 }
 
 #[test]
@@ -68,7 +86,10 @@ fn check_if_application_format_has_an_error() {
     let args = [];
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
 
     // Create configuration file
     let config = Config {
@@ -76,9 +97,9 @@ fn check_if_application_format_has_an_error() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
@@ -90,7 +111,7 @@ fn check_if_application_format_has_an_error() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(check(cmd_param), CommandExitCode::BadApplicationFormat);
@@ -112,12 +133,15 @@ fn check_if_cannot_read_application_dir() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    io_helper.files_error.borrow_mut().insert(String::from("app"), true);
+    io_helper
+        .files_error
+        .borrow_mut()
+        .insert(String::from("app"), true);
 
     let cmd_param = CommandParameter {
         command: &CHECK,
@@ -125,10 +149,13 @@ fn check_if_cannot_read_application_dir() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
-    let stderr = test_result_err(check(cmd_param), CommandExitCode::CannotReadApplicationsFolder);
+    let stderr = test_result_err(
+        check(cmd_param),
+        CommandExitCode::CannotReadApplicationsFolder,
+    );
 
     assert_eq!("Cannot read", stderr.get(0).unwrap())
 }

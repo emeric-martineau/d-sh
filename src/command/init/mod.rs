@@ -3,13 +3,15 @@
 ///
 /// Release under MIT License.
 ///
-use command::{Command, CommandExitCode, CommandError, CommandParameter};
-use std::path::Path;
-use std::collections::HashMap;
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::dockerfile::{
+    DOCKERFILE_BASE, DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG,
+    ENTRYPOINT, ENTRYPOINT_FILENAME,
+};
+use config::{create_config_filename_path, get_config_filename};
 use io::InputOutputHelper;
-use config::{get_config_filename, create_config_filename_path};
-use config::dockerfile::{DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE,
-    ENTRYPOINT_FILENAME, ENTRYPOINT,  DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG};
+use std::collections::HashMap;
+use std::path::Path;
 
 #[cfg(test)]
 mod tests;
@@ -19,11 +21,14 @@ const DOWNLOAD_DIR: &str = "~/.d-sh/download";
 /// Default directory to store applications.
 const APPLICATIONS_DIR: &str = "~/.d-sh/applications";
 
-fn create_dockerfile(io_helper: &InputOutputHelper)  -> Result<(), CommandError> {
+fn create_dockerfile(io_helper: &InputOutputHelper) -> Result<(), CommandError> {
     let dockerfile_list: HashMap<&str, &str> = [
         (DOCKERFILE_BASE_FILENAME, DOCKERFILE_BASE),
-        (ENTRYPOINT_FILENAME, ENTRYPOINT)]
-        .iter().cloned().collect();
+        (ENTRYPOINT_FILENAME, ENTRYPOINT),
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
     // Create all docker file
     for (k, v) in &dockerfile_list {
@@ -31,18 +36,17 @@ fn create_dockerfile(io_helper: &InputOutputHelper)  -> Result<(), CommandError>
             Some(dockerfile_name) => {
                 if let Err(err) = io_helper.file_write(&dockerfile_name, &v) {
                     return Err(CommandError {
-                        msg: vec![
-                            format!("Unable to write file '{}'", k),
-                            format!("{}", err)
-                            ],
-                        code: CommandExitCode::CannotWriteConfigFile
+                        msg: vec![format!("Unable to write file '{}'", k), format!("{}", err)],
+                        code: CommandExitCode::CannotWriteConfigFile,
                     });
                 }
-            },
-            None => return Err(CommandError {
-                msg: vec![String::from("Unable to get your home dir!")],
-                code: CommandExitCode::CannotGetHomeFolder
-            })
+            }
+            None => {
+                return Err(CommandError {
+                    msg: vec![String::from("Unable to get your home dir!")],
+                    code: CommandExitCode::CannotGetHomeFolder,
+                });
+            }
         }
     }
 
@@ -52,7 +56,11 @@ fn create_dockerfile(io_helper: &InputOutputHelper)  -> Result<(), CommandError>
 ///
 /// Read a line from stdin.
 ///
-fn read_line_with_default_value(io_helper: &InputOutputHelper, prompt: &str, default_value: &str) -> String {
+fn read_line_with_default_value(
+    io_helper: &InputOutputHelper,
+    prompt: &str,
+    default_value: &str,
+) -> String {
     let mut new_prompt = String::from(prompt);
 
     new_prompt.push_str(&format!(" (default; {})", default_value));
@@ -82,29 +90,44 @@ fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
     match get_config_filename() {
         Some(r) => config_file = r,
-        None => return Err(CommandError {
-            msg: vec![String::from("Unable to get your home dir!")],
-            code: CommandExitCode::CannotGetHomeFolder
-        })
+        None => {
+            return Err(CommandError {
+                msg: vec![String::from("Unable to get your home dir!")],
+                code: CommandExitCode::CannotGetHomeFolder,
+            });
+        }
     }
 
     if cmd_param.io_helper.file_exits(&config_file) {
         return Err(CommandError {
-            msg: vec![
-                format!("The file '{}' exits. Please remove it (or rename) and rerun this command.", config_file)
-                ],
-            code: CommandExitCode::ConfigFileExits
-        })
+            msg: vec![format!(
+                "The file '{}' exits. Please remove it (or rename) and rerun this command.",
+                config_file
+            )],
+            code: CommandExitCode::ConfigFileExits,
+        });
     }
 
-    let download_dir = read_line_with_default_value(cmd_param.io_helper,
-        "Enter the path of download directory",  DOWNLOAD_DIR);
-    let applications_dir = read_line_with_default_value(cmd_param.io_helper,
-        "Enter the path of applications directory",  APPLICATIONS_DIR);
-    let docker_image_from = read_line_with_default_value(cmd_param.io_helper,
-        "Enter the default docker image from",  DOCKERFILE_DEFAULT_FROM);
-    let docker_image_tag = read_line_with_default_value(cmd_param.io_helper,
-        "Enter the base image docker tag",  DOCKERFILE_DEFAULT_TAG);
+    let download_dir = read_line_with_default_value(
+        cmd_param.io_helper,
+        "Enter the path of download directory",
+        DOWNLOAD_DIR,
+    );
+    let applications_dir = read_line_with_default_value(
+        cmd_param.io_helper,
+        "Enter the path of applications directory",
+        APPLICATIONS_DIR,
+    );
+    let docker_image_from = read_line_with_default_value(
+        cmd_param.io_helper,
+        "Enter the default docker image from",
+        DOCKERFILE_DEFAULT_FROM,
+    );
+    let docker_image_tag = read_line_with_default_value(
+        cmd_param.io_helper,
+        "Enter the base image docker tag",
+        DOCKERFILE_DEFAULT_TAG,
+    );
 
     let data = format!("---\ndownload_dir: \"{}\"\napplications_dir: \"{}\"\ndockerfile:\n  from: \"{}\"\n  tag: \"{}\"\n",
         download_dir, applications_dir, docker_image_from, docker_image_tag);
@@ -118,10 +141,10 @@ fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
             return Err(CommandError {
                 msg: vec![
                     format!("Cannot create folder '{}'!", parent.display()),
-                    format!("{}", err)
-                    ],
-                code: CommandExitCode::CannotCreateFolderForConfigFile
-            })
+                    format!("{}", err),
+                ],
+                code: CommandExitCode::CannotCreateFolderForConfigFile,
+            });
         }
     }
 
@@ -129,9 +152,9 @@ fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
         return Err(CommandError {
             msg: vec![
                 format!("Unable to write file '{}'", config_file),
-                format!("{}", err)
-                ],
-            code: CommandExitCode::CannotWriteConfigFile
+                format!("{}", err),
+            ],
+            code: CommandExitCode::CannotWriteConfigFile,
         });
     }
 
@@ -154,5 +177,5 @@ pub const INIT: Command = Command {
     /// `check` command have no help.
     usage: "",
     need_config_file: false,
-    exec_cmd: init
+    exec_cmd: init,
 };

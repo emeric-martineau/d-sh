@@ -1,24 +1,24 @@
+use self::all::build_all;
+use self::base::build_base;
+use self::missing::get_missing_application;
+use self::one::build_one_application;
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::dockerfile::DOCKERFILE_BASE_FILENAME;
+use config::{create_config_filename_path, Config};
+use handlebars::TemplateRenderError;
+use io::{convert_path, InputOutputHelper};
+use rand::Rng;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::env::temp_dir;
+use std::error::Error;
 ///
 /// Module to build application.
 ///
 /// Release under MIT License.
 ///
 use std::path::PathBuf;
-use std::env::temp_dir;
-use std::error::Error;
-use std::collections::HashMap;
-use command::{Command, CommandError, CommandExitCode, CommandParameter};
-use io::{InputOutputHelper, convert_path};
-use config::{Config, create_config_filename_path};
-use config::dockerfile::DOCKERFILE_BASE_FILENAME;
-use rand::Rng;
-use self::all::build_all;
-use self::base::build_base;
-use self::one::build_one_application;
-use self::missing::get_missing_application;
 use template::Template;
-use handlebars::TemplateRenderError;
-use serde_json::Value;
 
 mod all;
 mod base;
@@ -41,15 +41,16 @@ pub struct BuildOptions {
     /// Build missing image
     missing: bool,
     /// Never checl if binary are update
-    skip_redownload: bool
+    skip_redownload: bool,
 }
 
-const UNKOWN_OPTIONS_MESSAGE: &'static str = "d-sh build: invalid option '{}'\nTry 'd-sh build --help' for more information.\n";
+const UNKOWN_OPTIONS_MESSAGE: &'static str =
+    "d-sh build: invalid option '{}'\nTry 'd-sh build --help' for more information.\n";
 
 ///
 /// Generate a random string.
 ///
-fn random_string () -> String {
+fn random_string() -> String {
     let mut rng = rand::thread_rng();
     let letter: char = rng.gen_range(b'A', b'Z') as char;
     let number: u32 = rng.gen_range(0, 999999);
@@ -63,32 +64,39 @@ fn random_string () -> String {
 fn remove_tmp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandExitCode {
     match io_helper.remove_dir_all(tmp_dir.to_str().unwrap()) {
         Ok(_) => CommandExitCode::Ok,
-        Err(_) => CommandExitCode::CannotDeleteTemporaryFolder
+        Err(_) => CommandExitCode::CannotDeleteTemporaryFolder,
     }
 }
 
 ///
 /// Generate template of dockerfile.
 ///
-fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
-    data: &Value) -> Result<(), CommandError> {
+fn generate_dockerfile(
+    io_helper: &InputOutputHelper,
+    output_filename: &str,
+    data: &Value,
+) -> Result<(), CommandError> {
     let handlebars = Template::new();
 
     let dockerfile_name;
 
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(r) => dockerfile_name = r,
-        None => return Err(CommandError {
-            msg: vec![String::from("Unable to get your home dir!")],
-            code: CommandExitCode::CannotGetHomeFolder
-        })
+        None => {
+            return Err(CommandError {
+                msg: vec![String::from("Unable to get your home dir!")],
+                code: CommandExitCode::CannotGetHomeFolder,
+            });
+        }
     }
 
-    if ! io_helper.file_exits(&dockerfile_name) {
+    if !io_helper.file_exits(&dockerfile_name) {
         return Err(CommandError {
-            msg: vec![format!("The file '{}' doesn't exits. Please run 'init' command first.",
-                dockerfile_name)],
-            code: CommandExitCode::TemplateNotFound
+            msg: vec![format!(
+                "The file '{}' doesn't exits. Please run 'init' command first.",
+                dockerfile_name
+            )],
+            code: CommandExitCode::TemplateNotFound,
         });
     }
 
@@ -96,13 +104,15 @@ fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
 
     match io_helper.file_read_at_string(&dockerfile_name) {
         Ok(r) => source_template = r,
-        Err(err) => return Err(CommandError {
-            msg: vec![
-                String::from("Unable to read Dockerfile template. Please check right!"),
-                format!("{}", err)
+        Err(err) => {
+            return Err(CommandError {
+                msg: vec![
+                    String::from("Unable to read Dockerfile template. Please check right!"),
+                    format!("{}", err),
                 ],
-            code: CommandExitCode::CannotGenerateDockerfile
-        })
+                code: CommandExitCode::CannotGenerateDockerfile,
+            });
+        }
     }
 
     let content;
@@ -113,17 +123,19 @@ fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
             let err_msg;
 
             match err {
-                TemplateRenderError::TemplateError(err) => err_msg = String::from(err.description()),
+                TemplateRenderError::TemplateError(err) => {
+                    err_msg = String::from(err.description())
+                }
                 TemplateRenderError::RenderError(err) => err_msg = String::from(err.description()),
-                TemplateRenderError::IOError(_, msg) => err_msg = msg
+                TemplateRenderError::IOError(_, msg) => err_msg = msg,
             }
 
             return Err(CommandError {
                 msg: vec![
                     String::from("Something is wrong in Dockerfile template!"),
-                    err_msg
-                    ],
-                code: CommandExitCode::DockerfileTemplateInvalid
+                    err_msg,
+                ],
+                code: CommandExitCode::DockerfileTemplateInvalid,
             });
         }
     }
@@ -132,9 +144,9 @@ fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
         return Err(CommandError {
             msg: vec![
                 String::from("Unable to generate Dockerfile for build. Please check right!"),
-                format!("{}", err)
-                ],
-            code: CommandExitCode::CannotGenerateDockerfile
+                format!("{}", err),
+            ],
+            code: CommandExitCode::CannotGenerateDockerfile,
         });
     }
 
@@ -145,9 +157,13 @@ fn generate_dockerfile(io_helper: &InputOutputHelper, output_filename: &str,
 /// Build one application.
 ///
 ///
-fn build_some_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
-    options: &BuildOptions, config: &Config,
-    applications: &Vec<String>) -> Result<(), CommandError> {
+fn build_some_application(
+    cmd_param: &CommandParameter,
+    tmp_dir: &PathBuf,
+    options: &BuildOptions,
+    config: &Config,
+    applications: &Vec<String>,
+) -> Result<(), CommandError> {
     let mut app_build_fail = HashMap::new();
 
     for app in applications {
@@ -170,7 +186,7 @@ fn build_some_application(cmd_param: &CommandParameter, tmp_dir: &PathBuf,
 
         return Err(CommandError {
             msg: err_msg,
-            code: CommandExitCode::DockerBuildFail
+            code: CommandExitCode::DockerBuildFail,
         });
     }
 }
@@ -188,16 +204,18 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
         base: false,
         force: false,
         missing: false,
-        skip_redownload: false
+        skip_redownload: false,
     };
 
     // Just get options form command line
-    let opts: Vec<&String> = cmd_param.args
+    let opts: Vec<&String> = cmd_param
+        .args
         .iter()
         .filter(|a| a.starts_with("-"))
         .collect();
     // Get applications list from command line
-    let applications: Vec<String> = cmd_param.args
+    let applications: Vec<String> = cmd_param
+        .args
         .iter()
         .filter(|a| !a.starts_with("-"))
         .map(|a| a.clone())
@@ -208,7 +226,7 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
             "-h" | "--help" => {
                 cmd_param.io_helper.println(cmd_param.command.usage);
                 return Ok(());
-            },
+            }
             "-a" | "--all" => options.all = true,
             "-b" | "--base" => options.base = true,
             "-f" | "--force" => options.force = true,
@@ -217,8 +235,8 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
             other => {
                 return Err(CommandError {
                     msg: vec![UNKOWN_OPTIONS_MESSAGE.replace("{}", other)],
-                    code: CommandExitCode::UnknowOption
-                })
+                    code: CommandExitCode::UnknowOption,
+                });
             }
         }
     }
@@ -230,18 +248,24 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
     match &config.tmp_dir {
         Some(t) => tmp_dir = PathBuf::from(convert_path(t)),
-        None => tmp_dir = temp_dir()
+        None => tmp_dir = temp_dir(),
     }
 
     tmp_dir.push(random_string());
 
-    if let Err(err) = cmd_param.io_helper.create_dir_all(tmp_dir.to_str().unwrap()) {
+    if let Err(err) = cmd_param
+        .io_helper
+        .create_dir_all(tmp_dir.to_str().unwrap())
+    {
         return Err(CommandError {
             msg: vec![
-                format!("Cannot create '{}' folder. Please check right!", &tmp_dir.to_str().unwrap()),
-                format!("{}", err)
-                ],
-            code: CommandExitCode::CannotCreateFolder
+                format!(
+                    "Cannot create '{}' folder. Please check right!",
+                    &tmp_dir.to_str().unwrap()
+                ),
+                format!("{}", err),
+            ],
+            code: CommandExitCode::CannotCreateFolder,
         });
     }
 
@@ -254,13 +278,19 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
         result = build_all(&cmd_param, &options, &config, &tmp_dir);
     } else if options.missing {
         match get_missing_application(&cmd_param, &config) {
-            Ok(list_applications) => result = build_some_application(&cmd_param,
-                &tmp_dir, &options, &config, &list_applications),
-            Err(err) => result = Err(err)
+            Ok(list_applications) => {
+                result = build_some_application(
+                    &cmd_param,
+                    &tmp_dir,
+                    &options,
+                    &config,
+                    &list_applications,
+                )
+            }
+            Err(err) => result = Err(err),
         }
     } else {
-        result = build_some_application(&cmd_param, &tmp_dir, &options, &config,
-            &applications);
+        result = build_some_application(&cmd_param, &tmp_dir, &options, &config, &applications);
     }
 
     // Remove tmp folder
@@ -295,5 +325,5 @@ pub const BUILD: Command = Command {
       -m, --missing            Build only missing image
       -s, --skip-redownload    If binary is present, don't check if new version is available",
     need_config_file: true,
-    exec_cmd: build
+    exec_cmd: build,
 };

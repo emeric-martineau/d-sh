@@ -1,14 +1,14 @@
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::{get_config_application, Config, ConfigApplication};
+use docker::ContainerHelper;
+use io::{convert_path, InputOutputHelper};
 ///
 /// Module to delete image.
 ///
 /// Release under MIT License.
 ///
 use std::path::Path;
-use users::{get_current_uid, get_current_gid, get_current_username};
-use command::{Command, CommandExitCode, CommandError, CommandParameter};
-use io::{InputOutputHelper, convert_path};
-use docker::ContainerHelper;
-use config::{Config, ConfigApplication, get_config_application};
+use users::{get_current_gid, get_current_uid, get_current_username};
 
 #[cfg(test)]
 mod tests;
@@ -61,7 +61,8 @@ fn get_run_args(extra_args: &mut Vec<String>, username: String) -> Vec<String> {
         format!("USERNAME_TO_RUN_GID={}", get_current_gid()),
         String::from("-e"),
         format!("USERNAME_TO_RUN_UID={}", get_current_uid()),
-        String::from("--rm")];
+        String::from("--rm"),
+    ];
 
     run_opts.append(extra_args);
 
@@ -100,32 +101,36 @@ fn get_cmd_args(cmd_line_args: &Option<Vec<String>>, args: &[String]) -> Vec<Str
 ///
 /// returning exit code of D-SH.
 ///
-fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
-    dck_helper: &ContainerHelper, args: &[String], interactive: bool) -> Result<(), CommandError> {
-
+fn run_application(
+    config: &Config,
+    app: &str,
+    io_helper: &InputOutputHelper,
+    dck_helper: &ContainerHelper,
+    args: &[String],
+    interactive: bool,
+) -> Result<(), CommandError> {
     io_helper.println(&format!("Running {}...", app));
 
     let mut application_filename = String::from(app);
     application_filename.push_str(".yml");
 
-    let application_filename_path = Path::new(&config.applications_dir)
-        .join(&application_filename);
+    let application_filename_path = Path::new(&config.applications_dir).join(&application_filename);
 
-    let application_filename_full_path = application_filename_path
-        .to_str()
-        .unwrap();
+    let application_filename_full_path = application_filename_path.to_str().unwrap();
 
     let config_application;
 
     match get_config_application(io_helper, &application_filename_full_path) {
         Ok(r) => config_application = r,
-        Err(err) => return Err(CommandError {
-            msg: vec![
-                format!("Application '{}' not found.", app),
-                format!("{}", err)
+        Err(err) => {
+            return Err(CommandError {
+                msg: vec![
+                    format!("Application '{}' not found.", app),
+                    format!("{}", err),
                 ],
-            code: CommandExitCode::ApplicationFileNotFound
-        })
+                code: CommandExitCode::ApplicationFileNotFound,
+            });
+        }
     }
 
     // Check if image exists
@@ -138,10 +143,12 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 
         match get_current_username() {
             Some(r) => username = r,
-            None => return Err(CommandError {
-                msg: vec![String::from("Cannot get current user !")],
-                code: CommandExitCode::CannotGetCurrentUser
-            })
+            None => {
+                return Err(CommandError {
+                    msg: vec![String::from("Cannot get current user !")],
+                    code: CommandExitCode::CannotGetCurrentUser,
+                });
+            }
         }
 
         let mut extra_args = get_extra_args(interactive, &config_application);
@@ -149,14 +156,18 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 
         let cmd_args = get_cmd_args(&config_application.cmd_line_args, args);
 
-        if dck_helper.run_container(&config_application.image_name, Some(&run_opts),
-            Some(&config_application.cmd_line), Some(&cmd_args)) {
+        if dck_helper.run_container(
+            &config_application.image_name,
+            Some(&run_opts),
+            Some(&config_application.cmd_line),
+            Some(&cmd_args),
+        ) {
             Ok(())
         } else {
             return Err(CommandError {
                 msg: vec![String::from("Error when running container")],
-                code: CommandExitCode::ContainerRunError
-            })
+                code: CommandExitCode::ContainerRunError,
+            });
         }
     } else {
         Err(CommandError {
@@ -164,9 +175,9 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
                 format!("Image for program {} not found.", app),
                 String::from(""),
                 String::from("Build it before with:"),
-                format!("  d-sh build {}", app)
-                ],
-            code: CommandExitCode::ContainerImageNotFound
+                format!("  d-sh build {}", app),
+            ],
+            code: CommandExitCode::ContainerImageNotFound,
         })
     }
 }
@@ -179,29 +190,38 @@ fn run_application(config: &Config, app: &str, io_helper: &InputOutputHelper,
 /// returning exit code of D-SH.
 ///
 fn run(cmd_param: CommandParameter) -> Result<(), CommandError> {
-
     let config = cmd_param.config.unwrap();
 
     match cmd_param.args[0].as_ref() {
         "-h" | "--help" => {
             cmd_param.io_helper.println(cmd_param.command.usage);
             Ok(())
-        },
+        }
         "-i" | "--interactive" => {
             if cmd_param.args.len() > 1 {
-                run_application(&config, &cmd_param.args[1], cmd_param.io_helper,
-                    cmd_param.dck_helper, &cmd_param.args[2..], true)
+                run_application(
+                    &config,
+                    &cmd_param.args[1],
+                    cmd_param.io_helper,
+                    cmd_param.dck_helper,
+                    &cmd_param.args[2..],
+                    true,
+                )
             } else {
                 Err(CommandError {
                     msg: vec![String::from("You must specify an application !")],
-                    code: CommandExitCode::ApplicationNameMissing
+                    code: CommandExitCode::ApplicationNameMissing,
                 })
             }
-        },
-        app => {
-            run_application(&config, &app, cmd_param.io_helper, cmd_param.dck_helper,
-                &cmd_param.args[1..], false)
         }
+        app => run_application(
+            &config,
+            &app,
+            cmd_param.io_helper,
+            cmd_param.dck_helper,
+            &cmd_param.args[1..],
+            false,
+        ),
     }
 }
 
@@ -228,5 +248,5 @@ pub const RUN: Command = Command {
       -i | --interactive       Run application in terminal
 ",
     need_config_file: true,
-    exec_cmd: run
+    exec_cmd: run,
 };

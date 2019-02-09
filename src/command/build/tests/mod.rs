@@ -3,14 +3,14 @@
 ///
 /// Release under MIT License.
 ///
-use super::{BUILD, build, UNKOWN_OPTIONS_MESSAGE};
-use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT_FILENAME, ENTRYPOINT};
-use io::tests::TestInputOutputHelper;
-use docker::tests::TestContainerHelper;
-use config::{create_config_filename_path, Config, ConfigDocker};
+use super::{build, BUILD, UNKOWN_OPTIONS_MESSAGE};
+use command::tests::{test_result_err, test_result_ok};
 use command::{CommandExitCode, CommandParameter};
-use command::tests::{test_result_ok, test_result_err};
+use config::dockerfile::{DOCKERFILE_BASE_FILENAME, ENTRYPOINT, ENTRYPOINT_FILENAME};
+use config::{create_config_filename_path, Config, ConfigDocker};
+use docker::tests::TestContainerHelper;
 use download::tests::TestDownloadHelper;
+use io::tests::TestInputOutputHelper;
 
 #[test]
 fn build_display_help() {
@@ -26,9 +26,9 @@ fn build_display_help() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let cmd_param = CommandParameter {
@@ -37,7 +37,7 @@ fn build_display_help() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -61,9 +61,9 @@ fn build_unknow_option() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let cmd_param = CommandParameter {
@@ -72,12 +72,15 @@ fn build_unknow_option() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::UnknowOption);
 
-    assert_eq!(stderr.get(0).unwrap(), &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0]));
+    assert_eq!(
+        stderr.get(0).unwrap(),
+        &UNKOWN_OPTIONS_MESSAGE.replace("{}", &args[0])
+    );
 }
 
 fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
@@ -88,18 +91,26 @@ fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, confi
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou {{dependencies}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper.files.borrow_mut().insert(
+                cfg_file,
+                String::from(
+                    "{{dockerfile_from}} {{#if dockerfile_base}}coucou {{dependencies}}{{/if}}",
+                ),
+            )
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create dockerfile
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
@@ -112,7 +123,7 @@ fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, confi
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -164,9 +175,9 @@ fn build_base_short_option() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     build_base_with_args(&[String::from("-b")], dck_helper, config);
@@ -181,12 +192,16 @@ fn build_base_short_option_with_force() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    build_base_with_args(&[String::from("-b"), String::from("-f")], dck_helper, config);
+    build_base_with_args(
+        &[String::from("-b"), String::from("-f")],
+        dck_helper,
+        config,
+    );
 
     let builds = dck_helper.builds.borrow();
     let base_build = builds.get(0).unwrap();
@@ -208,9 +223,9 @@ fn build_base_short_option_dockerfile_template_not_found() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let dockerfile_name;
@@ -219,17 +234,20 @@ fn build_base_short_option_dockerfile_template_not_found() {
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             dockerfile_name = cfg_file;
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create entrypoint
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
@@ -242,12 +260,18 @@ fn build_base_short_option_dockerfile_template_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::TemplateNotFound);
 
-    assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", dockerfile_name));
+    assert_eq!(
+        stderr.get(0).unwrap(),
+        &format!(
+            "The file '{}' doesn't exits. Please run 'init' command first.",
+            dockerfile_name
+        )
+    );
 }
 
 #[test]
@@ -264,9 +288,9 @@ fn build_base_short_option_entrypoint_template_not_found() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let entrypoint_name;
@@ -275,17 +299,20 @@ fn build_base_short_option_entrypoint_template_not_found() {
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             entrypoint_name = cfg_file;
-        },
-        None => panic!("Unable to create entrypoint for test")
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("hello man!"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from("hello man!"))
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Add application with dependencies
@@ -298,12 +325,18 @@ fn build_base_short_option_entrypoint_template_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::TemplateNotFound);
 
-    assert_eq!(stderr.get(0).unwrap(), &format!("The file '{}' doesn't exits. Please run 'init' command first.", entrypoint_name));
+    assert_eq!(
+        stderr.get(0).unwrap(),
+        &format!(
+            "The file '{}' doesn't exits. Please run 'init' command first.",
+            entrypoint_name
+        )
+    );
 }
 
 #[test]
@@ -319,32 +352,41 @@ fn build_base_short_option_application_file_format_bad() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper.files.borrow_mut().insert(
+                cfg_file,
+                String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou{{/if}}"),
+            )
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create dockerfile
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
-    io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest"));
+    io_helper.files.borrow_mut().insert(
+        String::from("app/filezilla.yml"),
+        String::from("---\nimage_name: \"run-filezilla:latest"),
+    );
 
     let cmd_param = CommandParameter {
         command: &BUILD,
@@ -352,7 +394,7 @@ fn build_base_short_option_application_file_format_bad() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -413,27 +455,33 @@ fn build_base_short_option_dockerfile_template_format_bad() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/iG}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from("{{#if base}}dffdfd{{/iG}}"))
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create entrypoint
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
@@ -446,12 +494,15 @@ fn build_base_short_option_dockerfile_template_format_bad() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerfileTemplateInvalid);
 
-    assert_eq!(stderr.get(0).unwrap(), "Something is wrong in Dockerfile template!");
+    assert_eq!(
+        stderr.get(0).unwrap(),
+        "Something is wrong in Dockerfile template!"
+    );
     assert_eq!(stderr.get(1).unwrap(), "wrong name of closing helper");
 }
 
@@ -469,34 +520,43 @@ fn build_base_short_option_docker_build_fail() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create entrypoint
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    dck_helper.builds_error.borrow_mut().insert(config.dockerfile.tag.clone(), true);
+    dck_helper
+        .builds_error
+        .borrow_mut()
+        .insert(config.dockerfile.tag.clone(), true);
 
     let cmd_param = CommandParameter {
         command: &BUILD,
@@ -504,7 +564,7 @@ fn build_base_short_option_docker_build_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
@@ -521,24 +581,28 @@ fn build_base_short_option_with_specified_tmp_dir() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: Some(String::from("~/.tmp/"))
+        tmp_dir: Some(String::from("~/.tmp/")),
     };
 
     build_base_with_args(&[String::from("-b")], dck_helper, config);
 }
 
-fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
-    dck_helper: &TestContainerHelper, dl_helper: &TestDownloadHelper, config: Config) -> String {
-
+fn build_with_args(
+    args: &[String],
+    io_helper: &TestInputOutputHelper,
+    dck_helper: &TestContainerHelper,
+    dl_helper: &TestDownloadHelper,
+    config: Config,
+) -> String {
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     let cmd_param = CommandParameter {
@@ -547,7 +611,7 @@ fn build_with_args(args: &[String], io_helper: &TestInputOutputHelper,
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -583,12 +647,15 @@ fn build_application() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
@@ -597,7 +664,13 @@ fn build_application() {
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();
@@ -631,34 +704,43 @@ fn build_application_docker_build_fail() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from("{{#if base}}dffdfd{{/if}}"))
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create entrypoint
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
     // Add application with dependencies
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d1\n  - d2"));
     io_helper.files.borrow_mut().insert(String::from("app/filezilla.yml"), String::from("---\nimage_name: \"run-filezilla:latest\"\ncmd_line: \"\"\ndownload_filename: \"\"\nurl: \"\"\ndependencies:\n  - d3"));
 
-    dck_helper.builds_error.borrow_mut().insert(String::from("run-atom:latest"), true);
+    dck_helper
+        .builds_error
+        .borrow_mut()
+        .insert(String::from("run-atom:latest"), true);
 
     let cmd_param = CommandParameter {
         command: &BUILD,
@@ -666,7 +748,7 @@ fn build_application_docker_build_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
@@ -685,12 +767,15 @@ fn build_application_download_fail() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
@@ -698,15 +783,18 @@ fn build_application_download_fail() {
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    dl_helper.urls_error.borrow_mut().insert(String::from("toto"), true);
+    dl_helper
+        .urls_error
+        .borrow_mut()
+        .insert(String::from("toto"), true);
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     let cmd_param = CommandParameter {
@@ -715,13 +803,16 @@ fn build_application_download_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(build(cmd_param), CommandExitCode::DockerBuildFail);
 
     assert_eq!(stderr.get(0).unwrap(), "Build atom failed!");
-    assert_eq!(stderr.get(1).unwrap(), "Unable to download application 'atom'!");
+    assert_eq!(
+        stderr.get(1).unwrap(),
+        "Unable to download application 'atom'!"
+    );
 }
 
 #[test]
@@ -734,21 +825,33 @@ fn build_application_download_already_done() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
-    io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
+    io_helper
+        .files
+        .borrow_mut()
+        .insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();
@@ -757,7 +860,10 @@ fn build_application_download_already_done() {
     assert_eq!(dl.url, "toto");
     assert_eq!(dl.update, false);
 
-    assert_eq!(io_helper.files.borrow().get("dwn/atom.deb").unwrap(), "Go, go, go !");
+    assert_eq!(
+        io_helper.files.borrow().get("dwn/atom.deb").unwrap(),
+        "Go, go, go !"
+    );
 
     let builds = dck_helper.builds.borrow();
     let atom_build = builds.get(0).unwrap();
@@ -781,29 +887,47 @@ fn build_application_skip_download() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2"));
-    io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
+    io_helper
+        .files
+        .borrow_mut()
+        .insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    dl_helper.update_dl_files.borrow_mut().insert(String::from("dwn/atom.deb"), true);
+    dl_helper
+        .update_dl_files
+        .borrow_mut()
+        .insert(String::from("dwn/atom.deb"), true);
 
-    let generate_dockerfile = build_with_args(&[String::from("-s"), String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("-s"), String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
 
     assert_eq!(downloads.len(), 0);
 
-    assert_eq!(io_helper.files.borrow().get("dwn/atom.deb").unwrap(), "Go, go, go !");
+    assert_eq!(
+        io_helper.files.borrow().get("dwn/atom.deb").unwrap(),
+        "Go, go, go !"
+    );
 
     let builds = dck_helper.builds.borrow();
     let atom_build = builds.get(0).unwrap();
@@ -827,29 +951,47 @@ fn build_application_skip_download_by_app_conf() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"\"\ndownload_filename: \"atom.deb\"\nurl: \"toto\"\ndependencies:\n  - d1\n  - d2\nskip_redownload: true"));
-    io_helper.files.borrow_mut().insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
+    io_helper
+        .files
+        .borrow_mut()
+        .insert(String::from("dwn/atom.deb"), String::from("Go, go, go !"));
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    dl_helper.update_dl_files.borrow_mut().insert(String::from("dwn/atom.deb"), true);
+    dl_helper
+        .update_dl_files
+        .borrow_mut()
+        .insert(String::from("dwn/atom.deb"), true);
 
-    let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
 
     assert_eq!(downloads.len(), 0);
 
-    assert_eq!(io_helper.files.borrow().get("dwn/atom.deb").unwrap(), "Go, go, go !");
+    assert_eq!(
+        io_helper.files.borrow().get("dwn/atom.deb").unwrap(),
+        "Go, go, go !"
+    );
 
     let builds = dck_helper.builds.borrow();
     let atom_build = builds.get(0).unwrap();
@@ -873,12 +1015,15 @@ fn build_application_with_force() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
@@ -886,7 +1031,13 @@ fn build_application_with_force() {
 
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    let generate_dockerfile = build_with_args(&[String::from("-f"), String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("-f"), String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();
@@ -921,12 +1072,15 @@ fn build_many_applications() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
@@ -940,8 +1094,8 @@ fn build_many_applications() {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     let cmd_param = CommandParameter {
@@ -950,7 +1104,7 @@ fn build_many_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -979,7 +1133,6 @@ fn build_many_applications() {
 
     assert_eq!(stdout.get(0).unwrap(), "Building atom...");
     assert_eq!(stdout.get(1).unwrap(), "Building filezilla...");
-
 }
 
 #[test]
@@ -992,12 +1145,15 @@ fn build_all_applications() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     // Add application with dependencies
@@ -1012,8 +1168,8 @@ fn build_all_applications() {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     let cmd_param = CommandParameter {
@@ -1022,7 +1178,7 @@ fn build_all_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -1051,7 +1207,6 @@ fn build_all_applications() {
 
     assert_eq!(stdout.get(0).unwrap(), "Building atom...");
     assert_eq!(stdout.get(1).unwrap(), "Building filezilla...");
-
 }
 
 #[test]
@@ -1059,7 +1214,10 @@ fn build_missings_applications() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
 
     // Create configuration file
     let config = Config {
@@ -1067,12 +1225,15 @@ fn build_missings_applications() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
-    dck_helper.images.borrow_mut().push(config.dockerfile.tag.clone());
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(config.dockerfile.tag.clone());
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
 
@@ -1086,8 +1247,8 @@ fn build_missings_applications() {
         Some(cfg_file) => {
             // Create file
             io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if (not dockerfile_base)}}bisous {{application_filename}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     let cmd_param = CommandParameter {
@@ -1096,7 +1257,7 @@ fn build_missings_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(build(cmd_param));
@@ -1104,7 +1265,6 @@ fn build_missings_applications() {
     let stdout = io_helper.stdout.borrow();
 
     assert_eq!(stdout.get(0).unwrap(), "Building filezilla...");
-
 }
 
 #[test]
@@ -1117,9 +1277,9 @@ fn build_application_with_missing_base_image() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
@@ -1132,21 +1292,35 @@ fn build_application_with_missing_base_image() {
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("{{dockerfile_from}} {{#if dockerfile_base}}coucou {{dependencies}}{{/if}}"))
-        },
-        None => panic!("Unable to create dockerfile for test")
+            io_helper.files.borrow_mut().insert(
+                cfg_file,
+                String::from(
+                    "{{dockerfile_from}} {{#if dockerfile_base}}coucou {{dependencies}}{{/if}}",
+                ),
+            )
+        }
+        None => panic!("Unable to create dockerfile for test"),
     };
 
     // Create dockerfile
     match create_config_filename_path(&ENTRYPOINT_FILENAME) {
         Some(cfg_file) => {
             // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from(ENTRYPOINT))
-        },
-        None => panic!("Unable to create entrypoint for test")
+            io_helper
+                .files
+                .borrow_mut()
+                .insert(cfg_file, String::from(ENTRYPOINT))
+        }
+        None => panic!("Unable to create entrypoint for test"),
     };
 
-    let generate_dockerfile = build_with_args(&[String::from("atom")], io_helper, dck_helper, dl_helper, config);
+    let generate_dockerfile = build_with_args(
+        &[String::from("atom")],
+        io_helper,
+        dck_helper,
+        dl_helper,
+        config,
+    );
 
     let downloads = dl_helper.dl.borrow();
     let dl = downloads.get(0).unwrap();

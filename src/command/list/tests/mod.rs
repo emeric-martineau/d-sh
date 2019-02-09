@@ -1,16 +1,16 @@
+use super::{list, LIST};
+use command::tests::test_result_ok;
+use command::CommandParameter;
+use config::{Config, ConfigDocker};
+use docker::tests::TestContainerHelper;
+use download::tests::TestDownloadHelper;
+use io::tests::found_item;
 ///
 /// Module to tests module list.
 ///
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
-use io::tests::found_item;
-use docker::tests::TestContainerHelper;
-use config::{Config, ConfigDocker};
-use super::{LIST, list};
-use command::tests::test_result_ok;
-use command::CommandParameter;
-use download::tests::TestDownloadHelper;
 
 #[test]
 fn list_all_applications() {
@@ -26,9 +26,9 @@ fn list_all_applications() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
@@ -42,7 +42,7 @@ fn list_all_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(list(cmd_param));

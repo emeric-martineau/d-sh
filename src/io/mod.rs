@@ -1,23 +1,22 @@
+use dirs::home_dir;
+use glob::glob;
+use std::fs::{copy, create_dir_all, hard_link, remove_dir_all, write, File};
 ///
 /// Module to print output.
 ///
 /// Release under MIT License.
 ///
-use std::io::{Error, ErrorKind, Write, stdin, stdout, Read};
+use std::io::{stdin, stdout, Error, ErrorKind, Read, Write};
 use std::path::Path;
-use std::fs::{File, remove_dir_all, create_dir_all, write, hard_link, copy};
-use glob::glob;
-use dirs::home_dir;
 
 #[cfg(test)]
 pub mod tests;
-
 
 /// Convert path with start "~/"
 pub fn convert_path(x: &str) -> String {
     if x.starts_with("~/") {
         if let Some(path) = home_dir() {
-            return path.to_str().unwrap().to_owned() + &x[1..]
+            return path.to_str().unwrap().to_owned() + &x[1..];
         }
     }
 
@@ -71,17 +70,15 @@ impl InputOutputHelper for DefaultInputOutputHelper {
         let mut input = String::new();
 
         match stdin().read_line(&mut input) {
-            Ok(_) => {
-                input
-            }
-            Err(error) => panic!("error: {}", error)
+            Ok(_) => input,
+            Err(error) => panic!("error: {}", error),
         }
     }
 
     fn file_write(&self, path: &str, contents: &str) -> Result<(), Error> {
         match write(path, contents) {
             Ok(f) => Ok(f),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -100,7 +97,7 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
         let mut new_dir = String::from(convert_path(dir));
 
-        if ! dir.ends_with("/") {
+        if !dir.ends_with("/") {
             new_dir.push_str("/");
         }
 
@@ -117,35 +114,32 @@ impl InputOutputHelper for DefaultInputOutputHelper {
                 }
 
                 Ok(result)
-            },
-            Err(e) => Err(Error::new(ErrorKind::PermissionDenied, e.msg))
+            }
+            Err(e) => Err(Error::new(ErrorKind::PermissionDenied, e.msg)),
         }
-
     }
 
     fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
         match create_dir_all(dir) {
             Ok(a) => Ok(a),
-            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write")),
         }
     }
 
     fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
         match remove_dir_all(dir) {
             Ok(a) => Ok(a),
-            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete"))
+            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete")),
         }
     }
 
     fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error> {
         match hard_link(from, to) {
             Ok(_) => Ok(()),
-            Err(_) => {
-                match copy(from, to) {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
-                }
-            }
+            Err(_) => match copy(from, to) {
+                Ok(_) => Ok(()),
+                Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write")),
+            },
         }
     }
 }

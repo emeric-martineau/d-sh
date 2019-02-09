@@ -1,19 +1,19 @@
+use super::{run, RUN};
+use command::tests::{test_result_err, test_result_ok};
+use command::{CommandExitCode, CommandParameter};
+use config::{Config, ConfigDocker};
+use docker::tests::TestContainerHelper;
+use docker::tests::TestRunContainer;
+use download::tests::TestDownloadHelper;
 ///
 /// Module to tests module run.
 ///
 /// Release under MIT License.
 ///
 use io::convert_path;
-use io::tests::TestInputOutputHelper;
-use docker::tests::TestContainerHelper;
-use docker::tests::TestRunContainer;
-use config::{Config, ConfigDocker};
 use io::tests::found_item;
-use super::{RUN, run};
-use command::{CommandExitCode, CommandParameter};
-use command::tests::{test_result_ok, test_result_err};
-use users::{get_current_uid, get_current_gid, get_current_username};
-use download::tests::TestDownloadHelper;
+use io::tests::TestInputOutputHelper;
+use users::{get_current_gid, get_current_uid, get_current_username};
 
 #[test]
 fn run_display_help() {
@@ -29,9 +29,9 @@ fn run_display_help() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let cmd_param = CommandParameter {
@@ -40,7 +40,7 @@ fn run_display_help() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(run(cmd_param));
@@ -64,9 +64,9 @@ fn run_image_application_not_found() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     let cmd_param = CommandParameter {
@@ -75,7 +75,7 @@ fn run_image_application_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(run(cmd_param), CommandExitCode::ApplicationFileNotFound);
@@ -101,9 +101,9 @@ fn run_image_not_found_not_interactive() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
@@ -115,7 +115,7 @@ fn run_image_not_found_not_interactive() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     let stderr = test_result_err(run(cmd_param), CommandExitCode::ContainerImageNotFound);
@@ -143,16 +143,19 @@ fn run_image_found_not_interactive() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\""));
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
 
     let cmd_param = CommandParameter {
         command: &RUN,
@@ -160,7 +163,7 @@ fn run_image_found_not_interactive() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(run(cmd_param));
@@ -176,19 +179,37 @@ fn run_image_found_not_interactive() {
     let username = get_current_username().unwrap();
 
     assert_eq!(atom_container.run_options.get(0).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(1).unwrap(), "/tmp/.X11-unix/:/tmp/.X11-unix/");
+    assert_eq!(
+        atom_container.run_options.get(1).unwrap(),
+        "/tmp/.X11-unix/:/tmp/.X11-unix/"
+    );
     assert_eq!(atom_container.run_options.get(2).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(3).unwrap(), "/dev/shm:/dev/shm");
+    assert_eq!(
+        atom_container.run_options.get(3).unwrap(),
+        "/dev/shm:/dev/shm"
+    );
     assert_eq!(atom_container.run_options.get(4).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(5).unwrap(), &format!("{}:/home/{}", convert_path("~/"), username));
+    assert_eq!(
+        atom_container.run_options.get(5).unwrap(),
+        &format!("{}:/home/{}", convert_path("~/"), username)
+    );
     assert_eq!(atom_container.run_options.get(6).unwrap(), "-e");
     assert_eq!(atom_container.run_options.get(7).unwrap(), "DISPLAY");
     assert_eq!(atom_container.run_options.get(8).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(9).unwrap(), &format!("USERNAME_TO_RUN={}", username));
+    assert_eq!(
+        atom_container.run_options.get(9).unwrap(),
+        &format!("USERNAME_TO_RUN={}", username)
+    );
     assert_eq!(atom_container.run_options.get(10).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(11).unwrap(), &format!("USERNAME_TO_RUN_GID={}", get_current_gid()));
+    assert_eq!(
+        atom_container.run_options.get(11).unwrap(),
+        &format!("USERNAME_TO_RUN_GID={}", get_current_gid())
+    );
     assert_eq!(atom_container.run_options.get(12).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(13).unwrap(), &format!("USERNAME_TO_RUN_UID={}", get_current_uid()));
+    assert_eq!(
+        atom_container.run_options.get(13).unwrap(),
+        &format!("USERNAME_TO_RUN_UID={}", get_current_uid())
+    );
     assert_eq!(atom_container.run_options.get(14).unwrap(), "--rm");
     assert_eq!(atom_container.run_options.get(15).unwrap(), "-d");
 
@@ -204,7 +225,11 @@ fn run_image_found_not_interactive_with_args() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
 
-    let args = [String::from("atom"), String::from("arg1"), String::from("arg2")];
+    let args = [
+        String::from("atom"),
+        String::from("arg1"),
+        String::from("arg2"),
+    ];
 
     // Create configuration file
     let config = Config {
@@ -212,16 +237,19 @@ fn run_image_found_not_interactive_with_args() {
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
     io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from("---\nimage_name: \"run-atom:latest\"\ncmd_line: \"/usr/bin/atom -f\"\ndownload_filename: \"\"\nurl: \"\""));
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
 
     let cmd_param = CommandParameter {
         command: &RUN,
@@ -229,7 +257,7 @@ fn run_image_found_not_interactive_with_args() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(run(cmd_param));
@@ -243,7 +271,11 @@ fn run_image_found_not_interactive_with_args() {
     assert_eq!(atom_container.cmd_options.get(1).unwrap(), "arg2");
 }
 
-fn run_image_found_interactive(opt: &str, application_config_content: &str, args_len: usize) -> TestRunContainer {
+fn run_image_found_interactive(
+    opt: &str,
+    application_config_content: &str,
+    args_len: usize,
+) -> TestRunContainer {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
@@ -262,16 +294,22 @@ fn run_image_found_interactive(opt: &str, application_config_content: &str, args
         applications_dir: String::from("app"),
         dockerfile: ConfigDocker {
             from: String::from("tata"),
-            tag: String::from("tutu")
+            tag: String::from("tutu"),
         },
-        tmp_dir: None
+        tmp_dir: None,
     };
 
     // Create application file atom
-    io_helper.files.borrow_mut().insert(String::from("app/atom.yml"), String::from(application_config_content));
+    io_helper.files.borrow_mut().insert(
+        String::from("app/atom.yml"),
+        String::from(application_config_content),
+    );
 
     // Create list of images returned by docker
-    dck_helper.images.borrow_mut().push(String::from("run-atom:latest"));
+    dck_helper
+        .images
+        .borrow_mut()
+        .push(String::from("run-atom:latest"));
 
     let cmd_param = CommandParameter {
         command: &RUN,
@@ -279,7 +317,7 @@ fn run_image_found_interactive(opt: &str, application_config_content: &str, args
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
-        config: Some(&config)
+        config: Some(&config),
     };
 
     test_result_ok(run(cmd_param));
@@ -295,19 +333,37 @@ fn run_image_found_interactive(opt: &str, application_config_content: &str, args
     let username = get_current_username().unwrap();
 
     assert_eq!(atom_container.run_options.get(0).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(1).unwrap(), "/tmp/.X11-unix/:/tmp/.X11-unix/");
+    assert_eq!(
+        atom_container.run_options.get(1).unwrap(),
+        "/tmp/.X11-unix/:/tmp/.X11-unix/"
+    );
     assert_eq!(atom_container.run_options.get(2).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(3).unwrap(), "/dev/shm:/dev/shm");
+    assert_eq!(
+        atom_container.run_options.get(3).unwrap(),
+        "/dev/shm:/dev/shm"
+    );
     assert_eq!(atom_container.run_options.get(4).unwrap(), "-v");
-    assert_eq!(atom_container.run_options.get(5).unwrap(), &format!("{}:/home/{}", convert_path("~/"), username));
+    assert_eq!(
+        atom_container.run_options.get(5).unwrap(),
+        &format!("{}:/home/{}", convert_path("~/"), username)
+    );
     assert_eq!(atom_container.run_options.get(6).unwrap(), "-e");
     assert_eq!(atom_container.run_options.get(7).unwrap(), "DISPLAY");
     assert_eq!(atom_container.run_options.get(8).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(9).unwrap(), &format!("USERNAME_TO_RUN={}", username));
+    assert_eq!(
+        atom_container.run_options.get(9).unwrap(),
+        &format!("USERNAME_TO_RUN={}", username)
+    );
     assert_eq!(atom_container.run_options.get(10).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(11).unwrap(), &format!("USERNAME_TO_RUN_GID={}", get_current_gid()));
+    assert_eq!(
+        atom_container.run_options.get(11).unwrap(),
+        &format!("USERNAME_TO_RUN_GID={}", get_current_gid())
+    );
     assert_eq!(atom_container.run_options.get(12).unwrap(), "-e");
-    assert_eq!(atom_container.run_options.get(13).unwrap(), &format!("USERNAME_TO_RUN_UID={}", get_current_uid()));
+    assert_eq!(
+        atom_container.run_options.get(13).unwrap(),
+        &format!("USERNAME_TO_RUN_UID={}", get_current_uid())
+    );
     assert_eq!(atom_container.run_options.get(14).unwrap(), "--rm");
     assert_eq!(atom_container.run_options.get(15).unwrap(), "-it");
 

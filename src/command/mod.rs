@@ -12,10 +12,10 @@ pub mod run;
 #[cfg(test)]
 pub mod tests;
 
-use io::InputOutputHelper;
-use config::{get_config_filename, Config, get_config};
+use config::{get_config, get_config_filename, Config};
 use docker::ContainerHelper;
 use download::DownloadHelper;
+use io::InputOutputHelper;
 
 ///
 /// Exit code of command.
@@ -49,7 +49,7 @@ pub enum CommandExitCode {
     ConfigFileFormatWrong = 23,
     TemplateNotFound = 24,
     UnableDownloadApplication = 25,
-    DockerBuildFail = 26
+    DockerBuildFail = 26,
 }
 
 ///
@@ -57,7 +57,7 @@ pub enum CommandExitCode {
 ///
 pub struct CommandError {
     msg: Vec<String>,
-    code: CommandExitCode
+    code: CommandExitCode,
 }
 
 ///
@@ -75,7 +75,7 @@ pub struct CommandParameter<'a> {
     /// Download Helper.
     pub dl_helper: &'a DownloadHelper,
     /// Config of D-SH.
-    pub config: Option<&'a Config>
+    pub config: Option<&'a Config>,
 }
 
 ///
@@ -97,7 +97,7 @@ pub struct Command {
     /// If command need config file exists.
     pub need_config_file: bool,
     /// Execute Command.
-    pub exec_cmd: fn(cmd_param: CommandParameter) -> Result<(), CommandError>
+    pub exec_cmd: fn(cmd_param: CommandParameter) -> Result<(), CommandError>,
 }
 
 impl Command {
@@ -108,9 +108,13 @@ impl Command {
     ///
     /// returning exit code of D-SH
     ///
-    pub fn exec(&self, args: &[String], io_helper: &InputOutputHelper,
-        dck_helper: &ContainerHelper, dl_helper: &DownloadHelper) -> CommandExitCode {
-
+    pub fn exec(
+        &self,
+        args: &[String],
+        io_helper: &InputOutputHelper,
+        dck_helper: &ContainerHelper,
+        dl_helper: &DownloadHelper,
+    ) -> CommandExitCode {
         // Check parameter
         if args.len() < self.min_args || args.len() > self.max_args {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
@@ -130,10 +134,11 @@ impl Command {
                 }
             }
 
-            if ! io_helper.file_exits(&config_file) {
-                io_helper.eprintln(
-                    &format!("The file '{}' doesn't exits. Please run 'init' command first.",
-                    config_file));
+            if !io_helper.file_exits(&config_file) {
+                io_helper.eprintln(&format!(
+                    "The file '{}' doesn't exits. Please run 'init' command first.",
+                    config_file
+                ));
                 return CommandExitCode::ConfigFileNotFound;
             }
 
@@ -153,7 +158,7 @@ impl Command {
                 io_helper: io_helper,
                 dck_helper: dck_helper,
                 dl_helper: dl_helper,
-                config: Some(&config)
+                config: Some(&config),
             };
 
             if let Err(err) = (self.exec_cmd)(cmd_param) {
@@ -170,7 +175,7 @@ impl Command {
                 io_helper: io_helper,
                 dck_helper: dck_helper,
                 dl_helper: dl_helper,
-                config: None
+                config: None,
             };
 
             if let Err(err) = (self.exec_cmd)(cmd_param) {

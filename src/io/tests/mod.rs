@@ -4,10 +4,10 @@
 /// Release under MIT License.
 ///
 use io::InputOutputHelper;
-use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
 use regex::Regex;
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::io::{Error, ErrorKind};
 
 pub fn found_item(list: &Vec<String>, value: &str) {
     let result: Vec<String> = list
@@ -50,7 +50,9 @@ impl InputOutputHelper for TestInputOutputHelper {
         if self.files_error.borrow().contains_key(path) {
             Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
         } else {
-            self.files.borrow_mut().insert(String::from(path), String::from(contents));
+            self.files
+                .borrow_mut()
+                .insert(String::from(path), String::from(contents));
             Ok(())
         }
     }
@@ -62,7 +64,7 @@ impl InputOutputHelper for TestInputOutputHelper {
     fn file_read_at_string(&self, filename: &str) -> Result<String, Error> {
         match self.files.borrow().get(filename) {
             Some(data) => Ok(data.to_string()),
-            None => Err(Error::new(ErrorKind::NotFound, "Not found"))
+            None => Err(Error::new(ErrorKind::NotFound, "Not found")),
         }
     }
 
@@ -74,7 +76,9 @@ impl InputOutputHelper for TestInputOutputHelper {
 
             let re = Regex::new(&regex).unwrap();
 
-            let file_in_folder = self.files.borrow()
+            let file_in_folder = self
+                .files
+                .borrow()
                 .keys()
                 .filter(|k| k.starts_with(dir) && re.is_match(k))
                 // Convert &str to String
@@ -83,7 +87,7 @@ impl InputOutputHelper for TestInputOutputHelper {
 
             Ok(file_in_folder)
         }
-//            Err(Error::new(ErrorKind::NotFound, "Not found"))
+        //            Err(Error::new(ErrorKind::NotFound, "Not found"))
     }
 
     fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
@@ -99,7 +103,9 @@ impl InputOutputHelper for TestInputOutputHelper {
             Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete"))
         } else {
             // Collect file to delete
-            let files_to_delete: Vec<String> = self.files.borrow()
+            let files_to_delete: Vec<String> = self
+                .files
+                .borrow()
                 .keys()
                 .filter(|k| k.starts_with(dir))
                 // Convert &str to String
@@ -111,8 +117,7 @@ impl InputOutputHelper for TestInputOutputHelper {
 
             // Move file from `files` to `files_delete`
             for filename in &files_to_delete {
-                deleted_files.insert(filename.to_owned(),
-                        files.get(filename).unwrap().to_owned());
+                deleted_files.insert(filename.to_owned(), files.get(filename).unwrap().to_owned());
                 files.remove(filename);
             }
 
@@ -122,13 +127,11 @@ impl InputOutputHelper for TestInputOutputHelper {
 
     fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error> {
         match self.file_read_at_string(&from) {
-            Ok(content) => {
-                match self.file_write(&to, &content) {
-                    Ok(_) => Ok(()),
-                    Err(err) => Err(err)
-                }
+            Ok(content) => match self.file_write(&to, &content) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err),
             },
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         }
     }
 }
@@ -141,7 +144,7 @@ impl TestInputOutputHelper {
             stdin: RefCell::new(Vec::new()),
             files: RefCell::new(HashMap::new()),
             files_error: RefCell::new(HashMap::new()),
-            files_delete: RefCell::new(HashMap::new())
+            files_delete: RefCell::new(HashMap::new()),
         }
     }
 }

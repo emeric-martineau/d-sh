@@ -1,11 +1,11 @@
+use super::{help, version};
+use command::{Command, CommandError, CommandParameter};
 ///
 /// Module to tests module help.
 ///
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
-use super::{version, help};
-use command::{Command, CommandError, CommandParameter};
 
 #[test]
 fn display_version() {
@@ -35,7 +35,7 @@ fn display_help() {
         max_args: 0,
         usage: "",
         need_config_file: false,
-        exec_cmd: test_help
+        exec_cmd: test_help,
     };
 
     let commands = &[one_cmd];
@@ -48,6 +48,6 @@ fn display_help() {
 
     match stdout.get(10) {
         Some(s) => assert_eq!(s, "  test (tst)   It's a test"),
-        None => panic!("Help is not valid")
+        None => panic!("Help is not valid"),
     }
 }

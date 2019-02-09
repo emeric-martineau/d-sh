@@ -1,12 +1,12 @@
+use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::Config;
+use io::InputOutputHelper;
 ///
 /// Module to list all application avaible.
 ///
 /// Release under MIT License.
 ///
 use std::path::Path;
-use command::{Command, CommandExitCode, CommandError, CommandParameter};
-use io::InputOutputHelper;
-use config::Config;
 
 #[cfg(test)]
 mod tests;
@@ -16,15 +16,20 @@ mod tests;
 ///
 /// returning list of application or CommandError.
 ///
-pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<String>, CommandError> {
+pub fn get_all(
+    io_helper: &InputOutputHelper,
+    config: &Config,
+) -> Result<Vec<String>, CommandError> {
     let mut list_applications_file;
 
     match io_helper.dir_list_file(&config.applications_dir, "*.yml") {
         Ok(r) => list_applications_file = r,
-        Err(err) => return Err(CommandError {
-            msg: vec![format!("{}", err)],
-            code: CommandExitCode::DockerBuildFail
-        })
+        Err(err) => {
+            return Err(CommandError {
+                msg: vec![format!("{}", err)],
+                code: CommandExitCode::DockerBuildFail,
+            });
+        }
     };
 
     list_applications_file.sort();
@@ -32,15 +37,15 @@ pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<Str
     let mut app_list = Vec::new();
 
     // 2 - We have list of application
-    for filename in list_applications_file  {
+    for filename in list_applications_file {
         let application_name = Path::new(&filename)
             .file_stem()
-            .unwrap()   // get OsStr
+            .unwrap() // get OsStr
             .to_str()
             .unwrap();
 
         app_list.push(String::from(application_name));
-    };
+    }
 
     Ok(app_list)
 }
@@ -53,7 +58,6 @@ pub fn get_all(io_helper: &InputOutputHelper, config: &Config) -> Result<Vec<Str
 /// returning exit code of D-SH.
 ///
 fn list(cmd_param: CommandParameter) -> Result<(), CommandError> {
-
     let config = cmd_param.config.unwrap();
 
     match get_all(cmd_param.io_helper, &config) {
@@ -61,16 +65,17 @@ fn list(cmd_param: CommandParameter) -> Result<(), CommandError> {
             // 2 - We have list of application
             for app in list_applications_file {
                 cmd_param.io_helper.println(&app);
-            };
+            }
 
             Ok(())
-        },
+        }
         Err(_) => Err(CommandError {
-            msg: vec![
-                format!("Cannot read application folder {}!", config.applications_dir)
-                ],
-            code: CommandExitCode::CannotReadApplicationsFolder
-        })
+            msg: vec![format!(
+                "Cannot read application folder {}!",
+                config.applications_dir
+            )],
+            code: CommandExitCode::CannotReadApplicationsFolder,
+        }),
     }
 }
 
@@ -90,5 +95,5 @@ pub const LIST: Command = Command {
     /// `check` command have no help.
     usage: "",
     need_config_file: true,
-    exec_cmd: list
+    exec_cmd: list,
 };
