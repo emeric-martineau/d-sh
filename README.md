@@ -26,6 +26,10 @@ Commands:
   run (r)      Run container
 ```
 
+## Dependencies
+
+You need install [Docker](https://docs.docker.com/install/) and Curl exe.
+
 ## How it's work
 
 D-SH have only one binary file.
