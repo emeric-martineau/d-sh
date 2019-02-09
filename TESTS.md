@@ -1,64 +1,81 @@
 # How write tests ?
 
-D-SH use `own` test framework. It's very easy to use, but not really evolved.
+Each module have sub-module `tests`.
 
-In `src/main/tests` you find two folders :
- * `resources` that contain files (binaries, program),
- * `shell` that contain test framework and tests files.
-
-In `src/main/tests/shell/tests` you have all tests files. Name of folders and files
-start by number to be execute in right order.
-
-I know, it's very bad, but because build image is very long, I did this (I'm very sorry)
+To do tests more easier, D-SH use Helper :
+ - TestInputOutputHelper: to print on screen or in file,
+ - TestDownloadHelper: to download file,
+ - TestContainerHelper: to run docker command.
 
 ## Create my first test
 
-Create a file in `src/main/tests/shell/tests/001-build` named `999-my-first-test.sh` :
+We will create a new command in `src/command/new`:
 
 ```
-#!/bin/sh
+use command::{Command, CommandError, CommandParameter};
 
-# This file test build base image
-DESCRIPTION="Test build base image"
-COMMAND="build"
-ARGS="-b"
-TEST_FUNCTION="my_name_of_test_function_but_must_be_single"
+#[cfg(test)]
+mod tests;
 
-my_name_of_test_function_but_must_be_single_before() {
-  echo "Hello, this line go to log file." >> ${LOG_FILE}
+fn new_command(cmd_param: CommandParameter) -> Result<(), CommandError> {
+  cmd_param.io_helper.println(&"New command ok!");
+  Ok(())
 }
 
-# First argument is return of d.sh
-# Second argument is output of d.sh
-my_name_of_test_function_but_must_be_single() {
-  echo "$2"
-  return $1
+pub const NEW_COMMAND: Command = Command {
+    name: "new",
+    description: "Create new application",
+    short_name: "n",
+    min_args: 0,
+    max_args: 0,
+    usage: "Blabalbal",
+    need_config_file: true,
+    exec_cmd: new_command
+};
+```
+
+We will create a test in `src/command/tests`:
+```
+use io::tests::TestInputOutputHelper;
+use docker::tests::TestContainerHelper;
+use download::tests::TestDownloadHelper;
+use config::{Config, ConfigDocker};
+use command::tests::test_result_ok;
+use command::CommandParameter;
+use super::{new_command, NEW_COMMAND};
+
+#[test]
+fn run_new() {
+    let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
+    let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+
+    let args = [];
+
+    // Create configuration file
+    let config = Config {
+        download_dir: String::from("dwn"),
+        applications_dir: String::from("app"),
+        dockerfile: ConfigDocker {
+            from: String::from("tata"),
+            tag: String::from("tutu")
+        },
+        tmp_dir: None
+    };
+
+    let cmd_param = CommandParameter {
+        command: &NEW_COMMAND,
+        args: &args,
+        io_helper: io_helper,
+        dck_helper: dck_helper,
+        dl_helper: dl_helper,
+        config: Some(&config)
+    };
+
+    test_result_ok(new_command(cmd_param));
+
+    let stdout = io_helper.stdout.borrow();
+
+    assert_eq!(stdout.get(0).unwrap(), "New command ok!");
 }
 ```
-
-Test required variables:
-```
-DESCRIPTION   : is variable to be display the current test to be execute
-COMMAND       : is D-SH command (build, run, check...)
-ARGS          : is argument of D-SH command
-TEST_FUNCTION : is the name of test function. This must be single in all tests files.
-```
-
-If you create a function, with same name that `TEST_FUNCTION` variable, but ended by `_before`, this function call before `TEST_FUNCTION`.
-
-`TEST_FUNCTION` must be return `0` for success or another value for fail.
-
-In `TEST_FUNCTION`, the first parameter is exit code of D-SH after execute `COMMAND`.
-You can use it to check if command work find before check anything.
-
-The second parameter is output of `COMMAND`.
-
-Variables can be use in test:
-```
-LOG_FILE variable : is current log file of all tests. WARNING, when you write in, append your write !
-IMAGE_BASE_NAME   : is to know the name of base name image.
-RESOURCES_FOLDER  : is path to the tests resources folder (normaly src/main/test/resources)
-SOURCES_FOLDER    : is path to the tests D-SH folder copied when tests run (normaly src/main/test/d-sh) and remove at end of tests
-```
-
-In test function, you car use `error` function to display error.
