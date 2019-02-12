@@ -43,6 +43,28 @@ interactive: true | false
 skip_redownload: true | false
 ```
 
+## Why list of dependencies ?
+
+Linux have dependencies manager like `apt-get`, `rpm`, `yast`... But if you
+download a package (here a `.deb` file). You have many versions.
+
+For example for :
+```
+$ dpkg -I atom.deb
+ new Debian package, version 2.0.
+ size 89683126 bytes: control archive=550 bytes.
+     644 bytes,    12 lines      control              
+ Package: atom
+ Version: 1.34.0
+ Depends: git, gconf2, gconf-service, libgtk-3-0 (>= 3.9.10), libudev0 | libudev1, libgcrypt11 | libgcrypt20, libnotify4, libxtst6, libnss3 (>= 2:3.22), python, gvfs-bin, xdg-utils, libcap2, libx11-xcb1, libxss1, libasound2 (>= 1.0.16), libxkbfile1, libcurl3 | libcurl4
+```
+
+You can see `libudev0` or `libudev1`. But `libudev0` is not available for **Ubuntu 18.04**.
+
+Another issue is sometime, a dependencies missing in `.deb` file.
+
+For that, we must list all dependencies that really need.
+
 # Hack D-SH
 
 ## Change Ubuntu version or image base
