@@ -27,6 +27,9 @@ pub fn help(commands: &[Command], io_helper: &InputOutputHelper) {
     io_helper.println(&format!(
         "  -v, --version            Print version information and quit"
     ));
+    io_helper.println(&format!(
+        "  -d, --debug              Enabled debug mode"
+    ));
     io_helper.println(&format!(""));
     io_helper.println(&format!("Commands:"));
 

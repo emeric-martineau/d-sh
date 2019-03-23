@@ -8,6 +8,7 @@ use download::tests::TestDownloadHelper;
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
+use log::EmptyLoggerHelper;
 
 pub fn test_result_ok(result: Result<(), CommandError>) {
     if let Err(err) = result {
@@ -39,6 +40,7 @@ fn check_if_need_argument_but_not_provide() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -55,7 +57,7 @@ fn check_if_need_argument_but_not_provide() {
 
     let args = [];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -65,6 +67,7 @@ fn check_if_too_many_argument() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -81,7 +84,7 @@ fn check_if_too_many_argument() {
 
     let args = [String::from("eeee"), String::from("eeee")];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -91,6 +94,7 @@ fn check_if_not_enough_many_argument() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -107,7 +111,7 @@ fn check_if_not_enough_many_argument() {
 
     let args = [String::from("eeee")];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -117,6 +121,7 @@ fn check_if_need_config_file_and_not_found() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -133,7 +138,7 @@ fn check_if_need_config_file_and_not_found() {
 
     let args = [];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::ConfigFileNotFound);
 }
@@ -143,6 +148,7 @@ fn check_if_need_config_file_and_found() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -167,7 +173,7 @@ fn check_if_need_config_file_and_found() {
         None => panic!("Unable to get config filename for test"),
     };
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::Ok);
 }
@@ -177,6 +183,7 @@ fn check_if_need_config_file_and_found_but_wrong_format() {
     let io_helper = &TestInputOutputHelper::new();
     let dck_helper = &TestContainerHelper::new();
     let dl_helper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let one_cmd = Command {
         name: "test",
@@ -204,7 +211,7 @@ fn check_if_need_config_file_and_found_but_wrong_format() {
         None => panic!("Unable to get config filename for test"),
     };
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper);
+    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::ConfigFileFormatWrong);
 }

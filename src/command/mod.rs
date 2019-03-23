@@ -16,6 +16,7 @@ use config::{get_config, get_config_filename, Config};
 use docker::ContainerHelper;
 use download::DownloadHelper;
 use io::InputOutputHelper;
+use log::LoggerHelper;
 
 ///
 /// Exit code of command.
@@ -74,6 +75,8 @@ pub struct CommandParameter<'a> {
     pub dck_helper: &'a ContainerHelper,
     /// Download Helper.
     pub dl_helper: &'a DownloadHelper,
+    /// Logger helper
+    pub log_helper: &'a LoggerHelper,
     /// Config of D-SH.
     pub config: Option<&'a Config>,
 }
@@ -114,6 +117,7 @@ impl Command {
         io_helper: &InputOutputHelper,
         dck_helper: &ContainerHelper,
         dl_helper: &DownloadHelper,
+        log_helper: &LoggerHelper
     ) -> CommandExitCode {
         // Check parameter
         if args.len() < self.min_args || args.len() > self.max_args {
@@ -158,6 +162,7 @@ impl Command {
                 io_helper: io_helper,
                 dck_helper: dck_helper,
                 dl_helper: dl_helper,
+                log_helper: log_helper,
                 config: Some(&config),
             };
 
@@ -175,6 +180,7 @@ impl Command {
                 io_helper: io_helper,
                 dck_helper: dck_helper,
                 dl_helper: dl_helper,
+                log_helper: log_helper,
                 config: None,
             };
 

@@ -12,12 +12,14 @@ use download::tests::TestDownloadHelper;
 use io::tests::TestInputOutputHelper;
 use std::collections::HashMap;
 use std::path::Path;
+use log::{EmptyLoggerHelper};
 
 #[test]
 fn unable_to_create_configfile_if_exists() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [];
 
@@ -38,6 +40,7 @@ fn unable_to_create_configfile_if_exists() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: None,
     };
 
@@ -51,6 +54,7 @@ fn create_configfile_if_not_exists() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     io_helper.stdin.borrow_mut().push(String::from("toto"));
     io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -65,6 +69,7 @@ fn create_configfile_if_not_exists() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: None,
     };
 
@@ -114,6 +119,7 @@ fn create_configfile_but_cannot_write() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     io_helper.stdin.borrow_mut().push(String::from("toto"));
     io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -135,6 +141,7 @@ fn create_configfile_but_cannot_write() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: None,
     };
 
@@ -149,6 +156,7 @@ fn create_configfile_but_cannot_create_parent_folder() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     io_helper.stdin.borrow_mut().push(String::from("toto"));
     io_helper.stdin.borrow_mut().push(String::from("titi"));
@@ -177,6 +185,7 @@ fn create_configfile_but_cannot_create_parent_folder() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: None,
     };
 

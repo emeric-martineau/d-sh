@@ -8,6 +8,7 @@ use std::fs::{copy, create_dir_all, hard_link, remove_dir_all, write, File};
 ///
 use std::io::{stdin, stdout, Error, ErrorKind, Read, Write};
 use std::path::Path;
+use log::LoggerHelper;
 
 #[cfg(test)]
 pub mod tests;
@@ -50,9 +51,19 @@ pub trait InputOutputHelper {
 }
 
 /// Default print on tty.
-pub struct DefaultInputOutputHelper;
+pub struct DefaultInputOutputHelper<'a> {
+    log_helper: &'a LoggerHelper
+}
 
-impl InputOutputHelper for DefaultInputOutputHelper {
+impl<'a> DefaultInputOutputHelper<'a> {
+    pub fn new(log_helper: &LoggerHelper) -> DefaultInputOutputHelper {
+        DefaultInputOutputHelper {
+            log_helper
+        }
+    }
+}
+
+impl<'a> InputOutputHelper for DefaultInputOutputHelper<'a> {
     fn println(&self, expr: &str) {
         println!("{}", expr);
     }
@@ -71,14 +82,22 @@ impl InputOutputHelper for DefaultInputOutputHelper {
 
         match stdin().read_line(&mut input) {
             Ok(_) => input,
-            Err(error) => panic!("error: {}", error),
+            Err(e) => {
+                self.log_helper.err(&e.to_string());
+                panic!("error: {}", e)
+            },
         }
     }
 
     fn file_write(&self, path: &str, contents: &str) -> Result<(), Error> {
+        self.log_helper.debug_with_parameter("Write file '{}'", path);
+
         match write(path, contents) {
             Ok(f) => Ok(f),
-            Err(e) => Err(e),
+            Err(e) => {
+                self.log_helper.err(&e.to_string());
+                Err(e)
+            },
         }
     }
 
@@ -87,6 +106,8 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     }
 
     fn file_read_at_string(&self, filename: &str) -> Result<String, Error> {
+        self.log_helper.debug_with_parameter("Read file '{}'", filename);
+
         let mut file = File::open(filename)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
@@ -95,6 +116,8 @@ impl InputOutputHelper for DefaultInputOutputHelper {
     }
 
     fn dir_list_file(&self, dir: &str, pattern: &str) -> Result<Vec<String>, Error> {
+        self.log_helper.debug(&format!("List files '{}' of folder '{}'", pattern, dir));
+
         let mut new_dir = String::from(convert_path(dir));
 
         if !dir.ends_with("/") {
@@ -105,40 +128,70 @@ impl InputOutputHelper for DefaultInputOutputHelper {
 
         match glob(&new_dir) {
             Ok(all_files) => {
+                self.log_helper.debug("Found files:");
+
                 let mut result: Vec<String> = Vec::new();
 
                 for entry in all_files {
                     if let Ok(path) = entry {
-                        result.push(path.display().to_string());
+                        let f = path.display().to_string();
+
+                        self.log_helper.debug_with_parameter(" - '{}'", &f);
+
+                        result.push(f);
                     }
                 }
 
                 Ok(result)
             }
-            Err(e) => Err(Error::new(ErrorKind::PermissionDenied, e.msg)),
+            Err(e) => {
+                self.log_helper.err(&e.to_string());
+                Err(Error::new(ErrorKind::PermissionDenied, e.msg))
+            },
         }
     }
 
     fn create_dir_all(&self, dir: &str) -> Result<(), Error> {
+        self.log_helper.debug_with_parameter("Create folder '{}'", dir);
+
         match create_dir_all(dir) {
             Ok(a) => Ok(a),
-            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write")),
+            Err(e) => {
+                self.log_helper.err(&e.to_string());
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+            },
         }
     }
 
     fn remove_dir_all(&self, dir: &str) -> Result<(), Error> {
+        self.log_helper.debug_with_parameter("Remove folder '{}'", dir);
+
         match remove_dir_all(dir) {
             Ok(a) => Ok(a),
-            Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete")),
+            Err(e) => {
+                self.log_helper.err(&e.to_string());
+                Err(Error::new(ErrorKind::PermissionDenied, "Cannot delete"))
+            },
         }
     }
 
     fn hardlink_or_copy_file(&self, from: &str, to: &str) -> Result<(), Error> {
+        self.log_helper.debug(&format!("Create hard link from file '{}' to '{}", from, to));
+
         match hard_link(from, to) {
             Ok(_) => Ok(()),
-            Err(_) => match copy(from, to) {
-                Ok(_) => Ok(()),
-                Err(_) => Err(Error::new(ErrorKind::PermissionDenied, "Cannot write")),
+            Err(e) => {
+                self.log_helper.warn("Cannot create hard link");
+                self.log_helper.warn(&e.to_string());
+
+                match copy(from, to) {
+                    Ok(_) => Ok(()),
+                    Err(e) => {
+                        self.log_helper.err(&e.to_string());
+
+                        Err(Error::new(ErrorKind::PermissionDenied, "Cannot write"))
+                    },
+                }
             },
         }
     }

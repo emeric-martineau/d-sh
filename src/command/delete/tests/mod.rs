@@ -10,12 +10,14 @@ use download::tests::TestDownloadHelper;
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
+use log::{EmptyLoggerHelper};
 
 #[test]
 fn delete_display_help() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-h")];
 
@@ -36,6 +38,7 @@ fn delete_display_help() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -51,6 +54,7 @@ fn delete_one_application_ok() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("titi")];
 
@@ -90,6 +94,7 @@ fn delete_one_application_ok() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -111,6 +116,7 @@ fn delete_one_application_ko() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("titi")];
 
@@ -149,6 +155,7 @@ fn delete_one_application_ko() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -162,6 +169,7 @@ fn delete_one_application_all() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-a")];
 
@@ -201,6 +209,7 @@ fn delete_one_application_all() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 

@@ -14,12 +14,14 @@ use io::convert_path;
 use io::tests::found_item;
 use io::tests::TestInputOutputHelper;
 use users::{get_current_gid, get_current_uid, get_current_username};
+use log::{EmptyLoggerHelper};
 
 #[test]
 fn run_display_help() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-h")];
 
@@ -40,6 +42,7 @@ fn run_display_help() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -55,6 +58,7 @@ fn run_image_application_not_found() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("atom")];
 
@@ -75,6 +79,7 @@ fn run_image_application_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -92,6 +97,7 @@ fn run_image_not_found_not_interactive() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("atom")];
 
@@ -115,6 +121,7 @@ fn run_image_not_found_not_interactive() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -134,6 +141,7 @@ fn run_image_found_not_interactive() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("atom")];
 
@@ -163,6 +171,7 @@ fn run_image_found_not_interactive() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -224,6 +233,7 @@ fn run_image_found_not_interactive_with_args() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [
         String::from("atom"),
@@ -257,6 +267,7 @@ fn run_image_found_not_interactive_with_args() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -279,6 +290,7 @@ fn run_image_found_interactive(
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args;
 
@@ -317,6 +329,7 @@ fn run_image_found_interactive(
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 

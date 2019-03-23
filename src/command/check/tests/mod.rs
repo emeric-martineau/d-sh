@@ -11,12 +11,14 @@ use io::tests::found_item;
 /// Release under MIT License.
 ///
 use io::tests::TestInputOutputHelper;
+use log::{EmptyLoggerHelper};
 
 #[test]
 fn check_if_image_found_and_not_found() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [];
 
@@ -56,6 +58,7 @@ fn check_if_image_found_and_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -82,6 +85,7 @@ fn check_if_application_format_has_an_error() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [];
 
@@ -111,6 +115,7 @@ fn check_if_application_format_has_an_error() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -124,6 +129,7 @@ fn check_if_cannot_read_application_dir() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [];
 
@@ -149,6 +155,7 @@ fn check_if_cannot_read_application_dir() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 

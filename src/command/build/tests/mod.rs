@@ -11,12 +11,14 @@ use config::{create_config_filename_path, Config, ConfigDocker};
 use docker::tests::TestContainerHelper;
 use download::tests::TestDownloadHelper;
 use io::tests::TestInputOutputHelper;
+use log::{EmptyLoggerHelper};
 
 #[test]
 fn build_display_help() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-h")];
 
@@ -37,6 +39,7 @@ fn build_display_help() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -52,6 +55,7 @@ fn build_unknow_option() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("--dghhfhdgfhdgf")];
 
@@ -72,6 +76,7 @@ fn build_unknow_option() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -86,6 +91,7 @@ fn build_unknow_option() {
 fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, config: Config) {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     // Create dockerfile
     match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
@@ -123,6 +129,7 @@ fn build_base_with_args(args: &[String], dck_helper: &TestContainerHelper, confi
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -214,6 +221,7 @@ fn build_base_short_option_dockerfile_template_not_found() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-b")];
 
@@ -260,6 +268,7 @@ fn build_base_short_option_dockerfile_template_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -279,6 +288,7 @@ fn build_base_short_option_entrypoint_template_not_found() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-b")];
 
@@ -325,6 +335,7 @@ fn build_base_short_option_entrypoint_template_not_found() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -344,6 +355,7 @@ fn build_base_short_option_application_file_format_bad() {
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
     let args = [String::from("-b")];
 
     // Create configuration file
@@ -394,6 +406,7 @@ fn build_base_short_option_application_file_format_bad() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -446,6 +459,7 @@ fn build_base_short_option_dockerfile_template_format_bad() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-b")];
 
@@ -494,6 +508,7 @@ fn build_base_short_option_dockerfile_template_format_bad() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -511,6 +526,7 @@ fn build_base_short_option_docker_build_fail() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("-b")];
 
@@ -564,6 +580,7 @@ fn build_base_short_option_docker_build_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -605,12 +622,15 @@ fn build_with_args(
         None => panic!("Unable to create dockerfile for test"),
     };
 
+    let log_helper = &EmptyLoggerHelper{};
+    
     let cmd_param = CommandParameter {
         command: &BUILD,
         args: &args,
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -695,6 +715,7 @@ fn build_application_docker_build_fail() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
     let io_helper: &TestInputOutputHelper = &TestInputOutputHelper::new();
     let dl_helper: &TestDownloadHelper = &TestDownloadHelper::new(io_helper);
+    let log_helper = &EmptyLoggerHelper{};
 
     let args = [String::from("atom")];
 
@@ -748,6 +769,7 @@ fn build_application_docker_build_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -760,6 +782,7 @@ fn build_application_docker_build_fail() {
 #[test]
 fn build_application_download_fail() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let log_helper = &EmptyLoggerHelper{};
 
     // Create configuration file
     let config = Config {
@@ -803,6 +826,7 @@ fn build_application_download_fail() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -1065,6 +1089,7 @@ fn build_application_with_force() {
 #[test]
 fn build_many_applications() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let log_helper = &EmptyLoggerHelper{};
 
     // Create configuration file
     let config = Config {
@@ -1104,6 +1129,7 @@ fn build_many_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -1138,6 +1164,7 @@ fn build_many_applications() {
 #[test]
 fn build_all_applications() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let log_helper = &EmptyLoggerHelper{};
 
     // Create configuration file
     let config = Config {
@@ -1178,6 +1205,7 @@ fn build_all_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
@@ -1212,6 +1240,7 @@ fn build_all_applications() {
 #[test]
 fn build_missings_applications() {
     let dck_helper: &TestContainerHelper = &TestContainerHelper::new();
+    let log_helper = &EmptyLoggerHelper{};
 
     // Create list of images returned by docker
     dck_helper
@@ -1257,6 +1286,7 @@ fn build_missings_applications() {
         io_helper: io_helper,
         dck_helper: dck_helper,
         dl_helper: dl_helper,
+        log_helper: log_helper,
         config: Some(&config),
     };
 
