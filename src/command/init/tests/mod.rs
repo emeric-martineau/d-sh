@@ -42,6 +42,7 @@ fn unable_to_create_configfile_if_exists() {
         dl_helper: dl_helper,
         log_helper: log_helper,
         config: None,
+        config_filename: get_config_filename().unwrap()
     };
 
     let stderr = test_result_err(init(cmd_param), CommandExitCode::ConfigFileExits);
@@ -71,6 +72,7 @@ fn create_configfile_if_not_exists() {
         dl_helper: dl_helper,
         log_helper: log_helper,
         config: None,
+        config_filename: get_config_filename().unwrap()
     };
 
     test_result_ok(init(cmd_param));
@@ -143,6 +145,7 @@ fn create_configfile_but_cannot_write() {
         dl_helper: dl_helper,
         log_helper: log_helper,
         config: None,
+        config_filename: get_config_filename().unwrap()
     };
 
     let stderr = test_result_err(init(cmd_param), CommandExitCode::CannotWriteConfigFile);
@@ -182,11 +185,12 @@ fn create_configfile_but_cannot_create_parent_folder() {
     let cmd_param = CommandParameter {
         command: &INIT,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: None,
+        config_filename: get_config_filename().unwrap()
     };
 
     let stderr = test_result_err(

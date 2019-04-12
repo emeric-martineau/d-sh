@@ -1,5 +1,4 @@
 use super::{Command, CommandError, CommandExitCode, CommandParameter};
-use config::get_config_filename;
 use docker::tests::TestContainerHelper;
 use download::tests::TestDownloadHelper;
 ///
@@ -57,7 +56,7 @@ fn check_if_need_argument_but_not_provide() {
 
     let args = [];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    let exit_code = commands[0].exec(&args, None, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -84,7 +83,7 @@ fn check_if_too_many_argument() {
 
     let args = [String::from("eeee"), String::from("eeee")];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    let exit_code = commands[0].exec(&args, None, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -111,7 +110,7 @@ fn check_if_not_enough_many_argument() {
 
     let args = [String::from("eeee")];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    let exit_code = commands[0].exec(&args, None, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::BadArgument);
 }
@@ -138,7 +137,7 @@ fn check_if_need_config_file_and_not_found() {
 
     let args = [];
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    let exit_code = commands[0].exec(&args, None, io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::ConfigFileNotFound);
 }
@@ -165,15 +164,11 @@ fn check_if_need_config_file_and_found() {
 
     let args = [];
 
-    match get_config_filename() {
-        Some(cfg_file) => {
-            // Create file
-            io_helper.files.borrow_mut().insert(cfg_file, String::from("---\ndownload_dir: \"dwn\"\napplications_dir: \"app\"\ndockerfile:\n  from: \"tata\"\n  tag: \"tutu\"\n"))
-        }
-        None => panic!("Unable to get config filename for test"),
-    };
+    let cfg_file = String::from("config.yml");
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    io_helper.files.borrow_mut().insert(cfg_file.clone(), String::from("download_dir: \"~/.d-sh/download\"\napplications_dir: \"~/.d-sh/applications\"\ndockerfile:\n  from: \"ubuntu:18.04\"\n  tag: \"d-base-image:v1.0.0\""));
+
+    let exit_code = commands[0].exec(&args, Some(cfg_file), io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::Ok);
 }
@@ -200,18 +195,16 @@ fn check_if_need_config_file_and_found_but_wrong_format() {
 
     let args = [];
 
-    match get_config_filename() {
-        Some(cfg_file) => {
-            // Create file
-            io_helper
-                .files
-                .borrow_mut()
-                .insert(cfg_file, String::from("tutu"))
-        }
-        None => panic!("Unable to get config filename for test"),
-    };
+    let cfg_file = String::from("config.yml");
 
-    let exit_code = commands[0].exec(&args, io_helper, dck_helper, dl_helper, log_helper);
+    // Create file
+    io_helper
+        .files
+        .borrow_mut()
+        .insert(cfg_file.clone(), String::from("tutu"));
+
+
+    let exit_code = commands[0].exec(&args, Some(cfg_file), io_helper, dck_helper, dl_helper, log_helper);
 
     assert_eq!(exit_code, CommandExitCode::ConfigFileFormatWrong);
 }

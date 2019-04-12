@@ -125,7 +125,13 @@ pub fn build_one_application(
         "application_filename": config_application.download_filename.to_owned()
     });
 
-    if let Err(err) = generate_dockerfile(cmd_param.io_helper, &dockerfile.docker_filename, &data) {
+    let docker_filename = config.dockerfile_filename.clone().unwrap();
+
+    if let Err(err) = generate_dockerfile(
+        &docker_filename,
+        cmd_param.io_helper,
+        &dockerfile.docker_filename,
+        &data) {
         return Err(err);
     }
 

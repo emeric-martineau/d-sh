@@ -29,17 +29,20 @@ fn delete_display_help() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     let cmd_param = CommandParameter {
         command: &DELETE,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(delete(cmd_param));
@@ -66,7 +69,9 @@ fn delete_one_application_ok() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -91,11 +96,12 @@ fn delete_one_application_ok() {
     let cmd_param = CommandParameter {
         command: &DELETE,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(delete(cmd_param));
@@ -128,7 +134,9 @@ fn delete_one_application_ko() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -152,11 +160,12 @@ fn delete_one_application_ko() {
     let cmd_param = CommandParameter {
         command: &DELETE,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     let stderr = test_result_err(delete(cmd_param), CommandExitCode::ApplicationFileNotFound);
@@ -181,7 +190,9 @@ fn delete_one_application_all() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -206,11 +217,12 @@ fn delete_one_application_all() {
     let cmd_param = CommandParameter {
         command: &DELETE,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(delete(cmd_param));

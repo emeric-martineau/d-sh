@@ -9,21 +9,23 @@ I create this project cause I want run application without break my OS with new
 installation or update (and also because it's funny).
 
 ```
-Usage: d.sh COMMAND
+Usage: d-sh COMMAND
 
 A tool to container all your life
 
 Options:
-  -h, --help               Print this current help
-  -v, --version            Print version information and quit
+  -d, --debug              Enabled debug mode
+  -c, --config             Set config filename
 
 Commands:
   build (b)    Build container image
   check (chk)  List missing container image
   delete (rm)  Delete image
+  help (h)     Print help
   init (i)     Initialize config file if not exists
   list (ls)    List all applications available
   run (r)      Run container
+  version (v)  Print version information and quit
 ```
 
 ## Dependencies

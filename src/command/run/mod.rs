@@ -193,7 +193,7 @@ fn run(cmd_param: CommandParameter) -> Result<(), CommandError> {
     let config = cmd_param.config.unwrap();
 
     match cmd_param.args[0].as_ref() {
-        "-h" | "--help" => {
+        "-h" | "--command.help" => {
             cmd_param.io_helper.println(cmd_param.command.usage);
             Ok(())
         }
@@ -238,7 +238,7 @@ pub const RUN: Command = Command {
     /// `check` command have no parameter.
     min_args: 1,
     max_args: 2,
-    /// `check` command have no help.
+    /// `check` command have no command.help.
     usage: "
     Usage:	d-sh run [-i | --interactive] APPLICATION [APPLICATION ARGS]
 

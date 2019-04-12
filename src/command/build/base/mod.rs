@@ -1,8 +1,7 @@
 use command::build::dockerfile::DockerfileParameter;
 use command::build::{generate_dockerfile, BuildOptions};
 use command::{CommandError, CommandExitCode, CommandParameter};
-use config::dockerfile::ENTRYPOINT_FILENAME;
-use config::{create_config_filename_path, get_config_application, Config};
+use config::{get_config_application, Config};
 use io::InputOutputHelper;
 ///
 /// Module to build base image.
@@ -15,23 +14,12 @@ use std::path::PathBuf;
 /// Generate template of entrypoint.
 ///
 fn generate_entrypoint(
+    entrypoint_name: &str,
     io_helper: &InputOutputHelper,
     output_dir: &String,
 ) -> Result<(), CommandError> {
-    let entrypoint_name;
-
-    match create_config_filename_path(&ENTRYPOINT_FILENAME) {
-        Some(r) => entrypoint_name = r,
-        None => {
-            return Err(CommandError {
-                msg: vec![String::from("Unable to get your home dir!")],
-                code: CommandExitCode::CannotGetHomeFolder,
-            });
-        }
-    }
-
     // Check if file exists
-    if !io_helper.file_exits(&entrypoint_name) {
+    if !io_helper.file_exits(entrypoint_name) {
         return Err(CommandError {
             msg: vec![format!(
                 "The file '{}' doesn't exits. Please run 'init' command first.",
@@ -42,8 +30,8 @@ fn generate_entrypoint(
     }
 
     if let Err(err) = io_helper.hardlink_or_copy_file(
-        &entrypoint_name,
-        &format!("{}/{}", &output_dir, &ENTRYPOINT_FILENAME),
+        entrypoint_name,
+        &format!("{}/{}", &output_dir, entrypoint_name),
     ) {
         return Err(CommandError {
             msg: vec![
@@ -115,7 +103,12 @@ pub fn build_base(
 ) -> Result<(), CommandError> {
     let dockerfile = DockerfileParameter::new(tmp_dir);
 
-    if let Err(err) = generate_entrypoint(cmd_param.io_helper, &dockerfile.docker_context_path) {
+    let entrypoint_filename = config.entrypoint_filename.clone().unwrap();
+
+    if let Err(err) = generate_entrypoint(
+        &entrypoint_filename,
+        cmd_param.io_helper,
+        &dockerfile.docker_context_path) {
         return Err(err);
     }
 
@@ -132,8 +125,14 @@ pub fn build_base(
         "dependencies": dependencies
     });
 
+    let docker_filename = config.dockerfile_filename.clone().unwrap();
+
     // Generate Dockerfile
-    if let Err(err) = generate_dockerfile(cmd_param.io_helper, &dockerfile.docker_filename, &data) {
+    if let Err(err) = generate_dockerfile(
+        &docker_filename,
+        cmd_param.io_helper,
+        &dockerfile.docker_filename,
+        &data) {
         return Err(err);
     }
 

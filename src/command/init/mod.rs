@@ -4,11 +4,12 @@
 /// Release under MIT License.
 ///
 use command::{Command, CommandError, CommandExitCode, CommandParameter};
+use config::create_config_filename_path;
 use config::dockerfile::{
     DOCKERFILE_BASE, DOCKERFILE_BASE_FILENAME, DOCKERFILE_DEFAULT_FROM, DOCKERFILE_DEFAULT_TAG,
     ENTRYPOINT, ENTRYPOINT_FILENAME,
 };
-use config::{create_config_filename_path, get_config_filename};
+
 use io::InputOutputHelper;
 use std::collections::HashMap;
 use std::path::Path;
@@ -63,7 +64,7 @@ fn read_line_with_default_value(
 ) -> String {
     let mut new_prompt = String::from(prompt);
 
-    new_prompt.push_str(&format!(" (default; {})", default_value));
+    new_prompt.push_str(&format!(" (default: {})", default_value));
 
     io_helper.print(&new_prompt);
 
@@ -86,23 +87,11 @@ fn read_line_with_default_value(
 /// returning exit code of D-SH.
 ///
 fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
-    let config_file;
-
-    match get_config_filename() {
-        Some(r) => config_file = r,
-        None => {
-            return Err(CommandError {
-                msg: vec![String::from("Unable to get your home dir!")],
-                code: CommandExitCode::CannotGetHomeFolder,
-            });
-        }
-    }
-
-    if cmd_param.io_helper.file_exits(&config_file) {
+    if cmd_param.io_helper.file_exits(&cmd_param.config_filename) {
         return Err(CommandError {
             msg: vec![format!(
                 "The file '{}' exits. Please remove it (or rename) and rerun this command.",
-                config_file
+                cmd_param.config_filename
             )],
             code: CommandExitCode::ConfigFileExits,
         });
@@ -133,7 +122,7 @@ fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
         download_dir, applications_dir, docker_image_from, docker_image_tag);
 
     // Create folder
-    let path = Path::new(&config_file);
+    let path = Path::new(&cmd_param.config_filename);
 
     if let Some(parent) = path.parent() {
         // No parent ? Not a error.
@@ -148,10 +137,10 @@ fn init(cmd_param: CommandParameter) -> Result<(), CommandError> {
         }
     }
 
-    if let Err(err) = cmd_param.io_helper.file_write(&config_file, &data) {
+    if let Err(err) = cmd_param.io_helper.file_write(&cmd_param.config_filename, &data) {
         return Err(CommandError {
             msg: vec![
-                format!("Unable to write file '{}'", config_file),
+                format!("Unable to write file '{}'", cmd_param.config_filename),
                 format!("{}", err),
             ],
             code: CommandExitCode::CannotWriteConfigFile,
@@ -174,7 +163,7 @@ pub const INIT: Command = Command {
     /// `check` command have no parameter.
     min_args: 0,
     max_args: 0,
-    /// `check` command have no help.
+    /// `check` command have no command.help.
     usage: "",
     need_config_file: false,
     exec_cmd: init,

@@ -14,7 +14,7 @@ use std::io::{Error, ErrorKind};
 use std::path::Path;
 
 /// Config structure of D-SH
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ConfigDocker {
     pub from: String,
     pub tag: String,
@@ -26,6 +26,8 @@ pub struct Config {
     pub download_dir: String,
     pub applications_dir: String,
     pub dockerfile: ConfigDocker,
+    pub dockerfile_filename: Option<String>,
+    pub entrypoint_filename: Option<String>,
     pub tmp_dir: Option<String>,
 }
 
@@ -86,25 +88,17 @@ pub fn create_config_filename_path(filename: &str) -> Option<String> {
 ///
 /// Return config structure.
 ///
-pub fn get_config(io_helper: &InputOutputHelper) -> Result<Config, Error> {
-    match get_config_filename() {
-        Some(config_file) => {
-            let data = io_helper.file_read_at_string(&config_file)?;
-            // let deserialized_config: Config = serde_yaml::from_str(&data).unwrap();
-            //
-            // Ok(deserialized_config)
+pub fn get_config(config_filename: String, io_helper: &InputOutputHelper) -> Result<Config, Error> {
+    let data = io_helper.file_read_at_string(&config_filename)?;
+    // let deserialized_config: Config = serde_yaml::from_str(&data).unwrap();
+    //
+    // Ok(deserialized_config)
 
-            match serde_yaml::from_str(&data) {
-                Ok(deserialized_config) => Ok(deserialized_config),
-                Err(err) => Err(Error::new(
-                    ErrorKind::Other,
-                    format!("File format of config file is wrong, {}!", err),
-                )),
-            }
-        }
-        None => Err(Error::new(
-            ErrorKind::PermissionDenied,
-            "Cannot read config file !",
+    match serde_yaml::from_str(&data) {
+        Ok(deserialized_config) => Ok(deserialized_config),
+        Err(err) => Err(Error::new(
+            ErrorKind::Other,
+            format!("File format of config file is wrong, {}!", err),
         )),
     }
 }

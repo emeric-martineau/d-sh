@@ -44,6 +44,8 @@ fn check_if_image_found_and_not_found() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
+        dockerfile_filename: None,
+        entrypoint_filename: None,
         tmp_dir: None,
     };
 
@@ -55,11 +57,12 @@ fn check_if_image_found_and_not_found() {
     let cmd_param = CommandParameter {
         command: &CHECK,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(check(cmd_param));
@@ -103,6 +106,8 @@ fn check_if_application_format_has_an_error() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
+        dockerfile_filename: None,
+        entrypoint_filename: None,
         tmp_dir: None,
     };
 
@@ -112,11 +117,12 @@ fn check_if_application_format_has_an_error() {
     let cmd_param = CommandParameter {
         command: &CHECK,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     let stderr = test_result_err(check(cmd_param), CommandExitCode::BadApplicationFormat);
@@ -141,6 +147,9 @@ fn check_if_cannot_read_application_dir() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
+        dockerfile_filename: None,
+        entrypoint_filename: None,
+
         tmp_dir: None,
     };
 
@@ -152,11 +161,12 @@ fn check_if_cannot_read_application_dir() {
     let cmd_param = CommandParameter {
         command: &CHECK,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     let stderr = test_result_err(

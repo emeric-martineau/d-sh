@@ -3,8 +3,7 @@ use self::base::build_base;
 use self::missing::get_missing_application;
 use self::one::build_one_application;
 use command::{Command, CommandError, CommandExitCode, CommandParameter};
-use config::dockerfile::DOCKERFILE_BASE_FILENAME;
-use config::{create_config_filename_path, Config};
+use config::Config;
 use handlebars::TemplateRenderError;
 use io::{convert_path, InputOutputHelper};
 use rand::Rng;
@@ -45,7 +44,7 @@ pub struct BuildOptions {
 }
 
 const UNKOWN_OPTIONS_MESSAGE: &'static str =
-    "d-sh build: invalid option '{}'\nTry 'd-sh build --help' for more information.\n";
+    "d-sh build: invalid option '{}'\nTry 'd-sh build --command.help' for more information.\n";
 
 ///
 /// Generate a random string.
@@ -72,23 +71,12 @@ fn remove_tmp_dir(io_helper: &InputOutputHelper, tmp_dir: &PathBuf) -> CommandEx
 /// Generate template of dockerfile.
 ///
 fn generate_dockerfile(
+    dockerfile_name: &str,
     io_helper: &InputOutputHelper,
     output_filename: &str,
     data: &Value,
 ) -> Result<(), CommandError> {
     let handlebars = Template::new();
-
-    let dockerfile_name;
-
-    match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
-        Some(r) => dockerfile_name = r,
-        None => {
-            return Err(CommandError {
-                msg: vec![String::from("Unable to get your home dir!")],
-                code: CommandExitCode::CannotGetHomeFolder,
-            });
-        }
-    }
 
     if !io_helper.file_exits(&dockerfile_name) {
         return Err(CommandError {
@@ -223,7 +211,7 @@ fn build(cmd_param: CommandParameter) -> Result<(), CommandError> {
 
     for argument in opts {
         match argument.as_ref() {
-            "-h" | "--help" => {
+            "-h" | "--command.help" => {
                 cmd_param.io_helper.println(cmd_param.command.usage);
                 return Ok(());
             }
@@ -312,7 +300,7 @@ pub const BUILD: Command = Command {
     /// `check` command have no parameter.
     min_args: 1,
     max_args: std::usize::MAX,
-    /// `check` command have no help.
+    /// `check` command have no command.help.
     usage: "
     Usage:	d-sh build [OPTIONS] PROGRAM1 PROGRAM2 ...
 

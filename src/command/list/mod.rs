@@ -92,7 +92,7 @@ pub const LIST: Command = Command {
     /// `check` command have no parameter.
     min_args: 0,
     max_args: 0,
-    /// `check` command have no help.
+    /// `check` command have no command.help.
     usage: "",
     need_config_file: true,
     exec_cmd: list,

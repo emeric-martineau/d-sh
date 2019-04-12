@@ -6,17 +6,30 @@
 pub mod build;
 pub mod check;
 pub mod delete;
+pub mod help;
 pub mod init;
 pub mod list;
 pub mod run;
 #[cfg(test)]
 pub mod tests;
 
-use config::{get_config, get_config_filename, Config};
+use config::{get_config, get_config_filename, create_config_filename_path, Config};
 use docker::ContainerHelper;
+use config::dockerfile::{ENTRYPOINT_FILENAME, DOCKERFILE_BASE_FILENAME};
 use download::DownloadHelper;
-use io::InputOutputHelper;
+use io::{InputOutputHelper, convert_path};
 use log::LoggerHelper;
+
+use self::build::BUILD;
+use self::check::CHECK;
+use self::delete::DELETE;
+use self::init::INIT;
+use self::list::LIST;
+use self::run::RUN;
+use self::help::HELP;
+use self::help::VERSION;
+
+pub const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, HELP, INIT, LIST, RUN, VERSION];
 
 ///
 /// Exit code of command.
@@ -79,6 +92,8 @@ pub struct CommandParameter<'a> {
     pub log_helper: &'a LoggerHelper,
     /// Config of D-SH.
     pub config: Option<&'a Config>,
+    /// Config filename.
+    pub config_filename: String
 }
 
 ///
@@ -87,7 +102,7 @@ pub struct CommandParameter<'a> {
 pub struct Command {
     /// Name of command, like delete.
     pub name: &'static str,
-    /// Help description in general help.
+    /// Help description in general command.help.
     pub description: &'static str,
     /// Short name like rm.
     pub short_name: &'static str,
@@ -95,7 +110,7 @@ pub struct Command {
     pub min_args: usize,
     /// Maximum arguments of command.
     pub max_args: usize,
-    /// Usage for help command.
+    /// Usage for command.help command.
     pub usage: &'static str,
     /// If command need config file exists.
     pub need_config_file: bool,
@@ -104,6 +119,81 @@ pub struct Command {
 }
 
 impl Command {
+    fn get_config(config_filename : Option<String>,
+                  io_helper: &InputOutputHelper,
+                  log_helper: &LoggerHelper) -> Result<Config, CommandExitCode> {
+        let config_file;
+
+        match config_filename {
+            Some(ref c) => config_file = convert_path(c),
+            None => match get_config_filename() {
+                Some(r) => config_file = r,
+                None => {
+                    io_helper.eprintln("Cannot access to folder where config must be.");
+                    return Err(CommandExitCode::CannotAccessToFolderOfConfigFile);
+                }
+            }
+        }
+
+        if !io_helper.file_exits(&config_file) {
+            io_helper.eprintln(&format!(
+                "The file '{}' doesn't exits. Please run 'init' command first.",
+                config_file
+            ));
+            return Err(CommandExitCode::ConfigFileNotFound);
+        }
+
+        let config;
+
+        match get_config(config_file, io_helper) {
+            Ok(r) => config = r,
+            Err(e) => {
+                log_helper.err(&format!("{}", e));
+                println!("{}", e);
+                io_helper.eprintln("Cannot read config file, please check rigts and format!");
+                return Err(CommandExitCode::ConfigFileFormatWrong);
+            }
+        }
+
+        let dockerfile_filename;
+        let entrypoint_filename;
+
+        match config.dockerfile_filename {
+            Some(ref d) => dockerfile_filename = convert_path(d),
+            None => {
+                match create_config_filename_path(&DOCKERFILE_BASE_FILENAME) {
+                    Some(r) => dockerfile_filename = r,
+                    None => {
+                        io_helper.eprintln("Unable to get your home dir!");
+                        return Err(CommandExitCode::CannotGetHomeFolder);
+                    }
+                }
+            }
+        }
+
+        match config.entrypoint_filename {
+            Some(ref d) => entrypoint_filename = convert_path(d),
+            None => {
+                match create_config_filename_path(&ENTRYPOINT_FILENAME) {
+                    Some(r) => entrypoint_filename = r,
+                    None => {
+                        io_helper.eprintln("Unable to get your home dir!");
+                        return Err(CommandExitCode::CannotGetHomeFolder);
+                    }
+                }
+            }
+        }
+
+        Ok(Config {
+            download_dir: config.download_dir.clone(),
+            applications_dir: config.applications_dir.clone(),
+            dockerfile: config.dockerfile.clone(),
+            dockerfile_filename: Some(dockerfile_filename),
+            entrypoint_filename: Some(entrypoint_filename),
+            tmp_dir: config.tmp_dir.clone()
+        })
+    }
+
     ///
     /// Execute code of command
     ///
@@ -114,6 +204,7 @@ impl Command {
     pub fn exec(
         &self,
         args: &[String],
+        config_filename : Option<String>,
         io_helper: &InputOutputHelper,
         dck_helper: &ContainerHelper,
         dl_helper: &DownloadHelper,
@@ -122,48 +213,28 @@ impl Command {
         // Check parameter
         if args.len() < self.min_args || args.len() > self.max_args {
             io_helper.eprintln(&format!("\"d-sh {}\" bad arguments number.", self.name));
-            io_helper.eprintln(&format!("See 'd-sh {} --help'.", self.name));
+            io_helper.eprintln(&format!("See 'd-sh {} --command.help'.", self.name));
 
             return CommandExitCode::BadArgument;
         }
 
         if self.need_config_file {
-            let config_file;
+            let config ;
 
-            match get_config_filename() {
-                Some(r) => config_file = r,
-                None => {
-                    io_helper.eprintln("Cannot access to folder where config must be.");
-                    return CommandExitCode::CannotAccessToFolderOfConfigFile;
-                }
-            }
-
-            if !io_helper.file_exits(&config_file) {
-                io_helper.eprintln(&format!(
-                    "The file '{}' doesn't exits. Please run 'init' command first.",
-                    config_file
-                ));
-                return CommandExitCode::ConfigFileNotFound;
-            }
-
-            let config;
-
-            match get_config(io_helper) {
-                Ok(r) => config = r,
-                Err(_) => {
-                    io_helper.eprintln("Cannot read config file, please check rigts and format!");
-                    return CommandExitCode::ConfigFileFormatWrong;
-                }
-            }
+            match Command::get_config(config_filename, io_helper, log_helper) {
+                Ok(c) => config = c,
+                Err(e) => return e
+            };
 
             let cmd_param = CommandParameter {
                 command: self,
-                args: args,
-                io_helper: io_helper,
-                dck_helper: dck_helper,
-                dl_helper: dl_helper,
-                log_helper: log_helper,
+                args,
+                io_helper,
+                dck_helper,
+                dl_helper,
+                log_helper,
                 config: Some(&config),
+                config_filename: get_config_filename().unwrap()
             };
 
             if let Err(err) = (self.exec_cmd)(cmd_param) {
@@ -176,12 +247,13 @@ impl Command {
         } else {
             let cmd_param = CommandParameter {
                 command: self,
-                args: args,
-                io_helper: io_helper,
-                dck_helper: dck_helper,
-                dl_helper: dl_helper,
-                log_helper: log_helper,
+                args,
+                io_helper,
+                dck_helper,
+                dl_helper,
+                log_helper,
                 config: None,
+                config_filename: get_config_filename().unwrap()
             };
 
             if let Err(err) = (self.exec_cmd)(cmd_param) {

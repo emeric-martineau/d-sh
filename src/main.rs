@@ -20,35 +20,22 @@ mod command;
 mod config;
 mod docker;
 mod download;
-mod help;
 mod io;
 mod log;
 mod template;
 
-use command::build::BUILD;
-use command::check::CHECK;
-use command::delete::DELETE;
-use command::init::INIT;
-use command::list::LIST;
-use command::run::RUN;
-use command::Command;
-use command::CommandExitCode;
+use command::{CommandExitCode, ALL_COMMANDS};
 use docker::{DefaultContainerHelper};
 use download::{DefaultDownloadHelper};
-use help::help;
-use help::version;
+use config::get_config_filename;
 use io::DefaultInputOutputHelper;
 use io::InputOutputHelper;
 use log::{DefaultLoggerHelper, EmptyLoggerHelper, LoggerHelper};
 use std::env;
 
-const ALL_COMMANDS: &'static [Command] = &[BUILD, CHECK, DELETE, INIT, LIST, RUN];
 
-fn run_command(cmd: &str, args: &[String],
-               io_helper: &DefaultInputOutputHelper,
-               dck_help: &DefaultContainerHelper,
-               dl_helper: &DefaultDownloadHelper,
-               log_helper: &LoggerHelper) -> CommandExitCode {
+
+fn run_command<'r>(cmd: &str, args: &[String], config_filename : Option<String>, debug: bool) -> CommandExitCode {
     let mut command_to_run = None;
 
     for c in ALL_COMMANDS {
@@ -58,11 +45,23 @@ fn run_command(cmd: &str, args: &[String],
         }
     }
 
+    let log_helper : &'r LoggerHelper;
+
+    if debug {
+        log_helper = &DefaultLoggerHelper{};
+    } else {
+        log_helper = &EmptyLoggerHelper{};
+    }
+
+    let io_helper = DefaultInputOutputHelper::new(log_helper);
+    let dck_helper = DefaultContainerHelper::new(log_helper);
+    let dl_helper = DefaultDownloadHelper::new(log_helper);
+
     match command_to_run {
-        Some(c) => c.exec(&args, io_helper, dck_help, dl_helper, log_helper),
+        Some(c) => c.exec(&args, config_filename, &io_helper, &dck_helper, &dl_helper, log_helper),
         None => {
             io_helper.eprintln(&format!("D-SH: '{}' is not a d-sh command.", cmd));
-            io_helper.eprintln(&format!("See '{} --help'", args[0]));
+            io_helper.eprintln(&format!("See '{} --command.help'", args[0]));
 
             CommandExitCode::CommandNotFound
         }
@@ -74,40 +73,44 @@ fn run_command(cmd: &str, args: &[String],
 ///
 fn main() {
     // Get command line options
-    let args: Vec<String> = env::args().collect();
+    let mut args: Vec<String> = env::args().collect();
     // Default exit code
-    let mut exit_code = CommandExitCode::Ok;
-
-    let log_helper = &EmptyLoggerHelper{};
-    let io_helper = &DefaultInputOutputHelper::new(log_helper);
-    let dck_help = &DefaultContainerHelper::new(log_helper);
-    let dl_helper = &DefaultDownloadHelper::new(log_helper);
+    let mut exit_code = CommandExitCode::Todo;
+    let mut debug = false;
+    let mut config_filename : Option<String> = None;
 
     if args.len() == 1 {
-        help(ALL_COMMANDS, io_helper);
+        run_command("help", &[], None, false);
+
         exit_code = CommandExitCode::Help;
     } else {
-        let command = &args[1];
+        while exit_code == CommandExitCode::Todo {
+            let command = args[1].clone();
 
-        match command.as_str() {
-            "-h" | "--help" => help(ALL_COMMANDS, io_helper),
-            "-v" | "--version" => version(&args, io_helper),
-            "-d" | "--debug" => {
-                let log_helper = &DefaultLoggerHelper{};
-                let io_helper = &DefaultInputOutputHelper::new(log_helper);
-                let dck_help = &DefaultContainerHelper::new(log_helper);
-                let dl_helper = &DefaultDownloadHelper::new(log_helper);
+            match command.as_str() {
+                "-c" | "--config" => {
+                    config_filename = Some(args[2].clone());
 
+                    args.remove(1);
+                    args.remove(1);
+                },
+                "-d" | "--debug" => {
+                    debug = true;
 
-                exit_code = run_command(&args[2],&args[3..], io_helper, dck_help, dl_helper, log_helper)
-            },
-            cmd => {
-                exit_code = run_command(cmd,&args[2..], io_helper, dck_help, dl_helper, log_helper)
-            }
-        };
+                    args.remove(1);
+                },
+                cmd => {
+                    if config_filename.is_none() {
+                        config_filename = get_config_filename();
+                    }
+
+                    exit_code = run_command(cmd,&args[2..], config_filename.clone(), debug)
+                }
+            };
+        }
     }
 
-    // TODO  If application format not good, display help
+    // TODO  If application format not good, display command.help
 
     std::process::exit(exit_code as i32)
 }

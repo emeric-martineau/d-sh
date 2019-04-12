@@ -4,6 +4,10 @@
 ---
 download_dir: "dwn"
 applications_dir: "app"
+# This line is optional.
+dockerfile_filename: "..."
+# This line is optional.
+entrypoint_filename: "..."
 dockerfile:
   from: "ubuntu:18.04"
   tag: "d-base-image:v1.0.0"

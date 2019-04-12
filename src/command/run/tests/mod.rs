@@ -33,17 +33,20 @@ fn run_display_help() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(run(cmd_param));
@@ -70,17 +73,20 @@ fn run_image_application_not_found() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     let stderr = test_result_err(run(cmd_param), CommandExitCode::ApplicationFileNotFound);
@@ -109,7 +115,9 @@ fn run_image_not_found_not_interactive() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -118,11 +126,12 @@ fn run_image_not_found_not_interactive() {
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     let stderr = test_result_err(run(cmd_param), CommandExitCode::ContainerImageNotFound);
@@ -153,7 +162,9 @@ fn run_image_found_not_interactive() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -168,11 +179,12 @@ fn run_image_found_not_interactive() {
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(run(cmd_param));
@@ -249,7 +261,9 @@ fn run_image_found_not_interactive_with_args() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -264,11 +278,12 @@ fn run_image_found_not_interactive_with_args() {
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(run(cmd_param));
@@ -308,7 +323,9 @@ fn run_image_found_interactive(
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -326,11 +343,12 @@ fn run_image_found_interactive(
     let cmd_param = CommandParameter {
         command: &RUN,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(run(cmd_param));

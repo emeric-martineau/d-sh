@@ -30,7 +30,9 @@ fn list_all_applications() {
             from: String::from("tata"),
             tag: String::from("tutu"),
         },
-        tmp_dir: None,
+                dockerfile_filename: None,
+        entrypoint_filename: None,
+tmp_dir: None
     };
 
     // Create application file atom
@@ -41,11 +43,12 @@ fn list_all_applications() {
     let cmd_param = CommandParameter {
         command: &LIST,
         args: &args,
-        io_helper: io_helper,
-        dck_helper: dck_helper,
-        dl_helper: dl_helper,
-        log_helper: log_helper,
+        io_helper,
+        dck_helper,
+        dl_helper,
+        log_helper,
         config: Some(&config),
+        config_filename: String::new()
     };
 
     test_result_ok(list(cmd_param));
