@@ -2,6 +2,10 @@
 name = "d-sh"
 version = "2.0.1"
 authors = ["Emeric MARTINEAU"]
+repository = "https://github.com/bubulemaster/d-sh"
+readme = "README.md"
+license = "MIT"
+license-file = "LICENSE"
 
 [dependencies]
 serde = "^1.0"
